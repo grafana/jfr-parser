@@ -55,6 +55,6 @@ Help with these pending tasks is more than welcome :)
 ## References
 
 - [JEP 328](https://openjdk.java.net/jeps/328) introduces Java Flight Recorder.
-- [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) supports includes a partiar [JFR writer](https://github.com/jvm-profiling-tools/async-profiler/blob/master/src/flightRecorder.cpp) and [reader](https://github.com/jvm-profiling-tools/async-profiler/tree/master/src/converter/one/jfr)
+- [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) supports includes a partiar [JFR writer](https://github.com/jvm-profiling-tools/async-profiler/blob/master/src/flightRecorder.cpp) and [reader](https://github.com/jvm-profiling-tools/async-profiler/tree/master/src/converter/one/jfr).
 - [JMC](https://github.com/openjdk/jmc) project includes its own [JFR parser](https://github.com/openjdk/jmc/tree/master/core/org.openjdk.jmc.flightrecorder/src/main/java/org/openjdk/jmc/flightrecorder/parser) (in Java).
-- [The JDK Flight Recorder File Format](https://www.morling.dev/blog/jdk-flight-recorder-file-format/) by @gunnarmorling has a great overview of the JFR format.
+- [The JDK Flight Recorder File Format](https://www.morling.dev/blog/jdk-flight-recorder-file-format/) by [@gunnarmorling](github.com/gunnarmorling) has a great overview of the JFR format.
