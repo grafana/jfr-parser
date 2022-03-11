@@ -14,10 +14,10 @@ var events = map[string]func() Parseable{
 	"jdk.ExecutionSample":       func() Parseable { return new(ExecutionSample) },
 	"jdk.InitialSystemProperty": func() Parseable { return new(InitialSystemProperty) },
 	// TODO: jdk.JavaMonitorEnter
-	"jdk.JVMInformation": func() Parseable { return new(JVMInformation) },
-	// TODO: jdk.ObjectAllocationInNewTLAB
-	// TODO: jdk.ObjectAllocationOutsideTLAB
-	"jdk.OSInformation": func() Parseable { return new(OSInformation) },
+	"jdk.JVMInformation":              func() Parseable { return new(JVMInformation) },
+	"jdk.ObjectAllocationInNewTLAB":   func() Parseable { return new(ObjectAllocationInNewTLAB) },
+	"jdk.ObjectAllocationOutsideTLAB": func() Parseable { return new(ObjectAllocationOutsideTLAB) },
+	"jdk.OSInformation":               func() Parseable { return new(OSInformation) },
 	// TODO: jdk.ThreadPark
 }
 
@@ -257,6 +257,65 @@ func (ji *JVMInformation) parseField(name string, p ParseResolvable) (err error)
 
 func (ji *JVMInformation) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, nil, ji.parseField)
+}
+
+type ObjectAllocationInNewTLAB struct {
+	StartTime      int64
+	EventThread    *Thread
+	StackTrace     *StackTrace
+	ObjectClass    *Class
+	AllocationSize int64
+	TLABSize       int64
+}
+
+func (oa *ObjectAllocationInNewTLAB) parseField(name string, p ParseResolvable) (err error) {
+	switch name {
+	case "startTime":
+		oa.StartTime, err = toLong(p)
+	case "sampledThread":
+		oa.EventThread, err = toThread(p)
+	case "stackTrace":
+		oa.StackTrace, err = toStackTrace(p)
+	case "objectClass":
+		oa.ObjectClass, err = toClass(p)
+	case "allocationSize":
+		oa.AllocationSize, err = toLong(p)
+	case "tlabSize":
+		oa.TLABSize, err = toLong(p)
+	}
+	return err
+}
+
+func (oa *ObjectAllocationInNewTLAB) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, nil, oa.parseField)
+}
+
+type ObjectAllocationOutsideTLAB struct {
+	StartTime      int64
+	EventThread    *Thread
+	StackTrace     *StackTrace
+	ObjectClass    *Class
+	AllocationSize int64
+}
+
+func (oa *ObjectAllocationOutsideTLAB) parseField(name string, p ParseResolvable) (err error) {
+	switch name {
+	case "startTime":
+		oa.StartTime, err = toLong(p)
+	case "sampledThread":
+		oa.EventThread, err = toThread(p)
+	case "stackTrace":
+		oa.StackTrace, err = toStackTrace(p)
+	case "objectClass":
+		oa.ObjectClass, err = toClass(p)
+	case "allocationSize":
+		oa.AllocationSize, err = toLong(p)
+	}
+	return err
+}
+
+func (oa *ObjectAllocationOutsideTLAB) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, nil, oa.parseField)
 }
 
 type OSInformation struct {
