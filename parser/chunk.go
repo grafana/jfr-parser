@@ -95,7 +95,9 @@ func (c *Chunk) Parse(r io.Reader) (err error) {
 
 	// Second pass over constant pools: resolve constants
 	for classID := range cpools {
-		ResolveConstants(classes, cpools, classID)
+		if err := ResolveConstants(classes, cpools, classID); err != nil {
+			return err
+		}
 	}
 
 	// Parse the rest of events
@@ -135,7 +137,8 @@ func buildClasses(metadata MetadataEvent) ClassMap {
 func ResolveConstants(classes ClassMap, cpools PoolMap, classID int) (err error) {
 	cpool, ok := cpools[classID]
 	if !ok {
-		return fmt.Errorf("unexpected class %d in constant pool", classID)
+		// Non-existent constant pool references seem to be used to mark no value
+		return nil
 	}
 	for _, t := range cpool {
 		if err := t.Resolve(classes, cpools); err != nil {
