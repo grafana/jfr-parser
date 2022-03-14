@@ -85,7 +85,7 @@ func (ar *ActiveRecording) parseField(name string, p ParseResolvable) (err error
 }
 
 func (ar *ActiveRecording) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, ar.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, ar.parseField)
 }
 
 type ActiveSetting struct {
@@ -116,7 +116,7 @@ func (as *ActiveSetting) parseField(name string, p ParseResolvable) (err error) 
 }
 
 func (as *ActiveSetting) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, as.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, as.parseField)
 }
 
 type CPUInformation struct {
@@ -147,7 +147,7 @@ func (ci *CPUInformation) parseField(name string, p ParseResolvable) (err error)
 }
 
 func (ci *CPUInformation) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, ci.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, ci.parseField)
 }
 
 type CPULoad struct {
@@ -172,7 +172,7 @@ func (cl *CPULoad) parseField(name string, p ParseResolvable) (err error) {
 }
 
 func (cl *CPULoad) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, cl.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, cl.parseField)
 }
 
 type ExecutionSample struct {
@@ -197,7 +197,7 @@ func (es *ExecutionSample) parseField(name string, p ParseResolvable) (err error
 }
 
 func (es *ExecutionSample) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, es.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, es.parseField)
 }
 
 type InitialSystemProperty struct {
@@ -219,7 +219,7 @@ func (isp *InitialSystemProperty) parseField(name string, p ParseResolvable) (er
 }
 
 func (isp *InitialSystemProperty) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, isp.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, isp.parseField)
 }
 
 type JVMInformation struct {
@@ -256,7 +256,7 @@ func (ji *JVMInformation) parseField(name string, p ParseResolvable) (err error)
 }
 
 func (ji *JVMInformation) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, ji.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, ji.parseField)
 }
 
 type ObjectAllocationInNewTLAB struct {
@@ -287,7 +287,7 @@ func (oa *ObjectAllocationInNewTLAB) parseField(name string, p ParseResolvable) 
 }
 
 func (oa *ObjectAllocationInNewTLAB) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, oa.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, oa.parseField)
 }
 
 type ObjectAllocationOutsideTLAB struct {
@@ -315,7 +315,7 @@ func (oa *ObjectAllocationOutsideTLAB) parseField(name string, p ParseResolvable
 }
 
 func (oa *ObjectAllocationOutsideTLAB) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, oa.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, oa.parseField)
 }
 
 type OSInformation struct {
@@ -334,5 +334,5 @@ func (os *OSInformation) parseField(name string, p ParseResolvable) (err error) 
 }
 
 func (os *OSInformation) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
-	return parseFields(r, classes, cpools, class, nil, os.parseField)
+	return parseFields(r, classes, cpools, class, nil, true, os.parseField)
 }
