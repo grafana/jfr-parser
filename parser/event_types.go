@@ -109,7 +109,7 @@ func (as *ActiveSetting) parseField(name string, p ParseResolvable) (err error) 
 		as.ID, err = toLong(p)
 	case "name":
 		as.Name, err = toString(p)
-	case "destination":
+	case "value":
 		as.Value, err = toString(p)
 	}
 	return err
