@@ -92,7 +92,7 @@ func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassM
 				}
 				p, ok := cpool[int(i)]
 				if !ok {
-					return fmt.Errorf("unknown constant pool index %d for class %d", i, f.Class)
+					continue
 				}
 				if err := cb(f.Name, p); err != nil {
 					return fmt.Errorf("unable to parse constant field %s: %w", f.Name, err)
