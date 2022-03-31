@@ -34,11 +34,12 @@ func parseEvent(r reader.Reader, classes ClassMap, cpools PoolMap, classID int) 
 	if !ok {
 		return nil, fmt.Errorf("unknown class %d", classID)
 	}
-	typeFn, ok := events[class.Name]
-	if !ok {
-		return nil, fmt.Errorf("unsupported class %s", class.Name)
+	var v Parseable
+	if typeFn, ok := events[class.Name]; ok {
+		v = typeFn()
+	} else {
+		v = new(UnsupportedEvent)
 	}
-	v := typeFn()
 	if err := v.Parse(r, classes, cpools, class); err != nil {
 		return nil, fmt.Errorf("unable to parse event %s: %w", class.Name, err)
 	}
@@ -335,4 +336,14 @@ func (os *OSInformation) parseField(name string, p ParseResolvable) (err error) 
 
 func (os *OSInformation) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, nil, true, os.parseField)
+}
+
+type UnsupportedEvent struct{}
+
+func (ue *UnsupportedEvent) parseField(name string, p ParseResolvable) error {
+	return nil
+}
+
+func (ue *UnsupportedEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, nil, true, ue.parseField)
 }
