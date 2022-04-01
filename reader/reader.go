@@ -107,7 +107,7 @@ func (r reader) String() (string, error) {
 		return "", nil
 	case 1:
 		return "", nil
-	case 3:
+	case 3, 4, 5:
 		return r.utf8()
 	default:
 		// TODO

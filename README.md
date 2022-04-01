@@ -46,7 +46,6 @@ The current (non-exhaustive) list of pending work includes:
 - Documentation
 - Testing
 - Annotation support: annotation types are not implemented and annotations are not parsed, they are just ignored.
-- Not all string encodings are supported: currently only encodings 0 (null), 1 (empty) and 3 (UTF8 Byte Array) are supported.
 - Not all data types are supported. See [types.go](parser/types.go) for a list of supported types.
 - Not all event types are supported. See [event_types.go](parser/event_types.go)) for a list of supported event types.
 
@@ -57,4 +56,4 @@ Help with these pending tasks is more than welcome :)
 - [JEP 328](https://openjdk.java.net/jeps/328) introduces Java Flight Recorder.
 - [async-profiler](https://github.com/jvm-profiling-tools/async-profiler) supports includes a partiar [JFR writer](https://github.com/jvm-profiling-tools/async-profiler/blob/master/src/flightRecorder.cpp) and [reader](https://github.com/jvm-profiling-tools/async-profiler/tree/master/src/converter/one/jfr).
 - [JMC](https://github.com/openjdk/jmc) project includes its own [JFR parser](https://github.com/openjdk/jmc/tree/master/core/org.openjdk.jmc.flightrecorder/src/main/java/org/openjdk/jmc/flightrecorder/parser) (in Java).
-- [The JDK Flight Recorder File Format](https://www.morling.dev/blog/jdk-flight-recorder-file-format/) by [@gunnarmorling](github.com/gunnarmorling) has a great overview of the JFR format.
+- [The JDK Flight Recorder File Format](https://www.morling.dev/blog/jdk-flight-recorder-file-format/) by [@gunnarmorling](https://github.com/gunnarmorling) has a great overview of the JFR format.
