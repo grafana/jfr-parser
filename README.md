@@ -46,7 +46,6 @@ The current (non-exhaustive) list of pending work includes:
 - Documentation
 - Testing
 - Annotation support: annotation types are not implemented and annotations are not parsed, they are just ignored.
-- Not all string encodings are supported: currently only encodings 0 (null), 1 (empty) and 3 (UTF8 Byte Array) are supported.
 - Not all data types are supported. See [types.go](parser/types.go) for a list of supported types.
 - Not all event types are supported. See [event_types.go](parser/event_types.go)) for a list of supported event types.
 
