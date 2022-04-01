@@ -15,6 +15,7 @@ var events = map[string]func() Parseable{
 	"jdk.InitialSystemProperty": func() Parseable { return new(InitialSystemProperty) },
 	// TODO: jdk.JavaMonitorEnter
 	"jdk.JVMInformation":              func() Parseable { return new(JVMInformation) },
+	"jdk.NativeLibrary":               func() Parseable { return new(NativeLibrary) },
 	"jdk.ObjectAllocationInNewTLAB":   func() Parseable { return new(ObjectAllocationInNewTLAB) },
 	"jdk.ObjectAllocationOutsideTLAB": func() Parseable { return new(ObjectAllocationOutsideTLAB) },
 	"jdk.OSInformation":               func() Parseable { return new(OSInformation) },
@@ -34,11 +35,12 @@ func parseEvent(r reader.Reader, classes ClassMap, cpools PoolMap, classID int) 
 	if !ok {
 		return nil, fmt.Errorf("unknown class %d", classID)
 	}
-	typeFn, ok := events[class.Name]
-	if !ok {
-		return nil, fmt.Errorf("unsupported class %s", class.Name)
+	var v Parseable
+	if typeFn, ok := events[class.Name]; ok {
+		v = typeFn()
+	} else {
+		v = new(UnsupportedEvent)
 	}
-	v := typeFn()
 	if err := v.Parse(r, classes, cpools, class); err != nil {
 		return nil, fmt.Errorf("unable to parse event %s: %w", class.Name, err)
 	}
@@ -259,6 +261,31 @@ func (ji *JVMInformation) Parse(r reader.Reader, classes ClassMap, cpools PoolMa
 	return parseFields(r, classes, cpools, class, nil, true, ji.parseField)
 }
 
+type NativeLibrary struct {
+	StartTime   int64
+	Name        string
+	BaseAddress int64
+	TopAddress  int64
+}
+
+func (nl *NativeLibrary) parseField(name string, p ParseResolvable) (err error) {
+	switch name {
+	case "startTime":
+		nl.StartTime, err = toLong(p)
+	case "name":
+		nl.Name, err = toString(p)
+	case "baseAddress":
+		nl.BaseAddress, err = toLong(p)
+	case "topAddress":
+		nl.TopAddress, err = toLong(p)
+	}
+	return err
+}
+
+func (nl *NativeLibrary) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, nil, true, nl.parseField)
+}
+
 type ObjectAllocationInNewTLAB struct {
 	StartTime      int64
 	EventThread    *Thread
@@ -335,4 +362,14 @@ func (os *OSInformation) parseField(name string, p ParseResolvable) (err error) 
 
 func (os *OSInformation) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, nil, true, os.parseField)
+}
+
+type UnsupportedEvent struct{}
+
+func (ue *UnsupportedEvent) parseField(name string, p ParseResolvable) error {
+	return nil
+}
+
+func (ue *UnsupportedEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, nil, true, ue.parseField)
 }

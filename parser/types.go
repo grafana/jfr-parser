@@ -34,11 +34,12 @@ func ParseClass(r reader.Reader, classes ClassMap, cpools PoolMap, classID int64
 	if !ok {
 		return nil, fmt.Errorf("unexpected class %d", classID)
 	}
-	typeFn, ok := types[class.Name]
-	if !ok {
-		return nil, fmt.Errorf("unknown type %s", class.Name)
+	var v ParseResolvable
+	if typeFn, ok := types[class.Name]; ok {
+		v = typeFn()
+	} else {
+		v = new(UnsupportedType)
 	}
-	v := typeFn()
 	if err := v.Parse(r, classes, cpools, class); err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassM
 				}
 				p, ok := cpool[int(i)]
 				if !ok {
-					return fmt.Errorf("unknown constant pool index %d for class %d", i, f.Class)
+					continue
 				}
 				if err := cb(f.Name, p); err != nil {
 					return fmt.Errorf("unable to parse constant field %s: %w", f.Name, err)
@@ -683,4 +684,23 @@ func toSymbol(p ParseResolvable) (*Symbol, error) {
 		return nil, errors.New("")
 	}
 	return s, nil
+}
+
+// UnsupportedType represents any type that is not supported by the parser.
+// This will allow to still read the unsupported type instead of returning an error.
+type UnsupportedType struct {
+	constants []constant
+	resolved  bool
+}
+
+func (ut *UnsupportedType) parseField(name string, p ParseResolvable) error {
+	return nil
+}
+
+func (ut *UnsupportedType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, &ut.constants, ut.resolved, ut.parseField)
+}
+
+func (ut *UnsupportedType) Resolve(classes ClassMap, cpools PoolMap) error {
+	return resolveConstants(classes, cpools, &ut.constants, &ut.resolved, ut.parseField)
 }
