@@ -192,7 +192,7 @@ func (es *ExecutionSample) parseField(name string, p ParseResolvable) (err error
 		es.SampledThread, err = toThread(p)
 	case "stackTrace":
 		es.StackTrace, err = toStackTrace(p)
-	case "machineTotal":
+	case "state":
 		es.State, err = toThreadState(p)
 	}
 	return err
