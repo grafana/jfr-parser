@@ -7,19 +7,19 @@ import (
 )
 
 var events = map[string]func() Parseable{
-	"jdk.ActiveRecording":       func() Parseable { return new(ActiveRecording) },
-	"jdk.ActiveSetting":         func() Parseable { return new(ActiveSetting) },
-	"jdk.CPUInformation":        func() Parseable { return new(CPUInformation) },
-	"jdk.CPULoad":               func() Parseable { return new(CPULoad) },
-	"jdk.ExecutionSample":       func() Parseable { return new(ExecutionSample) },
-	"jdk.InitialSystemProperty": func() Parseable { return new(InitialSystemProperty) },
-	// TODO: jdk.JavaMonitorEnter
+	"jdk.ActiveRecording":             func() Parseable { return new(ActiveRecording) },
+	"jdk.ActiveSetting":               func() Parseable { return new(ActiveSetting) },
+	"jdk.CPUInformation":              func() Parseable { return new(CPUInformation) },
+	"jdk.CPULoad":                     func() Parseable { return new(CPULoad) },
+	"jdk.ExecutionSample":             func() Parseable { return new(ExecutionSample) },
+	"jdk.InitialSystemProperty":       func() Parseable { return new(InitialSystemProperty) },
+	"jdk.JavaMonitorEnter":            func() Parseable { return new(JavaMonitorEnter) },
 	"jdk.JVMInformation":              func() Parseable { return new(JVMInformation) },
 	"jdk.NativeLibrary":               func() Parseable { return new(NativeLibrary) },
 	"jdk.ObjectAllocationInNewTLAB":   func() Parseable { return new(ObjectAllocationInNewTLAB) },
 	"jdk.ObjectAllocationOutsideTLAB": func() Parseable { return new(ObjectAllocationOutsideTLAB) },
 	"jdk.OSInformation":               func() Parseable { return new(OSInformation) },
-	// TODO: jdk.ThreadPark
+	"jdk.ThreadPark":                  func() Parseable { return new(ThreadPark) },
 }
 
 func ParseEvent(r reader.Reader, classes ClassMap, cpools PoolMap) (Parseable, error) {
@@ -224,6 +224,40 @@ func (isp *InitialSystemProperty) Parse(r reader.Reader, classes ClassMap, cpool
 	return parseFields(r, classes, cpools, class, nil, true, isp.parseField)
 }
 
+type JavaMonitorEnter struct {
+	StartTime     int64
+	Duration      int64
+	EventThread   *Thread
+	StackTrace    *StackTrace
+	MonitorClass  *Class
+	PreviousOwner *Thread
+	Address       int64
+}
+
+func (jme *JavaMonitorEnter) parseField(name string, p ParseResolvable) (err error) {
+	switch name {
+	case "startTime":
+		jme.StartTime, err = toLong(p)
+	case "duration":
+		jme.Duration, err = toLong(p)
+	case "eventThread":
+		jme.EventThread, err = toThread(p)
+	case "stackTrace":
+		jme.StackTrace, err = toStackTrace(p)
+	case "monitorClass":
+		jme.MonitorClass, err = toClass(p)
+	case "previousOwner":
+		jme.PreviousOwner, err = toThread(p)
+	case "address":
+		jme.Address, err = toLong(p)
+	}
+	return err
+}
+
+func (jme *JavaMonitorEnter) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, nil, true, jme.parseField)
+}
+
 type JVMInformation struct {
 	StartTime     int64
 	JVMName       string
@@ -362,6 +396,43 @@ func (os *OSInformation) parseField(name string, p ParseResolvable) (err error) 
 
 func (os *OSInformation) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, nil, true, os.parseField)
+}
+
+type ThreadPark struct {
+	StartTime   int64
+	Duration    int64
+	EventThread *Thread
+	StackTrace  *StackTrace
+	ParkedClass *Class
+	Timeout     int64
+	Until       int64
+	Address     int64
+}
+
+func (tp *ThreadPark) parseField(name string, p ParseResolvable) (err error) {
+	switch name {
+	case "startTime":
+		tp.StartTime, err = toLong(p)
+	case "duration":
+		tp.Duration, err = toLong(p)
+	case "eventThread":
+		tp.EventThread, err = toThread(p)
+	case "stackTrace":
+		tp.StackTrace, err = toStackTrace(p)
+	case "parkedClass":
+		tp.ParkedClass, err = toClass(p)
+	case "timeout":
+		tp.Timeout, err = toLong(p)
+	case "until":
+		tp.Until, err = toLong(p)
+	case "address":
+		tp.Address, err = toLong(p)
+	}
+	return err
+}
+
+func (tp *ThreadPark) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, nil, true, tp.parseField)
 }
 
 type UnsupportedEvent struct{}
