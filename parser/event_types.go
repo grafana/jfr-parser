@@ -214,7 +214,7 @@ func (isp *InitialSystemProperty) parseField(name string, p ParseResolvable) (er
 		isp.StartTime, err = toLong(p)
 	case "key":
 		isp.Key, err = toString(p)
-	case "stackTrace":
+	case "value":
 		isp.Value, err = toString(p)
 	}
 	return err
