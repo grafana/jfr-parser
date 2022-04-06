@@ -60,6 +60,7 @@ func (c *Chunk) Parse(r io.Reader) (err error) {
 	br := bytes.NewReader(buf)
 	rd := reader.NewReader(br, useCompression)
 	pointer := int64(0)
+	events := make(map[int64]int32)
 
 	// Parse metadata
 	br.Seek(c.Header.MetadataOffset, io.SeekStart)
@@ -67,6 +68,7 @@ func (c *Chunk) Parse(r io.Reader) (err error) {
 	if err != nil {
 		return fmt.Errorf("unable to parse chunk metadata size: %w", err)
 	}
+	events[c.Header.MetadataOffset] = metadataSize
 	var metadata MetadataEvent
 	if err := metadata.Parse(rd); err != nil {
 		return fmt.Errorf("unable to parse chunk metadata: %w", err)
@@ -77,11 +79,13 @@ func (c *Chunk) Parse(r io.Reader) (err error) {
 	br.Seek(c.Header.ConstantPoolOffset, io.SeekStart)
 	checkpointsSize := int32(0)
 	cpools := make(PoolMap)
+	delta := int64(0)
 	for {
 		size, err := rd.VarInt()
 		if err != nil {
 			return fmt.Errorf("unable to parse checkpoint event size: %w", err)
 		}
+		events[c.Header.ConstantPoolOffset+delta] = size
 		checkpointsSize += size
 		var cp CheckpointEvent
 		if err := cp.Parse(rd, classes, cpools); err != nil {
@@ -91,6 +95,8 @@ func (c *Chunk) Parse(r io.Reader) (err error) {
 		if cp.Delta == 0 {
 			break
 		}
+		delta += cp.Delta
+		br.Seek(c.Header.ConstantPoolOffset+delta, io.SeekStart)
 	}
 
 	// Second pass over constant pools: resolve constants
@@ -103,10 +109,8 @@ func (c *Chunk) Parse(r io.Reader) (err error) {
 	// Parse the rest of events
 	br.Seek(pointer, io.SeekStart)
 	for pointer != c.Header.ChunkSize {
-		if pointer == c.Header.MetadataOffset {
-			pointer += int64(metadataSize)
-		} else if pointer == c.Header.ConstantPoolOffset {
-			pointer += int64(checkpointsSize)
+		if size, ok := events[pointer]; ok {
+			pointer += int64(size)
 		} else {
 			if _, err := br.Seek(pointer, io.SeekStart); err != nil {
 				return fmt.Errorf("unable to seek to position %d: %w", pointer, err)
@@ -115,6 +119,7 @@ func (c *Chunk) Parse(r io.Reader) (err error) {
 			if err != nil {
 				return fmt.Errorf("unable to parse event size: %w", err)
 			}
+			events[pointer] = size
 			e, err := ParseEvent(rd, classes, cpools)
 			if err != nil {
 				return fmt.Errorf("unable to parse event: %w", err)
