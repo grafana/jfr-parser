@@ -1,7 +1,6 @@
 package reader
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -15,50 +14,48 @@ func newCompressed(r io.ByteReader) VarReader {
 }
 
 func (c compressed) VarShort() (int16, error) {
-	n, err := binary.ReadUvarint(c)
+	n, err := c.ulong()
 	if err != nil {
 		return 0, err
 	}
 	if (n >> 48) > 0 {
-		// TODO
-		return 0, fmt.Errorf("overflow: %d bigger than 32 bits", n)
+		return 0, fmt.Errorf("overflow: %d bigger than 16 bits", n)
 	}
 	return int16(n), nil
-	/*
-		   FIXME: Is it unsigned LEB128?
-		x := int16(n >> 1)
-		if n&1 == 1 {
-			x = ^x
-		}
-		return x, nil
-	*/
 }
 
 func (c compressed) VarInt() (int32, error) {
-	n, err := binary.ReadUvarint(c)
+	n, err := c.ulong()
 	if err != nil {
 		return 0, err
 	}
 	if (n >> 32) > 0 {
-		// TODO
 		return 0, fmt.Errorf("overflow: %d bigger than 32 bits", n)
 	}
 	return int32(n), nil
-	/*
-		   FIXME: Is it unsigned LEB128?
-		x := int32(n >> 1)
-		if n&1 == 1 {
-			x = ^x
-		}
-		return x, nil
-	*/
 }
 
 func (c compressed) VarLong() (int64, error) {
-	/*
-			   FIXME: Is it unsigned LEB128?
-		return binary.ReadVarint(c)
-	*/
-	n, err := binary.ReadUvarint(c)
+	n, err := c.ulong()
 	return int64(n), err
+}
+
+func (c compressed) ulong() (n uint64, err error) {
+	s := 0
+	for i := 0; i < 9; i++ {
+		b, err := c.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		if b&0x80 == 0 {
+			n |= uint64(b) << s
+			return n, nil
+		}
+		if i < 8 {
+			b &= 0x7f
+		}
+		n |= uint64(b) << s
+		s += 7
+	}
+	return n, nil
 }
