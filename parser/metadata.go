@@ -215,12 +215,12 @@ func (m *MetadataEvent) Parse(r reader.Reader) (err error) {
 		return err
 	}
 	if name != "root" {
-		fmt.Errorf("invalid root element name: %s", name)
+		return fmt.Errorf("invalid root element name: %s", name)
 	}
 
 	m.Root = Root{}
 	if err := parseElement(r, strings, &m.Root); err != nil {
-		fmt.Errorf("unable to parse metadata element tree: %w", err)
+		return fmt.Errorf("unable to parse metadata element tree: %w", err)
 	}
 	return nil
 }
