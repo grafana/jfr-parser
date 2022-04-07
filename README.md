@@ -46,8 +46,8 @@ The current (non-exhaustive) list of pending work includes:
 - Documentation
 - Testing
 - Annotation support: annotation types are not implemented and annotations are not parsed, they are just ignored.
-- Not all data types are supported. See [types.go](parser/types.go) for a list of supported types.
-- Not all event types are supported. See [event_types.go](parser/event_types.go)) for a list of supported event types.
+- Not all data types are supported (25/49). See [types.go](parser/types.go) for a list of supported types.
+- Not all event types are supported (54/167). See [event_types.go](parser/event_types.go)) for a list of supported event types.
 
 Help with these pending tasks is more than welcome :)
 
