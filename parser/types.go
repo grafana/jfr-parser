@@ -137,7 +137,6 @@ func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, r
 	if *resolved {
 		return nil
 	}
-	*constants = nil
 	*resolved = true
 	for _, c := range *constants {
 		if err := ResolveConstants(classes, cpools, int(c.classID)); err != nil {
@@ -155,6 +154,7 @@ func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, r
 			return fmt.Errorf("unable to resolve constants for field %s: %w", c.field, err)
 		}
 	}
+	*constants = nil
 	return nil
 }
 
