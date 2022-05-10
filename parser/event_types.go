@@ -622,6 +622,7 @@ type ExecutionSample struct {
 	SampledThread *Thread
 	StackTrace    *StackTrace
 	State         *ThreadState
+	ContextId     int64
 }
 
 func (es *ExecutionSample) parseField(name string, p ParseResolvable) (err error) {
@@ -634,6 +635,8 @@ func (es *ExecutionSample) parseField(name string, p ParseResolvable) (err error
 		es.StackTrace, err = toStackTrace(p)
 	case "state":
 		es.State, err = toThreadState(p)
+	case "contextId":
+		es.ContextId, err = toLong(p)
 	}
 	return err
 }
@@ -846,6 +849,7 @@ type JavaMonitorEnter struct {
 	MonitorClass  *Class
 	PreviousOwner *Thread
 	Address       int64
+	ContextId     int64
 }
 
 func (jme *JavaMonitorEnter) parseField(name string, p ParseResolvable) (err error) {
@@ -864,6 +868,8 @@ func (jme *JavaMonitorEnter) parseField(name string, p ParseResolvable) (err err
 		jme.PreviousOwner, err = toThread(p)
 	case "address":
 		jme.Address, err = toLong(p)
+	case "contextId":
+		jme.ContextId, err = toLong(p)
 	}
 	return err
 }
@@ -1146,6 +1152,7 @@ type ObjectAllocationInNewTLAB struct {
 	ObjectClass    *Class
 	AllocationSize int64
 	TLABSize       int64
+	ContextId      int64
 }
 
 func (oa *ObjectAllocationInNewTLAB) parseField(name string, p ParseResolvable) (err error) {
@@ -1162,7 +1169,10 @@ func (oa *ObjectAllocationInNewTLAB) parseField(name string, p ParseResolvable) 
 		oa.AllocationSize, err = toLong(p)
 	case "tlabSize":
 		oa.TLABSize, err = toLong(p)
+	case "contextId":
+		oa.ContextId, err = toLong(p)
 	}
+
 	return err
 }
 
@@ -1176,6 +1186,7 @@ type ObjectAllocationOutsideTLAB struct {
 	StackTrace     *StackTrace
 	ObjectClass    *Class
 	AllocationSize int64
+	ContextId      int64
 }
 
 func (oa *ObjectAllocationOutsideTLAB) parseField(name string, p ParseResolvable) (err error) {
@@ -1190,6 +1201,8 @@ func (oa *ObjectAllocationOutsideTLAB) parseField(name string, p ParseResolvable
 		oa.ObjectClass, err = toClass(p)
 	case "allocationSize":
 		oa.AllocationSize, err = toLong(p)
+	case "contextId":
+		oa.ContextId, err = toLong(p)
 	}
 	return err
 }
@@ -1552,6 +1565,7 @@ type ThreadPark struct {
 	Timeout     int64
 	Until       int64
 	Address     int64
+	ContextId   int64
 }
 
 func (tp *ThreadPark) parseField(name string, p ParseResolvable) (err error) {
@@ -1572,6 +1586,8 @@ func (tp *ThreadPark) parseField(name string, p ParseResolvable) (err error) {
 		tp.Until, err = toLong(p)
 	case "address":
 		tp.Address, err = toLong(p)
+	case "contextId": // todo this one seems to be unimplemented in the profiler yet
+		tp.ContextId, err = toLong(p)
 	}
 	return err
 }
