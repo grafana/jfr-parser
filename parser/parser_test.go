@@ -12,7 +12,7 @@ import (
 func TestParse(t *testing.T) {
 	jfr, err := readGzipFile("./testdata/example.jfr.gz")
 	if err != nil {
-		t.Fatalf("Unable to open JFR file: %s", err)
+		t.Fatalf("Unable to read JFR file: %s", err)
 	}
 	expectedJson, err := readGzipFile("./testdata/example_parsed.json.gz")
 	if err != nil {
@@ -27,6 +27,19 @@ func TestParse(t *testing.T) {
 	if !bytes.Equal(expectedJson, actualJson) {
 		t.Fatalf("Failed to parse JFR: %s", err)
 		return
+	}
+}
+
+func BenchmarkParse(b *testing.B) {
+	jfr, err := readGzipFile("./testdata/example.jfr.gz")
+	if err != nil {
+		b.Fatalf("Unable to read JFR file: %s", err)
+	}
+	for i := 0; i < b.N; i++ {
+		_, err := Parse(bytes.NewReader(jfr))
+		if err != nil {
+			b.Fatalf("Unable to parse JFR file: %s", err)
+		}
 	}
 }
 

@@ -24,7 +24,7 @@ func main() {
 		log.Fatalf("Unable to parse: %s", err)
 	}
 	t2 := time.Now()
-	log.Printf("Parsed %d chunks in %d", len(chunks), t2.Sub(t1))
+	log.Printf("Parsed %d chunks in %v", len(chunks), t2.Sub(t1))
 	events := make(map[string]int)
 	for _, c := range chunks {
 		for _, e := range c.Events {
