@@ -41,7 +41,7 @@ func (c *CheckpointEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMa
 		}
 		cm, ok := cpools[int(classID)]
 		if !ok {
-			cpools[int(classID)] = make(map[int]ParseResolvable)
+			cpools[int(classID)] = &CPool{pool: make(map[int]ParseResolvable)}
 			cm = cpools[int(classID)]
 		}
 		m, err := r.VarInt()
@@ -58,7 +58,7 @@ func (c *CheckpointEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMa
 			if err != nil {
 				return fmt.Errorf("unable to parse constant type %d: %w", classID, err)
 			}
-			cm[int(idx)] = v
+			cm.pool[int(idx)] = v
 		}
 	}
 	return nil

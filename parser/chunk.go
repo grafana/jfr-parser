@@ -10,8 +10,12 @@ import (
 
 var magic = []byte{'F', 'L', 'R', 0}
 
+type CPool struct {
+	pool     map[int]ParseResolvable
+	resolved bool
+}
 type ClassMap map[int]ClassMetadata
-type PoolMap map[int]map[int]ParseResolvable
+type PoolMap map[int]*CPool
 
 type Chunk struct {
 	Header      Header
@@ -145,7 +149,11 @@ func ResolveConstants(classes ClassMap, cpools PoolMap, classID int) (err error)
 		// Non-existent constant pool references seem to be used to mark no value
 		return nil
 	}
-	for _, t := range cpool {
+	if cpool.resolved {
+		return nil
+	}
+	cpool.resolved = true
+	for _, t := range cpool.pool {
 		if err := t.Resolve(classes, cpools); err != nil {
 			return fmt.Errorf("unable to resolve constants: %w", err)
 		}

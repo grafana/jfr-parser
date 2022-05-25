@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/pyroscope-io/jfr-parser/parser"
 )
@@ -17,11 +18,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to open file: %s", err)
 	}
+	t1 := time.Now()
 	chunks, err := parser.Parse(f)
 	if err != nil {
 		log.Fatalf("Unable to parse: %s", err)
 	}
-	log.Printf("Parsed %d chunks", len(chunks))
+	t2 := time.Now()
+	log.Printf("Parsed %d chunks in %v", len(chunks), t2.Sub(t1))
 	events := make(map[string]int)
 	for _, c := range chunks {
 		for _, e := range c.Events {
