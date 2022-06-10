@@ -11,7 +11,7 @@ import (
 var magic = []byte{'F', 'L', 'R', 0}
 
 type CPool struct {
-	pool     map[int]ParseResolvable
+	Pool     map[int]ParseResolvable
 	resolved bool
 }
 type ClassMap map[int]ClassMetadata
@@ -24,7 +24,11 @@ type Chunk struct {
 	Events      []Parseable
 }
 
-func (c *Chunk) Parse(r io.Reader) (err error) {
+type ChunkParseOptions struct {
+	CPoolProcessor func(meta ClassMetadata, cpool *CPool)
+}
+
+func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	buf := make([]byte, len(magic))
 	if _, err = io.ReadFull(r, buf); err != nil {
 		if err == io.EOF {
@@ -103,6 +107,12 @@ func (c *Chunk) Parse(r io.Reader) (err error) {
 		br.Seek(c.Header.ConstantPoolOffset+delta, io.SeekStart)
 	}
 
+	if options.CPoolProcessor != nil {
+		for classID, pool := range cpools {
+			options.CPoolProcessor(classes[classID], pool)
+		}
+	}
+
 	// Second pass over constant pools: resolve constants
 	for classID := range cpools {
 		if err := ResolveConstants(classes, cpools, classID); err != nil {
@@ -153,7 +163,7 @@ func ResolveConstants(classes ClassMap, cpools PoolMap, classID int) (err error)
 		return nil
 	}
 	cpool.resolved = true
-	for _, t := range cpool.pool {
+	for _, t := range cpool.Pool {
 		if err := t.Resolve(classes, cpools); err != nil {
 			return fmt.Errorf("unable to resolve constants: %w", err)
 		}
