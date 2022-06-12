@@ -97,7 +97,7 @@ func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassM
 				if err != nil {
 					return fmt.Errorf("unable to read constant index")
 				}
-				p, ok := cpool.pool[int(i)]
+				p, ok := cpool.Pool[int(i)]
 				if !ok {
 					continue
 				}
@@ -147,7 +147,7 @@ func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, r
 			// Non-existent constant pool references seem to be used to mark no value
 			continue
 		}
-		it, ok := p.pool[int(c.index)]
+		it, ok := p.Pool[int(c.index)]
 		if !ok {
 			// Non-existent constant pool references seem to be used to mark no value
 			continue
