@@ -21,7 +21,7 @@ type Reader interface {
 	Long() (int64, error)
 	Float() (float32, error)
 	Double() (float64, error)
-	String() (string, error)
+	Bytes() ([]byte, error)
 
 	VarReader
 
@@ -35,7 +35,8 @@ type InputReader interface {
 
 type reader struct {
 	InputReader
-	varR VarReader
+	varR  VarReader
+	bytes []byte
 }
 
 func NewReader(r InputReader, compressed bool) Reader {
@@ -48,6 +49,7 @@ func NewReader(r InputReader, compressed bool) Reader {
 	return reader{
 		InputReader: r,
 		varR:        varR,
+		bytes:       make([]byte, 0),
 	}
 }
 
@@ -97,21 +99,21 @@ func (r reader) Double() (float64, error) {
 }
 
 // TODO: Should we differentiate between null and empty?
-func (r reader) String() (string, error) {
+func (r reader) Bytes() ([]byte, error) {
 	enc, err := r.Byte()
 	if err != nil {
-		return "", err
+		return r.bytes[:0], err
 	}
 	switch enc {
 	case 0:
-		return "", nil
+		return r.bytes[:0], nil
 	case 1:
-		return "", nil
+		return r.bytes[:0], nil
 	case 3, 4, 5:
 		return r.utf8()
 	default:
 		// TODO
-		return "", fmt.Errorf("Unsupported string type :%d", enc)
+		return r.bytes[:0], fmt.Errorf("Unsupported string type :%d", enc)
 	}
 }
 
@@ -127,13 +129,19 @@ func (r reader) VarLong() (int64, error) {
 	return r.varR.VarLong()
 }
 
-func (r reader) utf8() (string, error) {
+func (r reader) utf8() ([]byte, error) {
 	n, err := r.varR.VarInt()
 	if err != nil {
-		return "", nil
+		return r.bytes, nil
 	}
-	// TODO: make sure n is reasonable
-	b := make([]byte, n)
-	_, err = io.ReadFull(r, b)
-	return string(b), err
+
+	if cap(r.bytes) < int(n) {
+
+		r.bytes = make([]byte, int(n))
+	} else {
+		r.bytes = r.bytes[:n]
+	}
+
+	_, err = io.ReadFull(r, r.bytes)
+	return r.bytes, err
 }

@@ -59,6 +59,10 @@ func (c *CheckpointEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMa
 				return fmt.Errorf("unable to parse constant type %d: %w", classID, err)
 			}
 			cm.Pool[int(idx)] = v
+			if p, ok := v.(*StackFrame); ok {
+				p.reset()
+				stackFramePool.Put(p)
+			}
 		}
 	}
 	return nil

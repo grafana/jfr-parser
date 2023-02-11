@@ -205,9 +205,11 @@ func (m *MetadataEvent) Parse(r reader.Reader) (err error) {
 	// TODO: assert n is small enough
 	strings := make([]string, n)
 	for i := 0; i < int(n); i++ {
-		if strings[i], err = r.String(); err != nil {
+		bytes, err := r.Bytes()
+		if err != nil {
 			return fmt.Errorf("unable to parse metadata event's string: %w", err)
 		}
+		strings[i] = string(bytes2String(bytes))
 	}
 
 	name, err := parseName(r, strings)
