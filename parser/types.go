@@ -3,8 +3,6 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"sync"
-	"unsafe"
 
 	"github.com/pyroscope-io/jfr-parser/reader"
 )
@@ -18,10 +16,6 @@ var (
 	shortInst  = new(Short)
 	longInst   = new(Long)
 	stringInst = new(String)
-
-	stackFramePool = sync.Pool{
-		New: func() any { return new(StackFrame) },
-	}
 )
 
 var types = map[string]func() ParseResolvable{
@@ -47,7 +41,7 @@ var types = map[string]func() ParseResolvable{
 	"jdk.types.NarrowOopMode":        func() ParseResolvable { return new(NarrowOopMode) },
 	"jdk.types.NetworkInterfaceName": func() ParseResolvable { return new(NetworkInterfaceName) },
 	"jdk.types.Package":              func() ParseResolvable { return new(Package) },
-	"jdk.types.StackFrame":           func() ParseResolvable { return stackFramePool.Get().(*StackFrame) },
+	"jdk.types.StackFrame":           func() ParseResolvable { return new(StackFrame) },
 	"jdk.types.StackTrace":           func() ParseResolvable { return new(StackTrace) },
 	"jdk.types.Symbol":               func() ParseResolvable { return new(Symbol) },
 	"jdk.types.ThreadState":          func() ParseResolvable { return new(ThreadState) },
@@ -358,14 +352,9 @@ func toClass(p ParseResolvable) (*Class, error) {
 type String string
 
 func (s *String) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	x, err := r.Bytes()
-	*s = bytes2String(x)
+	x, err := r.String()
 	*s = String(x)
 	return err
-}
-
-func bytes2String(bytes []byte) String {
-	return *(*String)(unsafe.Pointer(&bytes))
 }
 
 func (s String) Resolve(_ ClassMap, _ PoolMap) error { return nil }
@@ -834,13 +823,6 @@ type StackFrame struct {
 	Type          *FrameType
 	constants     []constant
 	resolved      bool
-}
-
-func (sf *StackFrame) reset() {
-	sf.Method = nil
-	sf.Type = nil
-	sf.resolved = false
-	sf.constants = sf.constants[:0]
 }
 
 func (sf *StackFrame) parseField(name string, p ParseResolvable) (err error) {
