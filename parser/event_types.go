@@ -61,6 +61,7 @@ var events = map[string]func() Parseable{
 	"jdk.UnsignedLongFlag":                     func() Parseable { return new(UnsignedLongFlag) },
 	"jdk.VirtualizationInformation":            func() Parseable { return new(VirtualizationInformation) },
 	"jdk.YoungGenerationConfiguration":         func() Parseable { return new(YoungGenerationConfiguration) },
+	"profiler.LiveObject":                      func() Parseable { return new(LiveObject) },
 }
 
 func ParseEvent(r reader.Reader, classes ClassMap, cpools PoolMap) (Parseable, error) {
@@ -1726,4 +1727,35 @@ func (ue *UnsupportedEvent) parseField(name string, p ParseResolvable) error {
 
 func (ue *UnsupportedEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, nil, true, ue.parseField)
+}
+
+type LiveObject struct {
+	StartTime      int64
+	EventThread    *Thread
+	StackTrace     *StackTrace
+	ObjectClass    *Class
+	AllocationSize int64
+	AllocationTime int64
+}
+
+func (oa *LiveObject) parseField(name string, p ParseResolvable) (err error) {
+	switch name {
+	case "startTime":
+		oa.StartTime, err = toLong(p)
+	case "eventThread":
+		oa.EventThread, err = toThread(p)
+	case "stackTrace":
+		oa.StackTrace, err = toStackTrace(p)
+	case "objectClass":
+		oa.ObjectClass, err = toClass(p)
+	case "allocationSize":
+		oa.AllocationSize, err = toLong(p)
+	case "allocationTime":
+		oa.AllocationTime, err = toLong(p)
+	}
+	return err
+}
+
+func (oa *LiveObject) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+	return parseFields(r, classes, cpools, class, nil, true, oa.parseField)
 }
