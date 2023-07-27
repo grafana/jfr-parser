@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -52,7 +51,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return fmt.Errorf("unable to read chunk header: %w", err)
 	}
-	if err := c.Header.Parse(reader.NewReader(bytes.NewReader(buf), false)); err != nil {
+	if err := c.Header.Parse(reader.NewReader(buf, false, true)); err != nil {
 		return fmt.Errorf("unable to parse chunk header: %w", err)
 	}
 	c.Header.ChunkSize -= headerSize + 8
@@ -65,13 +64,12 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 		return fmt.Errorf("unable to read chunk contents: %w", err)
 	}
 
-	br := bytes.NewReader(buf)
-	rd := reader.NewReader(br, useCompression)
+	rd := reader.NewReader(buf, useCompression, true)
 	pointer := int64(0)
 	events := make(map[int64]int32)
 
 	// Parse metadata
-	br.Seek(c.Header.MetadataOffset, io.SeekStart)
+	rd.SeekStart(c.Header.MetadataOffset)
 	metadataSize, err := rd.VarInt()
 	if err != nil {
 		return fmt.Errorf("unable to parse chunk metadata size: %w", err)
@@ -84,7 +82,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	classes := buildClasses(metadata)
 
 	// Parse checkpoint event(s)
-	br.Seek(c.Header.ConstantPoolOffset, io.SeekStart)
+	rd.SeekStart(c.Header.ConstantPoolOffset)
 	checkpointsSize := int32(0)
 	cpools := make(PoolMap)
 	delta := int64(0)
@@ -104,7 +102,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 			break
 		}
 		delta += cp.Delta
-		br.Seek(c.Header.ConstantPoolOffset+delta, io.SeekStart)
+		rd.SeekStart(c.Header.ConstantPoolOffset + delta)
 	}
 
 	if options.CPoolProcessor != nil {
@@ -121,12 +119,12 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	}
 
 	// Parse the rest of events
-	br.Seek(pointer, io.SeekStart)
+	rd.SeekStart(pointer)
 	for pointer != c.Header.ChunkSize {
 		if size, ok := events[pointer]; ok {
 			pointer += int64(size)
 		} else {
-			if _, err := br.Seek(pointer, io.SeekStart); err != nil {
+			if _, err := rd.SeekStart(pointer); err != nil {
 				return fmt.Errorf("unable to seek to position %d: %w", pointer, err)
 			}
 			size, err := rd.VarInt()

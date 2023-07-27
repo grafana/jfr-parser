@@ -5,21 +5,30 @@ import (
 )
 
 type uncompressed struct {
-	io.Reader
+	*decoder
 }
 
-func newUncompressed(r io.Reader) VarReader {
-	return uncompressed{Reader: r}
+func newUncompressed(d *decoder) VarReader {
+	return uncompressed{decoder: d}
 }
 
 func (c uncompressed) VarShort() (int16, error) {
-	return Short(c)
+	if !c.check(2) {
+		return 0, io.EOF
+	}
+	return c.int16(), nil
 }
 
 func (c uncompressed) VarInt() (int32, error) {
-	return Int(c)
+	if !c.check(4) {
+		return 0, io.EOF
+	}
+	return c.int32(), nil
 }
 
 func (c uncompressed) VarLong() (int64, error) {
-	return Long(c)
+	if !c.check(8) {
+		return 0, io.EOF
+	}
+	return c.int64(), nil
 }
