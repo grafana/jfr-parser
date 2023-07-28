@@ -35,6 +35,7 @@ func BenchmarkParse(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Unable to read JFR file: %s", err)
 	}
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_, err := Parse(bytes.NewReader(jfr))
 		if err != nil {
