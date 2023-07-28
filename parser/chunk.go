@@ -148,6 +148,51 @@ func buildClasses(metadata MetadataEvent) ClassMap {
 	for _, class := range metadata.Root.Metadata.Classes {
 		classes[int(class.ID)] = class
 	}
+
+	parseBaseTypeAndDrops := map[string]func(reader.Reader) error{
+		"boolean": func(r reader.Reader) (err error) {
+			_, err = toBoolean(r)
+			return
+		},
+		"byte": func(r reader.Reader) (err error) {
+			_, err = toByte(r)
+			return
+		},
+		"double": func(r reader.Reader) (err error) {
+			_, err = toDouble(r)
+			return
+		},
+		"float": func(r reader.Reader) (err error) {
+			_, err = toFloat(r)
+			return
+		},
+		"int": func(r reader.Reader) (err error) {
+			_, err = toInt(r)
+			return
+		},
+		"long": func(r reader.Reader) (err error) {
+			_, err = toLong(r)
+			return
+		},
+		"short": func(r reader.Reader) (err error) {
+			_, err = toShort(r)
+			return
+		},
+		"java.lang.String": func(r reader.Reader) (err error) {
+			_, err = toString(r)
+			return
+		},
+	}
+	// init class field isBaseType
+	for i, class := range metadata.Root.Metadata.Classes {
+		for j, field := range class.Fields {
+			name := classes[int(field.Class)].Name
+			if _, ok := baseTypes[name]; ok {
+				metadata.Root.Metadata.Classes[i].Fields[j].isBaseType = true
+				metadata.Root.Metadata.Classes[i].Fields[j].parseBaseTypeAndDrop = parseBaseTypeAndDrops[name]
+			}
+		}
+	}
 	return classes
 }
 

@@ -102,28 +102,28 @@ type ActiveRecording struct {
 	RecordingDuration int64
 }
 
-func (ar *ActiveRecording) parseField(name string, p ParseResolvable) (err error) {
+func (ar *ActiveRecording) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ar.StartTime, err = toLong(p)
+		ar.StartTime, err = toLong(r)
 	case "duration":
-		ar.Duration, err = toLong(p)
+		ar.Duration, err = toLong(r)
 	case "eventThread":
 		ar.EventThread, err = toThread(p)
 	case "id":
-		ar.ID, err = toLong(p)
+		ar.ID, err = toLong(r)
 	case "name":
-		ar.Name, err = toString(p)
+		ar.Name, err = toString(r)
 	case "destination":
-		ar.Destination, err = toString(p)
+		ar.Destination, err = toString(r)
 	case "maxAge":
-		ar.MaxAge, err = toLong(p)
+		ar.MaxAge, err = toLong(r)
 	case "maxSize":
-		ar.MaxSize, err = toLong(p)
+		ar.MaxSize, err = toLong(r)
 	case "recordingStart":
-		ar.RecordingStart, err = toLong(p)
+		ar.RecordingStart, err = toLong(r)
 	case "recordingDuration":
-		ar.RecordingDuration, err = toLong(p)
+		ar.RecordingDuration, err = toLong(r)
 	}
 	return err
 }
@@ -141,20 +141,20 @@ type ActiveSetting struct {
 	Value       string
 }
 
-func (as *ActiveSetting) parseField(name string, p ParseResolvable) (err error) {
+func (as *ActiveSetting) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		as.StartTime, err = toLong(p)
+		as.StartTime, err = toLong(r)
 	case "duration":
-		as.Duration, err = toLong(p)
+		as.Duration, err = toLong(r)
 	case "eventThread":
 		as.EventThread, err = toThread(p)
 	case "id":
-		as.ID, err = toLong(p)
+		as.ID, err = toLong(r)
 	case "name":
-		as.Name, err = toString(p)
+		as.Name, err = toString(r)
 	case "value":
-		as.Value, err = toString(p)
+		as.Value, err = toString(r)
 	}
 	return err
 }
@@ -170,14 +170,14 @@ type BooleanFlag struct {
 	Origin    *FlagValueOrigin
 }
 
-func (bf *BooleanFlag) parseField(name string, p ParseResolvable) (err error) {
+func (bf *BooleanFlag) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		bf.StartTime, err = toLong(p)
+		bf.StartTime, err = toLong(r)
 	case "name":
-		bf.Name, err = toString(p)
+		bf.Name, err = toString(r)
 	case "value":
-		bf.Value, err = toBoolean(p)
+		bf.Value, err = toBoolean(r)
 	case "origin":
 		bf.Origin, err = toFlagValueOrigin(p)
 	}
@@ -197,20 +197,20 @@ type CPUInformation struct {
 	HWThreads   int32
 }
 
-func (ci *CPUInformation) parseField(name string, p ParseResolvable) (err error) {
+func (ci *CPUInformation) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ci.StartTime, err = toLong(p)
+		ci.StartTime, err = toLong(r)
 	case "duration":
-		ci.CPU, err = toString(p)
+		ci.CPU, err = toString(r)
 	case "eventThread":
-		ci.Description, err = toString(p)
+		ci.Description, err = toString(r)
 	case "sockets":
-		ci.Sockets, err = toInt(p)
+		ci.Sockets, err = toInt(r)
 	case "cores":
-		ci.Cores, err = toInt(p)
+		ci.Cores, err = toInt(r)
 	case "hwThreads":
-		ci.HWThreads, err = toInt(p)
+		ci.HWThreads, err = toInt(r)
 	}
 	return err
 }
@@ -226,16 +226,16 @@ type CPULoad struct {
 	MachineTotal float32
 }
 
-func (cl *CPULoad) parseField(name string, p ParseResolvable) (err error) {
+func (cl *CPULoad) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		cl.StartTime, err = toLong(p)
+		cl.StartTime, err = toLong(r)
 	case "jvmUser":
-		cl.JVMUser, err = toFloat(p)
+		cl.JVMUser, err = toFloat(r)
 	case "jvmSystem":
-		cl.JVMSystem, err = toFloat(p)
+		cl.JVMSystem, err = toFloat(r)
 	case "machineTotal":
-		cl.MachineTotal, err = toFloat(p)
+		cl.MachineTotal, err = toFloat(r)
 	}
 	return err
 }
@@ -252,18 +252,18 @@ type CPUTimeStampCounter struct {
 	FastTimeFrequency   int64
 }
 
-func (ctsc *CPUTimeStampCounter) parseField(name string, p ParseResolvable) (err error) {
+func (ctsc *CPUTimeStampCounter) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ctsc.StartTime, err = toLong(p)
+		ctsc.StartTime, err = toLong(r)
 	case "fastTimeEnabled":
-		ctsc.FastTimeEnabled, err = toBoolean(p)
+		ctsc.FastTimeEnabled, err = toBoolean(r)
 	case "fastTimeAutoEnabled":
-		ctsc.FastTimeAutoEnabled, err = toBoolean(p)
+		ctsc.FastTimeAutoEnabled, err = toBoolean(r)
 	case "osFrequency":
-		ctsc.OSFrequency, err = toLong(p)
+		ctsc.OSFrequency, err = toLong(r)
 	case "fastTimeFrequency":
-		ctsc.FastTimeFrequency, err = toLong(p)
+		ctsc.FastTimeFrequency, err = toLong(r)
 	}
 	return err
 }
@@ -291,40 +291,40 @@ type ClassLoaderStatistics struct {
 	HiddenBlockSize           int64
 }
 
-func (cls *ClassLoaderStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (cls *ClassLoaderStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		cls.StartTime, err = toLong(p)
+		cls.StartTime, err = toLong(r)
 	case "classLoader":
 		cls.ClassLoader, err = toClassLoader(p)
 	case "parentClassLoader":
 		cls.ParentClassLoader, err = toClassLoader(p)
 	case "classLoaderData":
-		cls.ClassLoaderData, err = toLong(p)
+		cls.ClassLoaderData, err = toLong(r)
 	case "classCount":
-		cls.ClassCount, err = toLong(p)
+		cls.ClassCount, err = toLong(r)
 	case "chunkSize":
-		cls.ChunkSize, err = toLong(p)
+		cls.ChunkSize, err = toLong(r)
 	case "blockSize":
-		cls.BlockSize, err = toLong(p)
+		cls.BlockSize, err = toLong(r)
 	case "anonymousClassCount":
-		cls.AnonymousClassCount, err = toLong(p)
+		cls.AnonymousClassCount, err = toLong(r)
 	case "anonymousChunkSize":
-		cls.AnonymousChunkSize, err = toLong(p)
+		cls.AnonymousChunkSize, err = toLong(r)
 	case "anonymousBlockSize":
-		cls.AnonymousBlockSize, err = toLong(p)
+		cls.AnonymousBlockSize, err = toLong(r)
 	case "unsafeAnonymousClassCount":
-		cls.UnsafeAnonymousClassCount, err = toLong(p)
+		cls.UnsafeAnonymousClassCount, err = toLong(r)
 	case "unsafeAnonymousChunkSize":
-		cls.UnsafeAnonymousChunkSize, err = toLong(p)
+		cls.UnsafeAnonymousChunkSize, err = toLong(r)
 	case "unsafeAnonymousBlockSize":
-		cls.UnsafeAnonymousBlockSize, err = toLong(p)
+		cls.UnsafeAnonymousBlockSize, err = toLong(r)
 	case "hiddenClassCount":
-		cls.HiddenClassCount, err = toLong(p)
+		cls.HiddenClassCount, err = toLong(r)
 	case "hiddenChunkSize":
-		cls.HiddenChunkSize, err = toLong(p)
+		cls.HiddenChunkSize, err = toLong(r)
 	case "hiddenBlockSize":
-		cls.HiddenBlockSize, err = toLong(p)
+		cls.HiddenBlockSize, err = toLong(r)
 	}
 	return err
 }
@@ -339,14 +339,14 @@ type ClassLoadingStatistics struct {
 	UnloadedClassCount int64
 }
 
-func (cls *ClassLoadingStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (cls *ClassLoadingStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		cls.StartTime, err = toLong(p)
+		cls.StartTime, err = toLong(r)
 	case "loadedClassCount":
-		cls.LoadedClassCount, err = toLong(p)
+		cls.LoadedClassCount, err = toLong(r)
 	case "unloadedClassCount":
-		cls.UnloadedClassCount, err = toLong(p)
+		cls.UnloadedClassCount, err = toLong(r)
 	}
 	return err
 }
@@ -368,28 +368,28 @@ type CodeCacheConfiguration struct {
 	ReservedTopAddress int64
 }
 
-func (ccc *CodeCacheConfiguration) parseField(name string, p ParseResolvable) (err error) {
+func (ccc *CodeCacheConfiguration) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ccc.StartTime, err = toLong(p)
+		ccc.StartTime, err = toLong(r)
 	case "initialSize":
-		ccc.InitialSize, err = toLong(p)
+		ccc.InitialSize, err = toLong(r)
 	case "reservedSize":
-		ccc.ReservedSize, err = toLong(p)
+		ccc.ReservedSize, err = toLong(r)
 	case "nonNMethodSize":
-		ccc.NonNMethodSize, err = toLong(p)
+		ccc.NonNMethodSize, err = toLong(r)
 	case "profiledSize":
-		ccc.ProfiledSize, err = toLong(p)
+		ccc.ProfiledSize, err = toLong(r)
 	case "NonProfiledSize":
-		ccc.NonProfiledSize, err = toLong(p)
+		ccc.NonProfiledSize, err = toLong(r)
 	case "ExpansionSize":
-		ccc.ExpansionSize, err = toLong(p)
+		ccc.ExpansionSize, err = toLong(r)
 	case "MinBlockLength":
-		ccc.MinBlockLength, err = toLong(p)
+		ccc.MinBlockLength, err = toLong(r)
 	case "StartAddress":
-		ccc.StartAddress, err = toLong(p)
+		ccc.StartAddress, err = toLong(r)
 	case "ReservedTopAddress":
-		ccc.ReservedTopAddress, err = toLong(p)
+		ccc.ReservedTopAddress, err = toLong(r)
 	}
 	return err
 }
@@ -410,26 +410,26 @@ type CodeCacheStatistics struct {
 	FullCount           int32
 }
 
-func (ccs *CodeCacheStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (ccs *CodeCacheStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ccs.StartTime, err = toLong(p)
+		ccs.StartTime, err = toLong(r)
 	case "codeBlobType":
 		ccs.CodeBlobType, err = toCodeBlobType(p)
 	case "startAddress":
-		ccs.StartAddress, err = toLong(p)
+		ccs.StartAddress, err = toLong(r)
 	case "reservedTopAddress":
-		ccs.ReservedTopAddress, err = toLong(p)
+		ccs.ReservedTopAddress, err = toLong(r)
 	case "entryCount":
-		ccs.EntryCount, err = toInt(p)
+		ccs.EntryCount, err = toInt(r)
 	case "methodCount":
-		ccs.MethodCount, err = toInt(p)
+		ccs.MethodCount, err = toInt(r)
 	case "adaptorCount":
-		ccs.AdaptorCount, err = toInt(p)
+		ccs.AdaptorCount, err = toInt(r)
 	case "unallocatedCapacity":
-		ccs.UnallocatedCapacity, err = toLong(p)
+		ccs.UnallocatedCapacity, err = toLong(r)
 	case "fullCount":
-		ccs.FullCount, err = toInt(p)
+		ccs.FullCount, err = toInt(r)
 	}
 	return err
 }
@@ -445,16 +445,16 @@ type CodeSweeperConfiguration struct {
 	SweepThreshold  int64
 }
 
-func (csc *CodeSweeperConfiguration) parseField(name string, p ParseResolvable) (err error) {
+func (csc *CodeSweeperConfiguration) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		csc.StartTime, err = toLong(p)
+		csc.StartTime, err = toLong(r)
 	case "sweeperEnabled":
-		csc.SweeperEnabled, err = toBoolean(p)
+		csc.SweeperEnabled, err = toBoolean(r)
 	case "flushingEnabled":
-		csc.FlushingEnabled, err = toBoolean(p)
+		csc.FlushingEnabled, err = toBoolean(r)
 	case "sweepThreshold":
-		csc.SweepThreshold, err = toLong(p)
+		csc.SweepThreshold, err = toLong(r)
 	}
 	return err
 }
@@ -472,20 +472,20 @@ type CodeSweeperStatistics struct {
 	PeakSweepTime        int64
 }
 
-func (css *CodeSweeperStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (css *CodeSweeperStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		css.StartTime, err = toLong(p)
+		css.StartTime, err = toLong(r)
 	case "sweepCount":
-		css.SweepCount, err = toInt(p)
+		css.SweepCount, err = toInt(r)
 	case "methodReclaimedCount":
-		css.MethodReclaimedCount, err = toInt(p)
+		css.MethodReclaimedCount, err = toInt(r)
 	case "totalSweepTime":
-		css.TotalSweepTime, err = toLong(p)
+		css.TotalSweepTime, err = toLong(r)
 	case "peakFractionTime":
-		css.PeakFractionTime, err = toLong(p)
+		css.PeakFractionTime, err = toLong(r)
 	case "peakSweepTime":
-		css.PeakSweepTime, err = toLong(p)
+		css.PeakSweepTime, err = toLong(r)
 	}
 	return err
 }
@@ -500,14 +500,14 @@ type CompilerConfiguration struct {
 	TieredCompilation bool
 }
 
-func (cc *CompilerConfiguration) parseField(name string, p ParseResolvable) (err error) {
+func (cc *CompilerConfiguration) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		cc.StartTime, err = toLong(p)
+		cc.StartTime, err = toLong(r)
 	case "threadCount":
-		cc.ThreadCount, err = toInt(p)
+		cc.ThreadCount, err = toInt(r)
 	case "tieredCompilation":
-		cc.TieredCompilation, err = toBoolean(p)
+		cc.TieredCompilation, err = toBoolean(r)
 	}
 	return err
 }
@@ -531,32 +531,32 @@ type CompilerStatistics struct {
 	TotalTimeSpent        int64
 }
 
-func (cs *CompilerStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (cs *CompilerStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		cs.StartTime, err = toLong(p)
+		cs.StartTime, err = toLong(r)
 	case "compileCount":
-		cs.CompileCount, err = toInt(p)
+		cs.CompileCount, err = toInt(r)
 	case "bailoutCount":
-		cs.BailoutCount, err = toInt(p)
+		cs.BailoutCount, err = toInt(r)
 	case "invalidatedCount":
-		cs.InvalidatedCount, err = toInt(p)
+		cs.InvalidatedCount, err = toInt(r)
 	case "osrCompileCount":
-		cs.OSRCompileCount, err = toInt(p)
+		cs.OSRCompileCount, err = toInt(r)
 	case "standardCompileCount":
-		cs.StandardCompileCount, err = toInt(p)
+		cs.StandardCompileCount, err = toInt(r)
 	case "osrBytesCompiled":
-		cs.OSRBytesCompiled, err = toLong(p)
+		cs.OSRBytesCompiled, err = toLong(r)
 	case "standardBytesCompiled":
-		cs.StandardBytesCompiled, err = toLong(p)
+		cs.StandardBytesCompiled, err = toLong(r)
 	case "nmethodsSize":
-		cs.NMethodsSize, err = toLong(p)
+		cs.NMethodsSize, err = toLong(r)
 	case "nmethodCodeSize":
-		cs.NMethodCodeSize, err = toLong(p)
+		cs.NMethodCodeSize, err = toLong(r)
 	case "peakTimeSpent":
-		cs.PeakTimeSpent, err = toLong(p)
+		cs.PeakTimeSpent, err = toLong(r)
 	case "totalTimeSpent":
-		cs.TotalTimeSpent, err = toLong(p)
+		cs.TotalTimeSpent, err = toLong(r)
 	}
 	return err
 }
@@ -572,14 +572,14 @@ type DoubleFlag struct {
 	Origin    *FlagValueOrigin
 }
 
-func (df *DoubleFlag) parseField(name string, p ParseResolvable) (err error) {
+func (df *DoubleFlag) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		df.StartTime, err = toLong(p)
+		df.StartTime, err = toLong(r)
 	case "name":
-		df.Name, err = toString(p)
+		df.Name, err = toString(r)
 	case "value":
-		df.Value, err = toDouble(p)
+		df.Value, err = toDouble(r)
 	case "origin":
 		df.Origin, err = toFlagValueOrigin(p)
 	}
@@ -598,18 +598,18 @@ type ExceptionStatistics struct {
 	Throwable   int64
 }
 
-func (es *ExceptionStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (es *ExceptionStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		es.StartTime, err = toLong(p)
+		es.StartTime, err = toLong(r)
 	case "duration":
-		es.Duration, err = toLong(p)
+		es.Duration, err = toLong(r)
 	case "eventThread":
 		es.EventThread, err = toThread(p)
 	case "stackTrace":
 		es.StackTrace, err = toStackTrace(p)
 	case "throwable":
-		es.Throwable, err = toLong(p)
+		es.Throwable, err = toLong(r)
 	}
 	return err
 }
@@ -626,10 +626,10 @@ type ExecutionSample struct {
 	ContextId     int64
 }
 
-func (es *ExecutionSample) parseField(name string, p ParseResolvable) (err error) {
+func (es *ExecutionSample) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		es.StartTime, err = toLong(p)
+		es.StartTime, err = toLong(r)
 	case "sampledThread":
 		es.SampledThread, err = toThread(p)
 	case "stackTrace":
@@ -637,7 +637,7 @@ func (es *ExecutionSample) parseField(name string, p ParseResolvable) (err error
 	case "state":
 		es.State, err = toThreadState(p)
 	case "contextId":
-		es.ContextId, err = toLong(p)
+		es.ContextId, err = toLong(r)
 	}
 	return err
 }
@@ -659,28 +659,28 @@ type GCConfiguration struct {
 	GCTimeRatio            int32
 }
 
-func (gc *GCConfiguration) parseField(name string, p ParseResolvable) (err error) {
+func (gc *GCConfiguration) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		gc.StartTime, err = toLong(p)
+		gc.StartTime, err = toLong(r)
 	case "youngCollector":
 		gc.YoungCollector, err = toGCName(p)
 	case "oldCollector":
 		gc.OldCollector, err = toGCName(p)
 	case "parallelGCThreads":
-		gc.ParallelGCThreads, err = toInt(p)
+		gc.ParallelGCThreads, err = toInt(r)
 	case "concurrentGCThreads":
-		gc.ConcurrentGCThreads, err = toInt(p)
+		gc.ConcurrentGCThreads, err = toInt(r)
 	case "usesDynamicGCThreads":
-		gc.UsesDynamicGCThreads, err = toBoolean(p)
+		gc.UsesDynamicGCThreads, err = toBoolean(r)
 	case "isExplicitGCConcurrent":
-		gc.IsExplicitGCConcurrent, err = toBoolean(p)
+		gc.IsExplicitGCConcurrent, err = toBoolean(r)
 	case "isExplicitGCDisabled":
-		gc.IsExplicitGCDisabled, err = toBoolean(p)
+		gc.IsExplicitGCDisabled, err = toBoolean(r)
 	case "pauseTarget":
-		gc.PauseTarget, err = toLong(p)
+		gc.PauseTarget, err = toLong(r)
 	case "gcTimeRatio":
-		gc.GCTimeRatio, err = toInt(p)
+		gc.GCTimeRatio, err = toInt(r)
 	}
 	return err
 }
@@ -700,24 +700,24 @@ type GCHeapConfiguration struct {
 	HeapAddressBits    int8
 }
 
-func (ghc *GCHeapConfiguration) parseField(name string, p ParseResolvable) (err error) {
+func (ghc *GCHeapConfiguration) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ghc.StartTime, err = toLong(p)
+		ghc.StartTime, err = toLong(r)
 	case "minSize":
-		ghc.MinSize, err = toLong(p)
+		ghc.MinSize, err = toLong(r)
 	case "maxSize":
-		ghc.MaxSize, err = toLong(p)
+		ghc.MaxSize, err = toLong(r)
 	case "initialSize":
-		ghc.InitialSize, err = toLong(p)
+		ghc.InitialSize, err = toLong(r)
 	case "usesCompressedOops":
-		ghc.UsesCompressedOops, err = toBoolean(p)
+		ghc.UsesCompressedOops, err = toBoolean(r)
 	case "compressedOopsMode":
 		ghc.CompressedOopsMode, err = toNarrowOopMode(p)
 	case "objectAlignment":
-		ghc.ObjectAlignment, err = toLong(p)
+		ghc.ObjectAlignment, err = toLong(r)
 	case "heapAddressBits":
-		ghc.HeapAddressBits, err = toByte(p)
+		ghc.HeapAddressBits, err = toByte(r)
 	}
 	return err
 }
@@ -732,14 +732,14 @@ type GCSurvivorConfiguration struct {
 	InitialTenuringThreshold int8
 }
 
-func (gcs *GCSurvivorConfiguration) parseField(name string, p ParseResolvable) (err error) {
+func (gcs *GCSurvivorConfiguration) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		gcs.StartTime, err = toLong(p)
+		gcs.StartTime, err = toLong(r)
 	case "maxTenuringThreshold":
-		gcs.MaxTenuringThreshold, err = toByte(p)
+		gcs.MaxTenuringThreshold, err = toByte(r)
 	case "initialTenuringThreshold":
-		gcs.InitialTenuringThreshold, err = toByte(p)
+		gcs.InitialTenuringThreshold, err = toByte(r)
 	}
 	return err
 }
@@ -755,16 +755,16 @@ type GCTLABConfiguration struct {
 	TLABRefillWasteLimit int64
 }
 
-func (gtc *GCTLABConfiguration) parseField(name string, p ParseResolvable) (err error) {
+func (gtc *GCTLABConfiguration) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		gtc.StartTime, err = toLong(p)
+		gtc.StartTime, err = toLong(r)
 	case "usesTLABs":
-		gtc.UsesTLABs, err = toBoolean(p)
+		gtc.UsesTLABs, err = toBoolean(r)
 	case "minTLABSize":
-		gtc.MinTLABSize, err = toLong(p)
+		gtc.MinTLABSize, err = toLong(r)
 	case "tlabRefillWasteLimit":
-		gtc.TLABRefillWasteLimit, err = toLong(p)
+		gtc.TLABRefillWasteLimit, err = toLong(r)
 	}
 	return err
 }
@@ -779,14 +779,14 @@ type InitialEnvironmentVariable struct {
 	Value     string
 }
 
-func (iev *InitialEnvironmentVariable) parseField(name string, p ParseResolvable) (err error) {
+func (iev *InitialEnvironmentVariable) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		iev.StartTime, err = toLong(p)
+		iev.StartTime, err = toLong(r)
 	case "key":
-		iev.Key, err = toString(p)
+		iev.Key, err = toString(r)
 	case "value":
-		iev.Value, err = toString(p)
+		iev.Value, err = toString(r)
 	}
 	return err
 }
@@ -801,14 +801,14 @@ type InitialSystemProperty struct {
 	Value     string
 }
 
-func (isp *InitialSystemProperty) parseField(name string, p ParseResolvable) (err error) {
+func (isp *InitialSystemProperty) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		isp.StartTime, err = toLong(p)
+		isp.StartTime, err = toLong(r)
 	case "key":
-		isp.Key, err = toString(p)
+		isp.Key, err = toString(r)
 	case "value":
-		isp.Value, err = toString(p)
+		isp.Value, err = toString(r)
 	}
 	return err
 }
@@ -824,14 +824,14 @@ type IntFlag struct {
 	Origin    *FlagValueOrigin
 }
 
-func (f *IntFlag) parseField(name string, p ParseResolvable) (err error) {
+func (f *IntFlag) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		f.StartTime, err = toLong(p)
+		f.StartTime, err = toLong(r)
 	case "name":
-		f.Name, err = toString(p)
+		f.Name, err = toString(r)
 	case "value":
-		f.Value, err = toInt(p)
+		f.Value, err = toInt(r)
 	case "origin":
 		f.Origin, err = toFlagValueOrigin(p)
 	}
@@ -853,12 +853,12 @@ type JavaMonitorEnter struct {
 	ContextId     int64
 }
 
-func (jme *JavaMonitorEnter) parseField(name string, p ParseResolvable) (err error) {
+func (jme *JavaMonitorEnter) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		jme.StartTime, err = toLong(p)
+		jme.StartTime, err = toLong(r)
 	case "duration":
-		jme.Duration, err = toLong(p)
+		jme.Duration, err = toLong(r)
 	case "eventThread":
 		jme.EventThread, err = toThread(p)
 	case "stackTrace":
@@ -868,9 +868,9 @@ func (jme *JavaMonitorEnter) parseField(name string, p ParseResolvable) (err err
 	case "previousOwner":
 		jme.PreviousOwner, err = toThread(p)
 	case "address":
-		jme.Address, err = toLong(p)
+		jme.Address, err = toLong(r)
 	case "contextId":
-		jme.ContextId, err = toLong(p)
+		jme.ContextId, err = toLong(r)
 	}
 	return err
 }
@@ -891,12 +891,12 @@ type JavaMonitorWait struct {
 	Address      int64
 }
 
-func (jmw *JavaMonitorWait) parseField(name string, p ParseResolvable) (err error) {
+func (jmw *JavaMonitorWait) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		jmw.StartTime, err = toLong(p)
+		jmw.StartTime, err = toLong(r)
 	case "duration":
-		jmw.Duration, err = toLong(p)
+		jmw.Duration, err = toLong(r)
 	case "eventThread":
 		jmw.EventThread, err = toThread(p)
 	case "stackTrace":
@@ -906,11 +906,11 @@ func (jmw *JavaMonitorWait) parseField(name string, p ParseResolvable) (err erro
 	case "notifier":
 		jmw.Notifier, err = toThread(p)
 	case "timeout":
-		jmw.Timeout, err = toLong(p)
+		jmw.Timeout, err = toLong(r)
 	case "timedOut":
-		jmw.TimedOut, err = toBoolean(p)
+		jmw.TimedOut, err = toBoolean(r)
 	case "address":
-		jmw.Address, err = toLong(p)
+		jmw.Address, err = toLong(r)
 	}
 	return err
 }
@@ -927,18 +927,18 @@ type JavaThreadStatistics struct {
 	PeakCount        int64
 }
 
-func (jts *JavaThreadStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (jts *JavaThreadStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		jts.StartTime, err = toLong(p)
+		jts.StartTime, err = toLong(r)
 	case "activeCount":
-		jts.ActiveCount, err = toLong(p)
+		jts.ActiveCount, err = toLong(r)
 	case "daemonCount":
-		jts.DaemonCount, err = toLong(p)
+		jts.DaemonCount, err = toLong(r)
 	case "accumulatedCount":
-		jts.AccumulatedCount, err = toLong(p)
+		jts.AccumulatedCount, err = toLong(r)
 	case "peakCount":
-		jts.PeakCount, err = toLong(p)
+		jts.PeakCount, err = toLong(r)
 	}
 	return err
 }
@@ -958,24 +958,24 @@ type JVMInformation struct {
 	PID           int64
 }
 
-func (ji *JVMInformation) parseField(name string, p ParseResolvable) (err error) {
+func (ji *JVMInformation) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ji.StartTime, err = toLong(p)
+		ji.StartTime, err = toLong(r)
 	case "jvmName":
-		ji.JVMName, err = toString(p)
+		ji.JVMName, err = toString(r)
 	case "jvmVersion":
-		ji.JVMVersion, err = toString(p)
+		ji.JVMVersion, err = toString(r)
 	case "jvmArguments":
-		ji.JVMArguments, err = toString(p)
+		ji.JVMArguments, err = toString(r)
 	case "jvmFlags":
-		ji.JVMFlags, err = toString(p)
+		ji.JVMFlags, err = toString(r)
 	case "javaArguments":
-		ji.JavaArguments, err = toString(p)
+		ji.JavaArguments, err = toString(r)
 	case "jvmStartTime":
-		ji.JVMStartTime, err = toLong(p)
+		ji.JVMStartTime, err = toLong(r)
 	case "pid":
-		ji.PID, err = toLong(p)
+		ji.PID, err = toLong(r)
 	}
 	return err
 }
@@ -997,28 +997,28 @@ type LoaderConstraintsTableStatistics struct {
 	RemovalRate                  float32
 }
 
-func (lcts *LoaderConstraintsTableStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (lcts *LoaderConstraintsTableStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		lcts.StartTime, err = toLong(p)
+		lcts.StartTime, err = toLong(r)
 	case "bucketCount":
-		lcts.BucketCount, err = toLong(p)
+		lcts.BucketCount, err = toLong(r)
 	case "entryCount":
-		lcts.EntryCount, err = toLong(p)
+		lcts.EntryCount, err = toLong(r)
 	case "totalFootprint":
-		lcts.TotalFootprint, err = toLong(p)
+		lcts.TotalFootprint, err = toLong(r)
 	case "bucketCountMaximum":
-		lcts.BucketCountMaximum, err = toLong(p)
+		lcts.BucketCountMaximum, err = toLong(r)
 	case "bucketCountAverage":
-		lcts.BucketCountAverage, err = toFloat(p)
+		lcts.BucketCountAverage, err = toFloat(r)
 	case "bucketCountVariance":
-		lcts.BucketCountVariance, err = toFloat(p)
+		lcts.BucketCountVariance, err = toFloat(r)
 	case "bucketCountStandardDeviation":
-		lcts.BucketCountStandardDeviation, err = toFloat(p)
+		lcts.BucketCountStandardDeviation, err = toFloat(r)
 	case "insertionRate":
-		lcts.InsertionRate, err = toFloat(p)
+		lcts.InsertionRate, err = toFloat(r)
 	case "removalRate":
-		lcts.RemovalRate, err = toFloat(p)
+		lcts.RemovalRate, err = toFloat(r)
 	}
 	return err
 }
@@ -1034,14 +1034,14 @@ type LongFlag struct {
 	Origin    *FlagValueOrigin
 }
 
-func (lf *LongFlag) parseField(name string, p ParseResolvable) (err error) {
+func (lf *LongFlag) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		lf.StartTime, err = toLong(p)
+		lf.StartTime, err = toLong(r)
 	case "name":
-		lf.Name, err = toString(p)
+		lf.Name, err = toString(r)
 	case "value":
-		lf.Value, err = toLong(p)
+		lf.Value, err = toLong(r)
 	case "origin":
 		lf.Origin, err = toFlagValueOrigin(p)
 	}
@@ -1058,10 +1058,10 @@ type ModuleExport struct {
 	TargetModule    *Module
 }
 
-func (me *ModuleExport) parseField(name string, p ParseResolvable) (err error) {
+func (me *ModuleExport) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		me.StartTime, err = toLong(p)
+		me.StartTime, err = toLong(r)
 	case "exportedPackage":
 		me.ExportedPackage, err = toPackage(p)
 	case "targetModule":
@@ -1080,10 +1080,10 @@ type ModuleRequire struct {
 	RequiredModule *Module
 }
 
-func (mr *ModuleRequire) parseField(name string, p ParseResolvable) (err error) {
+func (mr *ModuleRequire) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		mr.StartTime, err = toLong(p)
+		mr.StartTime, err = toLong(r)
 	case "sourced":
 		mr.Source, err = toModule(p)
 	case "requiredModule":
@@ -1103,16 +1103,16 @@ type NativeLibrary struct {
 	TopAddress  int64
 }
 
-func (nl *NativeLibrary) parseField(name string, p ParseResolvable) (err error) {
+func (nl *NativeLibrary) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		nl.StartTime, err = toLong(p)
+		nl.StartTime, err = toLong(r)
 	case "name":
-		nl.Name, err = toString(p)
+		nl.Name, err = toString(r)
 	case "baseAddress":
-		nl.BaseAddress, err = toLong(p)
+		nl.BaseAddress, err = toLong(r)
 	case "topAddress":
-		nl.TopAddress, err = toLong(p)
+		nl.TopAddress, err = toLong(r)
 	}
 	return err
 }
@@ -1128,16 +1128,16 @@ type NetworkUtilization struct {
 	WriteRate        int64
 }
 
-func (nu *NetworkUtilization) parseField(name string, p ParseResolvable) (err error) {
+func (nu *NetworkUtilization) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		nu.StartTime, err = toLong(p)
+		nu.StartTime, err = toLong(r)
 	case "networkInterface":
 		nu.NetworkInterface, err = toNetworkInterfaceName(p)
 	case "readRate":
-		nu.ReadRate, err = toLong(p)
+		nu.ReadRate, err = toLong(r)
 	case "writeRate":
-		nu.WriteRate, err = toLong(p)
+		nu.WriteRate, err = toLong(r)
 	}
 	return err
 }
@@ -1156,10 +1156,10 @@ type ObjectAllocationInNewTLAB struct {
 	ContextId      int64
 }
 
-func (oa *ObjectAllocationInNewTLAB) parseField(name string, p ParseResolvable) (err error) {
+func (oa *ObjectAllocationInNewTLAB) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		oa.StartTime, err = toLong(p)
+		oa.StartTime, err = toLong(r)
 	case "sampledThread":
 		oa.EventThread, err = toThread(p)
 	case "stackTrace":
@@ -1167,11 +1167,11 @@ func (oa *ObjectAllocationInNewTLAB) parseField(name string, p ParseResolvable) 
 	case "objectClass":
 		oa.ObjectClass, err = toClass(p)
 	case "allocationSize":
-		oa.AllocationSize, err = toLong(p)
+		oa.AllocationSize, err = toLong(r)
 	case "tlabSize":
-		oa.TLABSize, err = toLong(p)
+		oa.TLABSize, err = toLong(r)
 	case "contextId":
-		oa.ContextId, err = toLong(p)
+		oa.ContextId, err = toLong(r)
 	}
 
 	return err
@@ -1190,10 +1190,10 @@ type ObjectAllocationOutsideTLAB struct {
 	ContextId      int64
 }
 
-func (oa *ObjectAllocationOutsideTLAB) parseField(name string, p ParseResolvable) (err error) {
+func (oa *ObjectAllocationOutsideTLAB) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		oa.StartTime, err = toLong(p)
+		oa.StartTime, err = toLong(r)
 	case "sampledThread":
 		oa.EventThread, err = toThread(p)
 	case "stackTrace":
@@ -1201,9 +1201,9 @@ func (oa *ObjectAllocationOutsideTLAB) parseField(name string, p ParseResolvable
 	case "objectClass":
 		oa.ObjectClass, err = toClass(p)
 	case "allocationSize":
-		oa.AllocationSize, err = toLong(p)
+		oa.AllocationSize, err = toLong(r)
 	case "contextId":
-		oa.ContextId, err = toLong(p)
+		oa.ContextId, err = toLong(r)
 	}
 	return err
 }
@@ -1217,12 +1217,12 @@ type OSInformation struct {
 	OSVersion string
 }
 
-func (os *OSInformation) parseField(name string, p ParseResolvable) (err error) {
+func (os *OSInformation) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		os.StartTime, err = toLong(p)
+		os.StartTime, err = toLong(r)
 	case "osVersion":
-		os.OSVersion, err = toString(p)
+		os.OSVersion, err = toString(r)
 	}
 	return err
 }
@@ -1237,14 +1237,14 @@ type PhysicalMemory struct {
 	UsedSize  int64
 }
 
-func (pm *PhysicalMemory) parseField(name string, p ParseResolvable) (err error) {
+func (pm *PhysicalMemory) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		pm.StartTime, err = toLong(p)
+		pm.StartTime, err = toLong(r)
 	case "totalSize":
-		pm.TotalSize, err = toLong(p)
+		pm.TotalSize, err = toLong(r)
 	case "usedSize":
-		pm.UsedSize, err = toLong(p)
+		pm.UsedSize, err = toLong(r)
 	}
 	return err
 }
@@ -1266,28 +1266,28 @@ type PlaceholderTableStatistics struct {
 	RemovalRate                  float32
 }
 
-func (pts *PlaceholderTableStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (pts *PlaceholderTableStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		pts.StartTime, err = toLong(p)
+		pts.StartTime, err = toLong(r)
 	case "bucketCount":
-		pts.BucketCount, err = toLong(p)
+		pts.BucketCount, err = toLong(r)
 	case "entryCount":
-		pts.EntryCount, err = toLong(p)
+		pts.EntryCount, err = toLong(r)
 	case "totalFootprint":
-		pts.TotalFootprint, err = toLong(p)
+		pts.TotalFootprint, err = toLong(r)
 	case "bucketCountMaximum":
-		pts.BucketCountMaximum, err = toLong(p)
+		pts.BucketCountMaximum, err = toLong(r)
 	case "bucketCountAverage":
-		pts.BucketCountAverage, err = toFloat(p)
+		pts.BucketCountAverage, err = toFloat(r)
 	case "bucketCountVariance":
-		pts.BucketCountVariance, err = toFloat(p)
+		pts.BucketCountVariance, err = toFloat(r)
 	case "bucketCountStandardDeviation":
-		pts.BucketCountStandardDeviation, err = toFloat(p)
+		pts.BucketCountStandardDeviation, err = toFloat(r)
 	case "insertionRate":
-		pts.InsertionRate, err = toFloat(p)
+		pts.InsertionRate, err = toFloat(r)
 	case "removalRate":
-		pts.RemovalRate, err = toFloat(p)
+		pts.RemovalRate, err = toFloat(r)
 	}
 	return err
 }
@@ -1309,28 +1309,28 @@ type ProtectionDomainCacheTableStatistics struct {
 	RemovalRate                  float32
 }
 
-func (pdcts *ProtectionDomainCacheTableStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (pdcts *ProtectionDomainCacheTableStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		pdcts.StartTime, err = toLong(p)
+		pdcts.StartTime, err = toLong(r)
 	case "bucketCount":
-		pdcts.BucketCount, err = toLong(p)
+		pdcts.BucketCount, err = toLong(r)
 	case "entryCount":
-		pdcts.EntryCount, err = toLong(p)
+		pdcts.EntryCount, err = toLong(r)
 	case "totalFootprint":
-		pdcts.TotalFootprint, err = toLong(p)
+		pdcts.TotalFootprint, err = toLong(r)
 	case "bucketCountMaximum":
-		pdcts.BucketCountMaximum, err = toLong(p)
+		pdcts.BucketCountMaximum, err = toLong(r)
 	case "bucketCountAverage":
-		pdcts.BucketCountAverage, err = toFloat(p)
+		pdcts.BucketCountAverage, err = toFloat(r)
 	case "bucketCountVariance":
-		pdcts.BucketCountVariance, err = toFloat(p)
+		pdcts.BucketCountVariance, err = toFloat(r)
 	case "bucketCountStandardDeviation":
-		pdcts.BucketCountStandardDeviation, err = toFloat(p)
+		pdcts.BucketCountStandardDeviation, err = toFloat(r)
 	case "insertionRate":
-		pdcts.InsertionRate, err = toFloat(p)
+		pdcts.InsertionRate, err = toFloat(r)
 	case "removalRate":
-		pdcts.RemovalRate, err = toFloat(p)
+		pdcts.RemovalRate, err = toFloat(r)
 	}
 	return err
 }
@@ -1346,14 +1346,14 @@ type StringFlag struct {
 	Origin    *FlagValueOrigin
 }
 
-func (sf *StringFlag) parseField(name string, p ParseResolvable) (err error) {
+func (sf *StringFlag) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		sf.StartTime, err = toLong(p)
+		sf.StartTime, err = toLong(r)
 	case "name":
-		sf.Name, err = toString(p)
+		sf.Name, err = toString(r)
 	case "value":
-		sf.Value, err = toString(p)
+		sf.Value, err = toString(r)
 	case "origin":
 		sf.Origin, err = toFlagValueOrigin(p)
 	}
@@ -1377,28 +1377,28 @@ type StringTableStatistics struct {
 	RemovalRate                  float32
 }
 
-func (sts *StringTableStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (sts *StringTableStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		sts.StartTime, err = toLong(p)
+		sts.StartTime, err = toLong(r)
 	case "bucketCount":
-		sts.BucketCount, err = toLong(p)
+		sts.BucketCount, err = toLong(r)
 	case "entryCount":
-		sts.EntryCount, err = toLong(p)
+		sts.EntryCount, err = toLong(r)
 	case "totalFootprint":
-		sts.TotalFootprint, err = toLong(p)
+		sts.TotalFootprint, err = toLong(r)
 	case "bucketCountMaximum":
-		sts.BucketCountMaximum, err = toLong(p)
+		sts.BucketCountMaximum, err = toLong(r)
 	case "bucketCountAverage":
-		sts.BucketCountAverage, err = toFloat(p)
+		sts.BucketCountAverage, err = toFloat(r)
 	case "bucketCountVariance":
-		sts.BucketCountVariance, err = toFloat(p)
+		sts.BucketCountVariance, err = toFloat(r)
 	case "bucketCountStandardDeviation":
-		sts.BucketCountStandardDeviation, err = toFloat(p)
+		sts.BucketCountStandardDeviation, err = toFloat(r)
 	case "insertionRate":
-		sts.InsertionRate, err = toFloat(p)
+		sts.InsertionRate, err = toFloat(r)
 	case "removalRate":
-		sts.RemovalRate, err = toFloat(p)
+		sts.RemovalRate, err = toFloat(r)
 	}
 	return err
 }
@@ -1420,28 +1420,28 @@ type SymbolTableStatistics struct {
 	RemovalRate                  float32
 }
 
-func (sts *SymbolTableStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (sts *SymbolTableStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		sts.StartTime, err = toLong(p)
+		sts.StartTime, err = toLong(r)
 	case "bucketCount":
-		sts.BucketCount, err = toLong(p)
+		sts.BucketCount, err = toLong(r)
 	case "entryCount":
-		sts.EntryCount, err = toLong(p)
+		sts.EntryCount, err = toLong(r)
 	case "totalFootprint":
-		sts.TotalFootprint, err = toLong(p)
+		sts.TotalFootprint, err = toLong(r)
 	case "bucketCountMaximum":
-		sts.BucketCountMaximum, err = toLong(p)
+		sts.BucketCountMaximum, err = toLong(r)
 	case "bucketCountAverage":
-		sts.BucketCountAverage, err = toFloat(p)
+		sts.BucketCountAverage, err = toFloat(r)
 	case "bucketCountVariance":
-		sts.BucketCountVariance, err = toFloat(p)
+		sts.BucketCountVariance, err = toFloat(r)
 	case "bucketCountStandardDeviation":
-		sts.BucketCountStandardDeviation, err = toFloat(p)
+		sts.BucketCountStandardDeviation, err = toFloat(r)
 	case "insertionRate":
-		sts.InsertionRate, err = toFloat(p)
+		sts.InsertionRate, err = toFloat(r)
 	case "removalRate":
-		sts.RemovalRate, err = toFloat(p)
+		sts.RemovalRate, err = toFloat(r)
 	}
 	return err
 }
@@ -1456,14 +1456,14 @@ type SystemProcess struct {
 	CommandLine string
 }
 
-func (sp *SystemProcess) parseField(name string, p ParseResolvable) (err error) {
+func (sp *SystemProcess) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		sp.StartTime, err = toLong(p)
+		sp.StartTime, err = toLong(r)
 	case "pid":
-		sp.PID, err = toString(p)
+		sp.PID, err = toString(r)
 	case "commandLine":
-		sp.CommandLine, err = toString(p)
+		sp.CommandLine, err = toString(r)
 	}
 	return err
 }
@@ -1478,12 +1478,12 @@ type ThreadAllocationStatistics struct {
 	Thread    *Thread
 }
 
-func (tas *ThreadAllocationStatistics) parseField(name string, p ParseResolvable) (err error) {
+func (tas *ThreadAllocationStatistics) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		tas.StartTime, err = toLong(p)
+		tas.StartTime, err = toLong(r)
 	case "allocated":
-		tas.Allocated, err = toLong(p)
+		tas.Allocated, err = toLong(r)
 	case "thread":
 		tas.Thread, err = toThread(p)
 	}
@@ -1501,16 +1501,16 @@ type ThreadCPULoad struct {
 	System      float32
 }
 
-func (tcl *ThreadCPULoad) parseField(name string, p ParseResolvable) (err error) {
+func (tcl *ThreadCPULoad) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		tcl.StartTime, err = toLong(p)
+		tcl.StartTime, err = toLong(r)
 	case "eventThread":
 		tcl.EventThread, err = toThread(p)
 	case "user":
-		tcl.User, err = toFloat(p)
+		tcl.User, err = toFloat(r)
 	case "system":
-		tcl.System, err = toFloat(p)
+		tcl.System, err = toFloat(r)
 	}
 	return err
 }
@@ -1524,12 +1524,12 @@ type ThreadContextSwitchRate struct {
 	SwitchRate float32
 }
 
-func (tcsr *ThreadContextSwitchRate) parseField(name string, p ParseResolvable) (err error) {
+func (tcsr *ThreadContextSwitchRate) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		tcsr.StartTime, err = toLong(p)
+		tcsr.StartTime, err = toLong(r)
 	case "switchRate":
-		tcsr.SwitchRate, err = toFloat(p)
+		tcsr.SwitchRate, err = toFloat(r)
 	}
 	return err
 }
@@ -1543,12 +1543,12 @@ type ThreadDump struct {
 	Result    string
 }
 
-func (td *ThreadDump) parseField(name string, p ParseResolvable) (err error) {
+func (td *ThreadDump) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		td.StartTime, err = toLong(p)
+		td.StartTime, err = toLong(r)
 	case "result":
-		td.Result, err = toString(p)
+		td.Result, err = toString(r)
 	}
 	return err
 }
@@ -1569,12 +1569,12 @@ type ThreadPark struct {
 	ContextId   int64
 }
 
-func (tp *ThreadPark) parseField(name string, p ParseResolvable) (err error) {
+func (tp *ThreadPark) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		tp.StartTime, err = toLong(p)
+		tp.StartTime, err = toLong(r)
 	case "duration":
-		tp.Duration, err = toLong(p)
+		tp.Duration, err = toLong(r)
 	case "eventThread":
 		tp.EventThread, err = toThread(p)
 	case "stackTrace":
@@ -1582,13 +1582,13 @@ func (tp *ThreadPark) parseField(name string, p ParseResolvable) (err error) {
 	case "parkedClass":
 		tp.ParkedClass, err = toClass(p)
 	case "timeout":
-		tp.Timeout, err = toLong(p)
+		tp.Timeout, err = toLong(r)
 	case "until":
-		tp.Until, err = toLong(p)
+		tp.Until, err = toLong(r)
 	case "address":
-		tp.Address, err = toLong(p)
+		tp.Address, err = toLong(r)
 	case "contextId": // todo this one seems to be unimplemented in the profiler yet
-		tp.ContextId, err = toLong(p)
+		tp.ContextId, err = toLong(r)
 	}
 	return err
 }
@@ -1605,10 +1605,10 @@ type ThreadStart struct {
 	ParentThread *Thread
 }
 
-func (ts *ThreadStart) parseField(name string, p ParseResolvable) (err error) {
+func (ts *ThreadStart) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ts.StartTime, err = toLong(p)
+		ts.StartTime, err = toLong(r)
 	case "eventThread":
 		ts.EventThread, err = toThread(p)
 	case "stackTrace":
@@ -1632,14 +1632,14 @@ type UnsignedIntFlag struct {
 	Origin    *FlagValueOrigin
 }
 
-func (uif *UnsignedIntFlag) parseField(name string, p ParseResolvable) (err error) {
+func (uif *UnsignedIntFlag) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		uif.StartTime, err = toLong(p)
+		uif.StartTime, err = toLong(r)
 	case "name":
-		uif.Name, err = toString(p)
+		uif.Name, err = toString(r)
 	case "value":
-		uif.Value, err = toInt(p)
+		uif.Value, err = toInt(r)
 	case "origin":
 		uif.Origin, err = toFlagValueOrigin(p)
 	}
@@ -1657,14 +1657,14 @@ type UnsignedLongFlag struct {
 	Origin    *FlagValueOrigin
 }
 
-func (ulf *UnsignedLongFlag) parseField(name string, p ParseResolvable) (err error) {
+func (ulf *UnsignedLongFlag) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ulf.StartTime, err = toLong(p)
+		ulf.StartTime, err = toLong(r)
 	case "name":
-		ulf.Name, err = toString(p)
+		ulf.Name, err = toString(r)
 	case "value":
-		ulf.Value, err = toLong(p)
+		ulf.Value, err = toLong(r)
 	case "origin":
 		ulf.Origin, err = toFlagValueOrigin(p)
 	}
@@ -1680,12 +1680,12 @@ type VirtualizationInformation struct {
 	Name      string
 }
 
-func (vi *VirtualizationInformation) parseField(name string, p ParseResolvable) (err error) {
+func (vi *VirtualizationInformation) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		vi.StartTime, err = toLong(p)
+		vi.StartTime, err = toLong(r)
 	case "name":
-		vi.Name, err = toString(p)
+		vi.Name, err = toString(r)
 	}
 	return err
 }
@@ -1701,16 +1701,16 @@ type YoungGenerationConfiguration struct {
 	NewRatio  int32
 }
 
-func (ygc *YoungGenerationConfiguration) parseField(name string, p ParseResolvable) (err error) {
+func (ygc *YoungGenerationConfiguration) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		ygc.StartTime, err = toLong(p)
+		ygc.StartTime, err = toLong(r)
 	case "minSize":
-		ygc.MinSize, err = toLong(p)
+		ygc.MinSize, err = toLong(r)
 	case "maxSize":
-		ygc.MaxSize, err = toLong(p)
+		ygc.MaxSize, err = toLong(r)
 	case "newRatio":
-		ygc.NewRatio, err = toInt(p)
+		ygc.NewRatio, err = toInt(r)
 	}
 	return err
 }
@@ -1721,7 +1721,7 @@ func (ygc *YoungGenerationConfiguration) Parse(r reader.Reader, classes ClassMap
 
 type UnsupportedEvent struct{}
 
-func (ue *UnsupportedEvent) parseField(name string, p ParseResolvable) error {
+func (ue *UnsupportedEvent) parseField(r reader.Reader, name string, p ParseResolvable) error {
 	return nil
 }
 
@@ -1738,10 +1738,10 @@ type LiveObject struct {
 	AllocationTime int64
 }
 
-func (oa *LiveObject) parseField(name string, p ParseResolvable) (err error) {
+func (oa *LiveObject) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "startTime":
-		oa.StartTime, err = toLong(p)
+		oa.StartTime, err = toLong(r)
 	case "eventThread":
 		oa.EventThread, err = toThread(p)
 	case "stackTrace":
@@ -1749,9 +1749,9 @@ func (oa *LiveObject) parseField(name string, p ParseResolvable) (err error) {
 	case "objectClass":
 		oa.ObjectClass, err = toClass(p)
 	case "allocationSize":
-		oa.AllocationSize, err = toLong(p)
+		oa.AllocationSize, err = toLong(r)
 	case "allocationTime":
-		oa.AllocationTime, err = toLong(p)
+		oa.AllocationTime, err = toLong(r)
 	}
 	return err
 }

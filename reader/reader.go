@@ -25,7 +25,7 @@ type Reader interface {
 	Double() (float64, error)
 	String() (string, error)
 	SeekStart(offset int64) (int64, error)
-
+	Offset() int
 	VarReader
 
 	// TODO: Support arrays
@@ -56,6 +56,9 @@ func NewReader(b []byte, compressed bool, unsafeByteToString bool) Reader {
 	}
 }
 
+func (r reader) Offset() int {
+	return r.offset
+}
 func (r reader) Boolean() (bool, error) {
 	if !r.check(1) {
 		return false, io.EOF
