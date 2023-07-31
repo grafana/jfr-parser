@@ -53,12 +53,7 @@ func ParseClass(r reader.Reader, classes ClassMap, cpools PoolMap, classID int64
 	if !ok {
 		return nil, fmt.Errorf("unexpected class %d", classID)
 	}
-	var v ParseResolvable
-	if typeFn, ok := types[class.Name]; ok {
-		v = typeFn()
-	} else {
-		v = new(UnsupportedType)
-	}
+	v := class.typeFn()
 	if err := v.Parse(r, classes, cpools, class); err != nil {
 		return nil, err
 	}

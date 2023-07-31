@@ -152,6 +152,14 @@ func buildClasses(metadata MetadataEvent) ClassMap {
 				numConstants++
 			}
 		}
+
+		if typeFn, ok := types[class.Name]; ok {
+			class.typeFn = typeFn
+		} else {
+			class.typeFn = func() ParseResolvable {
+				return &UnsupportedType{}
+			}
+		}
 		class.numConstants = numConstants
 		classes[int(class.ID)] = class
 	}

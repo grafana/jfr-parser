@@ -91,6 +91,7 @@ type ClassMetadata struct {
 	Settings     []SettingMetadata
 	Annotations  []AnnotationMetadata
 	numConstants int
+	typeFn       func() ParseResolvable
 }
 
 func (c *ClassMetadata) SetAttribute(key, value string) (err error) {
