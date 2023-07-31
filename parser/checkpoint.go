@@ -67,6 +67,37 @@ func (c *CheckpointEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMa
 				results[i] = &threads[i]
 			}
 		case "jdk.types.StackTrace":
+			var classStackFrames ClassMetadata
+			for _, class := range classes {
+				if class.Name == "jdk.types.StackFrame" {
+					classStackFrames = class
+					break
+				}
+			}
+			var (
+				stackFrames      []StackFrame
+				indexStackFrames int
+			)
+			createStackFrames := func() ParseResolvable {
+				if indexStackFrames >= len(stackFrames) {
+					stackFrames = make([]StackFrame, m)
+					contantsSlice = getConstantsSlice(int(m), classStackFrames.numConstants)
+					for i := range stackFrames {
+						stackFrames[i].constants = contantsSlice[i]
+					}
+					indexStackFrames = 0
+				}
+				result := &stackFrames[indexStackFrames]
+				indexStackFrames++
+				return result
+			}
+			for i, class := range classes {
+				if class.Name == "jdk.types.StackFrame" {
+					class.typeFn = createStackFrames
+					classes[i] = class
+					break
+				}
+			}
 			var pointerToStackFrames []*StackFrame
 			indexPointerToStackFrames := 0
 			getPointerToStackFrames := func(n int) []*StackFrame {
