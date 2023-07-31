@@ -94,6 +94,9 @@ func appendConstant(r reader.Reader, constants *[]constant, name string, class i
 }
 
 func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata, constants *[]constant, resolved bool, cb func(reader.Reader, string, ParseResolvable) error) error {
+	if constants != nil && class.numConstants != 0 && !resolved {
+		*constants = make([]constant, 0, class.numConstants)
+	}
 	for _, f := range class.Fields {
 		if f.ConstantPool {
 			if constants != nil && !resolved {

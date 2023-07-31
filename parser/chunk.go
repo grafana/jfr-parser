@@ -146,6 +146,13 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 func buildClasses(metadata MetadataEvent) ClassMap {
 	classes := make(map[int]ClassMetadata)
 	for _, class := range metadata.Root.Metadata.Classes {
+		var numConstants int
+		for _, field := range class.Fields {
+			if field.ConstantPool {
+				numConstants++
+			}
+		}
+		class.numConstants = numConstants
 		classes[int(class.ID)] = class
 	}
 

@@ -83,13 +83,14 @@ func (f *FieldMetadata) AppendChild(name string) Element {
 }
 
 type ClassMetadata struct {
-	ID          int64
-	Name        string
-	SuperType   string
-	SimpleType  bool
-	Fields      []FieldMetadata
-	Settings    []SettingMetadata
-	Annotations []AnnotationMetadata
+	ID           int64
+	Name         string
+	SuperType    string
+	SimpleType   bool
+	Fields       []FieldMetadata
+	Settings     []SettingMetadata
+	Annotations  []AnnotationMetadata
+	numConstants int
 }
 
 func (c *ClassMetadata) SetAttribute(key, value string) (err error) {
