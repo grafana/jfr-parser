@@ -67,8 +67,20 @@ func (c *CheckpointEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMa
 				results[i] = &threads[i]
 			}
 		case "jdk.types.StackTrace":
+			var pointerToStackFrames []*StackFrame
+			indexPointerToStackFrames := 0
+			getPointerToStackFrames := func(n int) []*StackFrame {
+				if indexPointerToStackFrames+n > len(pointerToStackFrames) {
+					pointerToStackFrames = make([]*StackFrame, m)
+					indexPointerToStackFrames = 0
+				}
+				result := pointerToStackFrames[indexPointerToStackFrames : indexPointerToStackFrames+n]
+				indexPointerToStackFrames += n
+				return result[:0]
+			}
 			stackTraces := make([]StackTrace, m)
 			for i := range stackTraces {
+				stackTraces[i].getPointerToStackFrames = getPointerToStackFrames
 				stackTraces[i].constants = contantsSlice[i]
 				results[i] = &stackTraces[i]
 			}

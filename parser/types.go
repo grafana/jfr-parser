@@ -866,10 +866,11 @@ func toStackFrame(p ParseResolvable) (*StackFrame, error) {
 }
 
 type StackTrace struct {
-	Truncated bool
-	Frames    []*StackFrame
-	constants []constant
-	resolved  bool
+	Truncated               bool
+	Frames                  []*StackFrame
+	constants               []constant
+	resolved                bool
+	getPointerToStackFrames func(int) []*StackFrame
 }
 
 func (st *StackTrace) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
@@ -888,7 +889,7 @@ func (st *StackTrace) parseField(r reader.Reader, name string, p ParseResolvable
 		if err != nil {
 			return err
 		}
-		st.Frames = make([]*StackFrame, 0, frameLen)
+		st.Frames = st.getPointerToStackFrames(int(frameLen))
 	}
 	return err
 }
