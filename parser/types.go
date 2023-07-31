@@ -118,10 +118,13 @@ func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassM
 				}
 			}
 		} else if f.Dimension == 1 {
-			n, err := r.VarInt()
+			offset := r.Offset()
+			err := cb(r, "len", nil)
 			if err != nil {
 				return fmt.Errorf("failed to parse %s: unable to read array length: %w", class.Name, err)
 			}
+			_, _ = r.SeekStart(int64(offset))
+			n, _ := r.VarInt() // this must successfult
 			// TODO: assert n is small enough
 			for i := 0; i < int(n); i++ {
 				var p ParseResolvable
@@ -882,6 +885,12 @@ func (st *StackTrace) parseField(r reader.Reader, name string, p ParseResolvable
 			return err
 		}
 		st.Frames = append(st.Frames, sf)
+	case "len":
+		frameLen, err := r.VarInt()
+		if err != nil {
+			return err
+		}
+		st.Frames = make([]*StackFrame, 0, frameLen)
 	}
 	return err
 }
