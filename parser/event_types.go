@@ -77,12 +77,7 @@ func parseEvent(r reader.Reader, classes ClassMap, cpools PoolMap, classID int) 
 	if !ok {
 		return nil, fmt.Errorf("unknown class %d", classID)
 	}
-	var v Parseable
-	if typeFn, ok := events[class.Name]; ok {
-		v = typeFn()
-	} else {
-		v = new(UnsupportedEvent)
-	}
+	v := class.eventFn()
 	if err := v.Parse(r, classes, cpools, class); err != nil {
 		return nil, fmt.Errorf("unable to parse event %s: %w", class.Name, err)
 	}
