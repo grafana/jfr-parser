@@ -67,7 +67,7 @@ func (c *CheckpointEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMa
 				results[i] = &threads[i]
 			}
 		case "jdk.types.StackTrace":
-			var classStackFrames ClassMetadata
+			var classStackFrames *ClassMetadata
 			for _, class := range classes {
 				if class.Name == "jdk.types.StackFrame" {
 					classStackFrames = class

@@ -61,7 +61,7 @@ func ParseClass(r reader.Reader, classes ClassMap, cpools PoolMap, classID int64
 }
 
 type Parseable interface {
-	Parse(reader.Reader, ClassMap, PoolMap, ClassMetadata) error
+	Parse(reader.Reader, ClassMap, PoolMap, *ClassMetadata) error
 }
 
 type Resolvable interface {
@@ -88,7 +88,7 @@ func appendConstant(r reader.Reader, constants *[]constant, name string, class i
 	return nil
 }
 
-func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata, constants *[]constant, resolved bool, cb func(reader.Reader, string, ParseResolvable) error) error {
+func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata, constants *[]constant, resolved bool, cb func(reader.Reader, string, ParseResolvable) error) error {
 	if constants != nil && cap(*constants) == 0 && class.numConstants != 0 && !resolved {
 		*constants = make([]constant, 0, class.numConstants)
 	}
@@ -199,7 +199,7 @@ func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, r
 
 type Boolean bool
 
-func (b *Boolean) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
+func (b *Boolean) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
 	// TODO: Assert simpletype, no fields, etc.
 	x, err := r.Boolean()
 	*b = Boolean(x)
@@ -214,7 +214,7 @@ func toBoolean(r reader.Reader) (bool, error) {
 
 type Byte int8
 
-func (b *Byte) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
+func (b *Byte) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
 	x, err := r.Byte()
 	*b = Byte(x)
 	return err
@@ -228,7 +228,7 @@ func toByte(r reader.Reader) (int8, error) {
 
 type Double float64
 
-func (d *Double) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
+func (d *Double) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
 	x, err := r.Double()
 	*d = Double(x)
 	return err
@@ -242,7 +242,7 @@ func toDouble(r reader.Reader) (float64, error) {
 
 type Float float32
 
-func (f *Float) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
+func (f *Float) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
 	x, err := r.Float()
 	*f = Float(x)
 	return err
@@ -256,7 +256,7 @@ func toFloat(r reader.Reader) (float32, error) {
 
 type Int int32
 
-func (i *Int) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
+func (i *Int) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
 	x, err := r.VarInt()
 	*i = Int(x)
 	return err
@@ -270,7 +270,7 @@ func toInt(r reader.Reader) (int32, error) {
 
 type Long int64
 
-func (l *Long) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
+func (l *Long) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
 	x, err := r.VarLong()
 	*l = Long(x)
 	return err
@@ -284,7 +284,7 @@ func toLong(r reader.Reader) (int64, error) {
 
 type Short int16
 
-func (s *Short) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
+func (s *Short) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
 	x, err := r.VarShort()
 	*s = Short(x)
 	return err
@@ -319,7 +319,7 @@ func (c *Class) parseField(r reader.Reader, name string, p ParseResolvable) (err
 	return err
 }
 
-func (c *Class) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (c *Class) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &c.constants, c.resolved, c.parseField)
 }
 
@@ -354,7 +354,7 @@ func toClass(p ParseResolvable) (*Class, error) {
 
 type String string
 
-func (s *String) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
+func (s *String) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
 	x, err := r.String()
 	*s = String(x)
 	return err
@@ -389,7 +389,7 @@ func (t *Thread) parseField(r reader.Reader, name string, p ParseResolvable) (er
 	return err
 }
 
-func (t *Thread) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (t *Thread) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &t.constants, t.resolved, t.parseField)
 }
 
@@ -422,7 +422,7 @@ func (cl *ClassLoader) parseField(r reader.Reader, name string, p ParseResolvabl
 	return err
 }
 
-func (cl *ClassLoader) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (cl *ClassLoader) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &cl.constants, cl.resolved, cl.parseField)
 }
 
@@ -464,7 +464,7 @@ func (cbt *CodeBlobType) parseField(r reader.Reader, name string, p ParseResolva
 	return err
 }
 
-func (cbt *CodeBlobType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (cbt *CodeBlobType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &cbt.constants, cbt.resolved, cbt.parseField)
 }
 
@@ -494,7 +494,7 @@ func (fvo *FlagValueOrigin) parseField(r reader.Reader, name string, p ParseReso
 	return err
 }
 
-func (fvo *FlagValueOrigin) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (fvo *FlagValueOrigin) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &fvo.constants, fvo.resolved, fvo.parseField)
 }
 
@@ -524,7 +524,7 @@ func (ft *FrameType) parseField(r reader.Reader, name string, p ParseResolvable)
 	return err
 }
 
-func (ft *FrameType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (ft *FrameType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &ft.constants, ft.resolved, ft.parseField)
 }
 
@@ -554,7 +554,7 @@ func (gyt *G1YCType) parseField(r reader.Reader, name string, p ParseResolvable)
 	return err
 }
 
-func (gyt *G1YCType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (gyt *G1YCType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &gyt.constants, gyt.resolved, gyt.parseField)
 }
 
@@ -584,7 +584,7 @@ func (gn *GCName) parseField(r reader.Reader, name string, p ParseResolvable) (e
 	return err
 }
 
-func (gn *GCName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (gn *GCName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &gn.constants, gn.resolved, gn.parseField)
 }
 
@@ -626,7 +626,7 @@ func (m *Method) parseField(r reader.Reader, name string, p ParseResolvable) (er
 	return err
 }
 
-func (m *Method) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (m *Method) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &m.constants, m.resolved, m.parseField)
 }
 
@@ -681,7 +681,7 @@ func (m *Module) parseField(r reader.Reader, name string, p ParseResolvable) (er
 	return err
 }
 
-func (m *Module) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (m *Module) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &m.constants, m.resolved, m.parseField)
 }
 
@@ -732,7 +732,7 @@ func (nom *NarrowOopMode) parseField(r reader.Reader, name string, p ParseResolv
 	return err
 }
 
-func (nom *NarrowOopMode) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (nom *NarrowOopMode) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &nom.constants, nom.resolved, nom.parseField)
 }
 
@@ -762,7 +762,7 @@ func (nim *NetworkInterfaceName) parseField(r reader.Reader, name string, p Pars
 	return err
 }
 
-func (nim *NetworkInterfaceName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (nim *NetworkInterfaceName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &nim.constants, nim.resolved, nim.parseField)
 }
 
@@ -792,7 +792,7 @@ func (pkg *Package) parseField(r reader.Reader, name string, p ParseResolvable) 
 	return err
 }
 
-func (p *Package) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (p *Package) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &p.constants, p.resolved, p.parseField)
 }
 
@@ -838,7 +838,7 @@ func (sf *StackFrame) parseField(r reader.Reader, name string, p ParseResolvable
 	return err
 }
 
-func (sf *StackFrame) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (sf *StackFrame) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &sf.constants, sf.resolved, sf.parseField)
 }
 
@@ -894,7 +894,7 @@ func (st *StackTrace) parseField(r reader.Reader, name string, p ParseResolvable
 	return err
 }
 
-func (st *StackTrace) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (st *StackTrace) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &st.constants, st.resolved, st.parseField)
 }
 
@@ -932,7 +932,7 @@ func (s *Symbol) parseField(r reader.Reader, name string, p ParseResolvable) (er
 	return err
 }
 
-func (s *Symbol) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (s *Symbol) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &s.constants, s.resolved, s.parseField)
 }
 
@@ -963,7 +963,7 @@ func (ts *ThreadState) parseField(r reader.Reader, name string, p ParseResolvabl
 	return err
 }
 
-func (ts *ThreadState) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (ts *ThreadState) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &ts.constants, ts.resolved, ts.parseField)
 }
 
@@ -990,7 +990,7 @@ func (ut *UnsupportedType) parseField(r reader.Reader, name string, p ParseResol
 	return nil
 }
 
-func (ut *UnsupportedType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (ut *UnsupportedType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &ut.constants, ut.resolved, ut.parseField)
 }
 

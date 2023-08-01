@@ -13,7 +13,7 @@ type CPool struct {
 	Pool     map[int]ParseResolvable
 	resolved bool
 }
-type ClassMap map[int]ClassMetadata
+type ClassMap map[int]*ClassMetadata
 type PoolMap map[int]*CPool
 
 type Chunk struct {
@@ -42,7 +42,7 @@ type Chunk struct {
 }
 
 type ChunkParseOptions struct {
-	CPoolProcessor func(meta ClassMetadata, cpool *CPool)
+	CPoolProcessor func(meta *ClassMetadata, cpool *CPool)
 }
 
 func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
@@ -218,8 +218,9 @@ func (c *Chunk) buildClasses(metadata MetadataEvent) ClassMap {
 			return &c.nativeLibrary
 		},
 	}
-	classes := make(map[int]ClassMetadata, len(metadata.Root.Metadata.Classes))
-	for _, class := range metadata.Root.Metadata.Classes {
+	classes := make(map[int]*ClassMetadata, len(metadata.Root.Metadata.Classes))
+	for i := range metadata.Root.Metadata.Classes {
+		class := &metadata.Root.Metadata.Classes[i]
 		var numConstants int
 		for _, field := range class.Fields {
 			if field.ConstantPool {
