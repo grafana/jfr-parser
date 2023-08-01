@@ -333,11 +333,6 @@ func (c *Class) Resolve(classes ClassMap, cpools PoolMap) error {
 			return err
 		}
 	}
-	if c.Name != nil {
-		if err := c.Name.Resolve(classes, cpools); err != nil {
-			return err
-		}
-	}
 	if c.Package != nil {
 		return c.Package.Resolve(classes, cpools)
 	}
@@ -436,9 +431,6 @@ func (cl *ClassLoader) Resolve(classes ClassMap, cpools PoolMap) error {
 			return err
 		}
 	}
-	if cl.Name != nil {
-		return cl.Name.Resolve(classes, cpools)
-	}
 	return nil
 }
 
@@ -470,7 +462,7 @@ func (cbt *CodeBlobType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap
 }
 
 func (cbt *CodeBlobType) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &cbt.constants, &cbt.resolved, cbt.parseField)
+	return nil
 }
 
 func toCodeBlobType(p ParseResolvable) (*CodeBlobType, error) {
@@ -530,7 +522,7 @@ func (ft *FrameType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, cl
 }
 
 func (ft *FrameType) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &ft.constants, &ft.resolved, ft.parseField)
+	return nil
 }
 
 func toFrameType(p Parseable) (*FrameType, error) {
@@ -560,7 +552,7 @@ func (gyt *G1YCType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, cl
 }
 
 func (gyt *G1YCType) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &gyt.constants, &gyt.resolved, gyt.parseField)
+	return nil
 }
 
 func toG1YCType(p Parseable) (*G1YCType, error) {
@@ -590,7 +582,7 @@ func (gn *GCName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class
 }
 
 func (gn *GCName) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &gn.constants, &gn.resolved, gn.parseField)
+	return nil
 }
 
 func toGCName(p Parseable) (*GCName, error) {
@@ -640,14 +632,6 @@ func (m *Method) Resolve(classes ClassMap, cpools PoolMap) error {
 			return err
 		}
 	}
-	if m.Name != nil {
-		if err := m.Name.Resolve(classes, cpools); err != nil {
-			return err
-		}
-	}
-	if m.Descriptor != nil {
-		return m.Descriptor.Resolve(classes, cpools)
-	}
 	return nil
 }
 
@@ -689,21 +673,6 @@ func (m *Module) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class 
 func (m *Module) Resolve(classes ClassMap, cpools PoolMap) error {
 	if err := resolveConstants(classes, cpools, &m.constants, &m.resolved, m.parseField); err != nil {
 		return err
-	}
-	if m.Name != nil {
-		if err := m.Name.Resolve(classes, cpools); err != nil {
-			return err
-		}
-	}
-	if m.Version != nil {
-		if err := m.Version.Resolve(classes, cpools); err != nil {
-			return err
-		}
-	}
-	if m.Location != nil {
-		if err := m.Location.Resolve(classes, cpools); err != nil {
-			return err
-		}
 	}
 	if m.ClassLoader != nil {
 		return m.ClassLoader.Resolve(classes, cpools)
@@ -852,9 +821,6 @@ func (sf *StackFrame) Resolve(classes ClassMap, cpools PoolMap) error {
 			return err
 		}
 	}
-	if sf.Type != nil {
-		return sf.Type.Resolve(classes, cpools)
-	}
 	return nil
 }
 
@@ -938,7 +904,7 @@ func (s *Symbol) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class 
 }
 
 func (s *Symbol) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &s.constants, &s.resolved, s.parseField)
+	return nil
 }
 
 func toSymbol(p ParseResolvable) (*Symbol, error) {
@@ -969,7 +935,7 @@ func (ts *ThreadState) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, 
 }
 
 func (ts *ThreadState) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &ts.constants, &ts.resolved, ts.parseField)
+	return nil
 }
 
 func toThreadState(p ParseResolvable) (*ThreadState, error) {
