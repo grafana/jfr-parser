@@ -92,7 +92,8 @@ func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class *Class
 	if constants != nil && cap(*constants) == 0 && class.numConstants != 0 && !resolved {
 		*constants = make([]constant, 0, class.numConstants)
 	}
-	for _, f := range class.Fields {
+	for i := range class.Fields {
+		f := &class.Fields[i]
 		if f.ConstantPool {
 			if constants != nil && !resolved {
 				if err := appendConstant(r, constants, f.Name, f.Class); err != nil {
