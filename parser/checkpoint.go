@@ -102,8 +102,7 @@ func (c *CheckpointEvent) Parse(r reader.Reader, classes ClassMap, cpools PoolMa
 			indexPointerToStackFrames := 0
 			getPointerToStackFrames := func(n int) []*StackFrame {
 				if n > int(m) {
-					pointerToStackFrames = make([]*StackFrame, n)
-					return pointerToStackFrames[:0]
+					return make([]*StackFrame, n)[:0]
 				}
 				if indexPointerToStackFrames+n > len(pointerToStackFrames) {
 					pointerToStackFrames = make([]*StackFrame, m)
