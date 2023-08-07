@@ -6,14 +6,14 @@ import (
 )
 
 func Parse(r io.Reader) ([]Chunk, error) {
-	return ParseWithOptions(r, &ChunkParseOptions{}, true)
+	return ParseWithOptions(r, &ChunkParseOptions{UnsafeByteToString: true})
 }
 
-func ParseWithOptions(r io.Reader, options *ChunkParseOptions, unsafeByteToString bool) ([]Chunk, error) {
+func ParseWithOptions(r io.Reader, options *ChunkParseOptions) ([]Chunk, error) {
 	var chunks []Chunk
 	for {
 		var chunk Chunk
-		err := chunk.Parse(r, options, unsafeByteToString)
+		err := chunk.Parse(r, options)
 		if err == io.EOF {
 			return chunks, nil
 		}

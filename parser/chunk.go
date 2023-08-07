@@ -42,10 +42,11 @@ type Chunk struct {
 }
 
 type ChunkParseOptions struct {
-	CPoolProcessor func(meta *ClassMetadata, cpool *CPool)
+	CPoolProcessor     func(meta *ClassMetadata, cpool *CPool)
+	UnsafeByteToString bool
 }
 
-func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions, unsafeByteToString bool) (err error) {
+func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	buf := make([]byte, len(magic))
 	if _, err = io.ReadFull(r, buf); err != nil {
 		if err == io.EOF {
@@ -69,7 +70,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions, unsafeByteToStrin
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return fmt.Errorf("unable to read chunk header: %w", err)
 	}
-	if err := c.Header.Parse(reader.NewReader(buf, false, unsafeByteToString)); err != nil {
+	if err := c.Header.Parse(reader.NewReader(buf, false, options.UnsafeByteToString)); err != nil {
 		return fmt.Errorf("unable to parse chunk header: %w", err)
 	}
 	c.Header.ChunkSize -= headerSize + 8
@@ -82,7 +83,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions, unsafeByteToStrin
 		return fmt.Errorf("unable to read chunk contents: %w", err)
 	}
 
-	rd := reader.NewReader(buf, useCompression, unsafeByteToString)
+	rd := reader.NewReader(buf, useCompression, options.UnsafeByteToString)
 	pointer := int64(0)
 	events := make(map[int64]int32)
 
