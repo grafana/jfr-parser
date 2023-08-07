@@ -7,29 +7,43 @@ import (
 	"github.com/pyroscope-io/jfr-parser/reader"
 )
 
-var baseTypes = map[string]struct {
-}{
-	"boolean":          {},
-	"byte":             {},
-	"double":           {},
-	"float":            {},
-	"int":              {},
-	"long":             {},
-	"short":            {},
-	"java.lang.String": {},
+var parseBaseTypeAndDrops = map[string]func(reader.Reader) error{
+	"boolean": func(r reader.Reader) (err error) {
+		_, err = toBoolean(r)
+		return
+	},
+	"byte": func(r reader.Reader) (err error) {
+		_, err = toByte(r)
+		return
+	},
+	"double": func(r reader.Reader) (err error) {
+		_, err = toDouble(r)
+		return
+	},
+	"float": func(r reader.Reader) (err error) {
+		_, err = toFloat(r)
+		return
+	},
+	"int": func(r reader.Reader) (err error) {
+		_, err = toInt(r)
+		return
+	},
+	"long": func(r reader.Reader) (err error) {
+		_, err = toLong(r)
+		return
+	},
+	"short": func(r reader.Reader) (err error) {
+		_, err = toShort(r)
+		return
+	},
+	"java.lang.String": func(r reader.Reader) (err error) {
+		_, err = toString(r)
+		return
+	},
 }
 
 var types = map[string]func() ParseResolvable{
-	"boolean": func() ParseResolvable { return new(Boolean) },
-	"byte":    func() ParseResolvable { return new(Byte) },
-	// TODO: char
-	"double":                         func() ParseResolvable { return new(Double) },
-	"float":                          func() ParseResolvable { return new(Float) },
-	"int":                            func() ParseResolvable { return new(Int) },
-	"long":                           func() ParseResolvable { return new(Long) },
-	"short":                          func() ParseResolvable { return new(Short) },
 	"java.lang.Class":                func() ParseResolvable { return new(Class) },
-	"java.lang.String":               func() ParseResolvable { return new(String) },
 	"java.lang.Thread":               func() ParseResolvable { return new(Thread) },
 	"jdk.types.ClassLoader":          func() ParseResolvable { return new(ClassLoader) },
 	"jdk.types.CodeBlobType":         func() ParseResolvable { return new(CodeBlobType) },
@@ -42,7 +56,6 @@ var types = map[string]func() ParseResolvable{
 	"jdk.types.NarrowOopMode":        func() ParseResolvable { return new(NarrowOopMode) },
 	"jdk.types.NetworkInterfaceName": func() ParseResolvable { return new(NetworkInterfaceName) },
 	"jdk.types.Package":              func() ParseResolvable { return new(Package) },
-	"jdk.types.StackFrame":           func() ParseResolvable { return new(StackFrame) },
 	"jdk.types.StackTrace":           func() ParseResolvable { return new(StackTrace) },
 	"jdk.types.Symbol":               func() ParseResolvable { return new(Symbol) },
 	"jdk.types.ThreadState":          func() ParseResolvable { return new(ThreadState) },
@@ -198,103 +211,36 @@ func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, r
 	return nil
 }
 
-type Boolean bool
-
-func (b *Boolean) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
-	// TODO: Assert simpletype, no fields, etc.
-	x, err := r.Boolean()
-	*b = Boolean(x)
-	return err
-}
-
-func (Boolean) Resolve(ClassMap, PoolMap) error { return nil }
-
 func toBoolean(r reader.Reader) (bool, error) {
 	return r.Boolean()
 }
-
-type Byte int8
-
-func (b *Byte) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
-	x, err := r.Byte()
-	*b = Byte(x)
-	return err
-}
-
-func (Byte) Resolve(ClassMap, PoolMap) error { return nil }
 
 func toByte(r reader.Reader) (int8, error) {
 	return r.Byte()
 }
 
-type Double float64
-
-func (d *Double) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
-	x, err := r.Double()
-	*d = Double(x)
-	return err
-}
-
-func (Double) Resolve(ClassMap, PoolMap) error { return nil }
-
 func toDouble(r reader.Reader) (float64, error) {
 	return r.Double()
 }
-
-type Float float32
-
-func (f *Float) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
-	x, err := r.Float()
-	*f = Float(x)
-	return err
-}
-
-func (Float) Resolve(ClassMap, PoolMap) error { return nil }
 
 func toFloat(r reader.Reader) (float32, error) {
 	return r.Float()
 }
 
-type Int int32
-
-func (i *Int) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
-	x, err := r.VarInt()
-	*i = Int(x)
-	return err
-}
-
-func (Int) Resolve(ClassMap, PoolMap) error { return nil }
-
 func toInt(r reader.Reader) (int32, error) {
 	return r.VarInt()
 }
-
-type Long int64
-
-func (l *Long) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
-	x, err := r.VarLong()
-	*l = Long(x)
-	return err
-}
-
-func (Long) Resolve(ClassMap, PoolMap) error { return nil }
 
 func toLong(r reader.Reader) (int64, error) {
 	return r.VarLong()
 }
 
-type Short int16
-
-func (s *Short) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
-	x, err := r.VarShort()
-	*s = Short(x)
-	return err
-}
-
-func (Short) Resolve(ClassMap, PoolMap) error { return nil }
-
 func toShort(r reader.Reader) (int16, error) {
 	return r.VarShort()
+}
+
+func toString(r reader.Reader) (string, error) {
+	return r.String()
 }
 
 type Class struct {
@@ -346,20 +292,6 @@ func toClass(p ParseResolvable) (*Class, error) {
 		return nil, errors.New("")
 	}
 	return c, nil
-}
-
-type String string
-
-func (s *String) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ *ClassMetadata) error {
-	x, err := r.String()
-	*s = String(x)
-	return err
-}
-
-func (s String) Resolve(_ ClassMap, _ PoolMap) error { return nil }
-
-func toString(r reader.Reader) (string, error) {
-	return r.String()
 }
 
 type Thread struct {

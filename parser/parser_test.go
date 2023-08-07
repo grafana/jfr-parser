@@ -8,6 +8,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/pyroscope-io/jfr-parser/reader"
 )
 
 func TestParse(t *testing.T) {
@@ -58,6 +60,29 @@ func TestParse(t *testing.T) {
 	if !bytes.Equal(expectedJson, actualJson) {
 		t.Fatalf("Failed to parse JFR: %s", err)
 		return
+	}
+}
+
+func TestParseBaseTypeAndDrop(t *testing.T) {
+	r := reader.NewReader([]byte{1}, false, false)
+	err := parseFields(
+		r,
+		map[int]*ClassMetadata{}, map[int]*CPool{},
+		&ClassMetadata{
+			Fields: []FieldMetadata{
+				{
+					Name:                 "boolean",
+					isBaseType:           true,
+					parseBaseTypeAndDrop: parseBaseTypeAndDrops["boolean"],
+				},
+			},
+		},
+		nil, false,
+		func(reader reader.Reader, s string, resolvable ParseResolvable) error {
+			return nil
+		})
+	if err != nil || r.Offset() != 1 {
+		t.Fatalf("failed to parse and drop base type: %s", err)
 	}
 }
 
