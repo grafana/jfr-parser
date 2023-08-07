@@ -45,7 +45,7 @@ type ChunkParseOptions struct {
 	CPoolProcessor func(meta *ClassMetadata, cpool *CPool)
 }
 
-func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
+func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions, unsafeByteToString bool) (err error) {
 	buf := make([]byte, len(magic))
 	if _, err = io.ReadFull(r, buf); err != nil {
 		if err == io.EOF {
@@ -69,7 +69,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return fmt.Errorf("unable to read chunk header: %w", err)
 	}
-	if err := c.Header.Parse(reader.NewReader(buf, false, true)); err != nil {
+	if err := c.Header.Parse(reader.NewReader(buf, false, unsafeByteToString)); err != nil {
 		return fmt.Errorf("unable to parse chunk header: %w", err)
 	}
 	c.Header.ChunkSize -= headerSize + 8
@@ -82,7 +82,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 		return fmt.Errorf("unable to read chunk contents: %w", err)
 	}
 
-	rd := reader.NewReader(buf, useCompression, true)
+	rd := reader.NewReader(buf, useCompression, unsafeByteToString)
 	pointer := int64(0)
 	events := make(map[int64]int32)
 
