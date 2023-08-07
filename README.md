@@ -30,10 +30,21 @@ The parser API is pretty straightforward:
 func Parse(r io.Reader) ([]Chunk, error)
 ```
 
-Parser returns a slice of chunks, each containing a slice of events. It should be used like this:
+Parser returns a slice of chunks, for each chunk call chunk.Next and then read chunk.Event. 
+
+It should be used like this:
 
 ```go
 chunks, err := parser.Parse(reader)
+for _, chunk := range chunks {
+    for chunk.Next() {
+        chunk.Event // it may be reused, copy it if you need the event after another call to Next
+    }
+    err = chunk.Err()
+    if err != nil {
+        panic(err)
+    }
+}
 ```
 
 Check the [main](./main.go) package for further details. It can also be used to validate the parser works with your data and get some basic stats.
