@@ -1155,7 +1155,7 @@ func (oa *ObjectAllocationInNewTLAB) parseField(r reader.Reader, name string, p 
 	switch name {
 	case "startTime":
 		oa.StartTime, err = toLong(r)
-	case "sampledThread":
+	case "eventThread":
 		oa.EventThread, err = toThread(p)
 	case "stackTrace":
 		oa.StackTrace, err = toStackTrace(p)
@@ -1189,7 +1189,7 @@ func (oa *ObjectAllocationOutsideTLAB) parseField(r reader.Reader, name string, 
 	switch name {
 	case "startTime":
 		oa.StartTime, err = toLong(r)
-	case "sampledThread":
+	case "eventThread":
 		oa.EventThread, err = toThread(p)
 	case "stackTrace":
 		oa.StackTrace, err = toStackTrace(p)
