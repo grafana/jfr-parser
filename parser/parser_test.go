@@ -12,54 +12,63 @@ import (
 	"github.com/pyroscope-io/jfr-parser/reader"
 )
 
+var testfiles = []string{
+	"example",
+	"async-profiler", // -e cpu -i 10ms --alloc 512k --wall 200ms --lock 10ms -d 60 (async-profiler 2.10)
+}
+
 func TestParse(t *testing.T) {
-	jfr, err := readGzipFile("./testdata/example.jfr.gz")
-	if err != nil {
-		t.Fatalf("Unable to read JFR file: %s", err)
-	}
-	expectedJson, err := readGzipFile("./testdata/example_parsed.json.gz")
-	if err != nil {
-		t.Fatalf("Unable to read example_parsd.json")
-	}
-	chunks, err := Parse(bytes.NewReader(jfr))
-	if err != nil {
-		t.Fatalf("Failed to parse JFR: %s", err)
-		return
-	}
-	type expectedChunk struct {
-		Header      Header
-		Metadata    MetadataEvent
-		Checkpoints []CheckpointEvent
-		Events      []Parseable
-	}
-	var expectedChunks []expectedChunk
-	for _, chunk := range chunks {
-		var events []Parseable
-		for chunk.Next() {
-			// copy event
-			elem := reflect.ValueOf(chunk.Event).Elem()
-			newEvent := reflect.New(elem.Type())
-			newEventElem := newEvent.Elem()
-			for i := 0; i < elem.NumField(); i++ {
-				newEventElem.Field(i).Set(elem.Field(i))
-			}
-			events = append(events, newEvent.Interface().(Parseable))
-		}
-		err = chunk.Err()
+	for _, testfile := range testfiles {
+		jfrfile := testfile + ".jfr.gz"
+		jsonfile := testfile + "_parsed.json.gz"
+		jfr, err := readGzipFile("./testdata/" + jfrfile)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("Unable to read JFR file: %s", err)
 		}
-		expectedChunks = append(expectedChunks, expectedChunk{
-			Header:      chunk.Header,
-			Metadata:    chunk.Metadata,
-			Checkpoints: chunk.Checkpoints,
-			Events:      events,
-		})
-	}
-	actualJson, _ := json.Marshal(expectedChunks)
-	if !bytes.Equal(expectedJson, actualJson) {
-		t.Fatalf("Failed to parse JFR: %s", err)
-		return
+		expectedJson, err := readGzipFile("./testdata/" + jsonfile)
+		if err != nil {
+			t.Fatalf("Unable to read example_parsd.json")
+		}
+		chunks, err := Parse(bytes.NewReader(jfr))
+		if err != nil {
+			t.Fatalf("Failed to parse JFR: %s", err)
+			return
+		}
+		type expectedChunk struct {
+			Header      Header
+			Metadata    MetadataEvent
+			Checkpoints []CheckpointEvent
+			Events      []Parseable
+		}
+		var expectedChunks []expectedChunk
+		for _, chunk := range chunks {
+			var events []Parseable
+			for chunk.Next() {
+				// copy event
+				elem := reflect.ValueOf(chunk.Event).Elem()
+				newEvent := reflect.New(elem.Type())
+				newEventElem := newEvent.Elem()
+				for i := 0; i < elem.NumField(); i++ {
+					newEventElem.Field(i).Set(elem.Field(i))
+				}
+				events = append(events, newEvent.Interface().(Parseable))
+			}
+			err = chunk.Err()
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedChunks = append(expectedChunks, expectedChunk{
+				Header:      chunk.Header,
+				Metadata:    chunk.Metadata,
+				Checkpoints: chunk.Checkpoints,
+				Events:      events,
+			})
+		}
+		actualJson, _ := json.Marshal(expectedChunks)
+		if !bytes.Equal(expectedJson, actualJson) {
+			t.Fatalf("Failed to parse JFR: %s", err)
+			return
+		}
 	}
 }
 
@@ -87,24 +96,28 @@ func TestParseBaseTypeAndDrop(t *testing.T) {
 }
 
 func BenchmarkParse(b *testing.B) {
-	jfr, err := readGzipFile("./testdata/example.jfr.gz")
-	if err != nil {
-		b.Fatalf("Unable to read JFR file: %s", err)
-	}
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		chunks, err := Parse(bytes.NewReader(jfr))
-		if err != nil {
-			b.Fatalf("Unable to parse JFR file: %s", err)
-		}
-		for _, chunk := range chunks {
-			for chunk.Next() {
-			}
-			err = chunk.Err()
+	for _, testfile := range testfiles {
+		b.Run(testfile, func(b *testing.B) {
+			jfr, err := readGzipFile("./testdata/" + testfile + ".jfr.gz")
 			if err != nil {
-				b.Fatal(err)
+				b.Fatalf("Unable to read JFR file: %s", err)
 			}
-		}
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				chunks, err := Parse(bytes.NewReader(jfr))
+				if err != nil {
+					b.Fatalf("Unable to parse JFR file: %s", err)
+				}
+				for _, chunk := range chunks {
+					for chunk.Next() {
+					}
+					err = chunk.Err()
+					if err != nil {
+						b.Fatal(err)
+					}
+				}
+			}
+		})
 	}
 }
 
