@@ -2,8 +2,10 @@ package reader
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
+	"unsafe"
 )
 
 type VarReader interface {
@@ -22,78 +24,105 @@ type Reader interface {
 	Float() (float32, error)
 	Double() (float64, error)
 	String() (string, error)
-
+	SeekStart(offset int64) (int64, error)
+	Offset() int
 	VarReader
 
 	// TODO: Support arrays
 }
 
-type InputReader interface {
-	io.Reader
-	io.ByteReader
-}
-
 type reader struct {
-	InputReader
 	varR VarReader
+	*decoder
+	unsafeByteToString bool
 }
 
-func NewReader(r InputReader, compressed bool) Reader {
+func NewReader(b []byte, compressed bool, unsafeByteToString bool) Reader {
+	d := &decoder{
+		order:  binary.BigEndian,
+		buf:    b,
+		offset: 0,
+	}
 	var varR VarReader
 	if compressed {
-		varR = newCompressed(r)
+		varR = newCompressed(d)
 	} else {
-		varR = newUncompressed(r)
+		varR = newUncompressed(d)
 	}
 	return reader{
-		InputReader: r,
-		varR:        varR,
+		varR:               varR,
+		decoder:            d,
+		unsafeByteToString: unsafeByteToString,
 	}
 }
 
+func (r reader) Offset() int {
+	return r.offset
+}
 func (r reader) Boolean() (bool, error) {
-	var n int8
-	err := binary.Read(r, binary.BigEndian, &n)
-	if n == 0 {
-		return false, err
+	if !r.check(1) {
+		return false, io.EOF
 	}
-	return true, err
+	return r.bool(), nil
+}
+
+// SeekStart implement Seek(offset, io.SeekStart)
+func (r reader) SeekStart(offset int64) (int64, error) {
+	abs := offset
+	r.offset = int(abs)
+	if abs < 0 {
+		return 0, errors.New("bytes.Reader.Seek: negative position")
+	}
+	return abs, nil
 }
 
 func (r reader) Byte() (int8, error) {
-	var n int8
-	err := binary.Read(r, binary.BigEndian, &n)
-	return n, err
+	if !r.check(1) {
+		return 0, io.EOF
+	}
+	return r.int8(), nil
 }
 
 func (r reader) Short() (int16, error) {
-	return Short(r)
+	if !r.check(2) {
+		return 0, io.EOF
+	}
+	return r.int16(), nil
 }
 
 func (r reader) Char() (uint16, error) {
-	var n uint16
-	err := binary.Read(r, binary.BigEndian, &n)
-	return n, err
+	if !r.check(2) {
+		return 0, io.EOF
+	}
+	return r.uint16(), nil
 }
 
 func (r reader) Int() (int32, error) {
-	return Int(r)
+	if !r.check(4) {
+		return 0, io.EOF
+	}
+	return r.int32(), nil
 }
 
 func (r reader) Long() (int64, error) {
-	return Long(r)
+	if !r.check(8) {
+		return 0, io.EOF
+	}
+	return r.int64(), nil
 }
 
 func (r reader) Float() (float32, error) {
-	var n float32
-	err := binary.Read(r, binary.BigEndian, &n)
-	return n, err
+	if !r.check(4) {
+		return 0, io.EOF
+	}
+	return r.float32(), nil
 }
 
 func (r reader) Double() (float64, error) {
-	var n float64
-	err := binary.Read(r, binary.BigEndian, &n)
-	return n, err
+	if !r.check(8) {
+		return 0, io.EOF
+	}
+	return r.float64(), nil
 }
 
 // TODO: Should we differentiate between null and empty?
@@ -130,10 +159,20 @@ func (r reader) VarLong() (int64, error) {
 func (r reader) utf8() (string, error) {
 	n, err := r.varR.VarInt()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
-	// TODO: make sure n is reasonable
-	b := make([]byte, n)
-	_, err = io.ReadFull(r, b)
-	return string(b), err
+	if !r.check(int(n)) {
+		return "", io.EOF
+	}
+	b := r.decoder.buf[r.decoder.offset : r.decoder.offset+int(n)]
+	r.decoder.offset += int(n)
+	if r.unsafeByteToString {
+		return BytesToString(b), err
+	}
+	return string(b), nil
+}
+
+// BytesToString converts byte slice to string without a memory allocation.
+func BytesToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }

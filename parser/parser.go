@@ -6,7 +6,7 @@ import (
 )
 
 func Parse(r io.Reader) ([]Chunk, error) {
-	return ParseWithOptions(r, &ChunkParseOptions{})
+	return ParseWithOptions(r, &ChunkParseOptions{UnsafeByteToString: true})
 }
 
 func ParseWithOptions(r io.Reader, options *ChunkParseOptions) ([]Chunk, error) {

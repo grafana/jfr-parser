@@ -2,15 +2,14 @@ package reader
 
 import (
 	"fmt"
-	"io"
 )
 
 type compressed struct {
-	io.ByteReader
+	*decoder
 }
 
-func newCompressed(r io.ByteReader) VarReader {
-	return compressed{ByteReader: r}
+func newCompressed(d *decoder) VarReader {
+	return compressed{decoder: d}
 }
 
 func (c compressed) VarShort() (int16, error) {
@@ -40,6 +39,7 @@ func (c compressed) VarLong() (int64, error) {
 	return int64(n), err
 }
 
+// ulong not equal with binary.ReadUvarint(c.decoder)
 func (c compressed) ulong() (n uint64, err error) {
 	s := 0
 	for i := 0; i < 9; i++ {

@@ -48,11 +48,13 @@ func (s *SettingMetadata) SetAttribute(key, value string) error {
 func (s SettingMetadata) AppendChild(string) Element { return nil }
 
 type FieldMetadata struct {
-	Class        int64
-	Name         string
-	ConstantPool bool
-	Dimension    int32
-	Annotations  []AnnotationMetadata
+	Class                int64
+	Name                 string
+	ConstantPool         bool
+	Dimension            int32
+	Annotations          []AnnotationMetadata
+	isBaseType           bool
+	parseBaseTypeAndDrop func(r reader.Reader) error
 }
 
 func (f *FieldMetadata) SetAttribute(key, value string) (err error) {
@@ -81,13 +83,16 @@ func (f *FieldMetadata) AppendChild(name string) Element {
 }
 
 type ClassMetadata struct {
-	ID          int64
-	Name        string
-	SuperType   string
-	SimpleType  bool
-	Fields      []FieldMetadata
-	Settings    []SettingMetadata
-	Annotations []AnnotationMetadata
+	ID           int64
+	Name         string
+	SuperType    string
+	SimpleType   bool
+	Fields       []FieldMetadata
+	Settings     []SettingMetadata
+	Annotations  []AnnotationMetadata
+	numConstants int
+	typeFn       func() ParseResolvable
+	eventFn      func() Parseable
 }
 
 func (c *ClassMetadata) SetAttribute(key, value string) (err error) {

@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -14,18 +13,37 @@ type CPool struct {
 	Pool     map[int]ParseResolvable
 	resolved bool
 }
-type ClassMap map[int]ClassMetadata
+type ClassMap map[int]*ClassMetadata
 type PoolMap map[int]*CPool
 
 type Chunk struct {
 	Header      Header
 	Metadata    MetadataEvent
 	Checkpoints []CheckpointEvent
-	Events      []Parseable
+
+	// current event
+	Event Parseable
+
+	pointer int64
+	events  map[int64]int32
+	rd      reader.Reader
+	err     error
+	classes ClassMap
+	cpools  map[int]*CPool
+
+	// Cache for common record types
+	executionSample           ExecutionSample
+	threadPark                ThreadPark
+	objectAllocationInNewTLAB ObjectAllocationInNewTLAB
+	cpuLoad                   CPULoad
+	activeSetting             ActiveSetting
+	initialSystemProperty     InitialSystemProperty
+	nativeLibrary             NativeLibrary
 }
 
 type ChunkParseOptions struct {
-	CPoolProcessor func(meta ClassMetadata, cpool *CPool)
+	CPoolProcessor     func(meta *ClassMetadata, cpool *CPool)
+	UnsafeByteToString bool
 }
 
 func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
@@ -52,7 +70,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return fmt.Errorf("unable to read chunk header: %w", err)
 	}
-	if err := c.Header.Parse(reader.NewReader(bytes.NewReader(buf), false)); err != nil {
+	if err := c.Header.Parse(reader.NewReader(buf, false, options.UnsafeByteToString)); err != nil {
 		return fmt.Errorf("unable to parse chunk header: %w", err)
 	}
 	c.Header.ChunkSize -= headerSize + 8
@@ -65,13 +83,12 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 		return fmt.Errorf("unable to read chunk contents: %w", err)
 	}
 
-	br := bytes.NewReader(buf)
-	rd := reader.NewReader(br, useCompression)
+	rd := reader.NewReader(buf, useCompression, options.UnsafeByteToString)
 	pointer := int64(0)
 	events := make(map[int64]int32)
 
 	// Parse metadata
-	br.Seek(c.Header.MetadataOffset, io.SeekStart)
+	rd.SeekStart(c.Header.MetadataOffset)
 	metadataSize, err := rd.VarInt()
 	if err != nil {
 		return fmt.Errorf("unable to parse chunk metadata size: %w", err)
@@ -81,10 +98,10 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	if err := metadata.Parse(rd); err != nil {
 		return fmt.Errorf("unable to parse chunk metadata: %w", err)
 	}
-	classes := buildClasses(metadata)
+	classes := c.buildClasses(metadata)
 
 	// Parse checkpoint event(s)
-	br.Seek(c.Header.ConstantPoolOffset, io.SeekStart)
+	rd.SeekStart(c.Header.ConstantPoolOffset)
 	checkpointsSize := int32(0)
 	cpools := make(PoolMap)
 	delta := int64(0)
@@ -104,7 +121,7 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 			break
 		}
 		delta += cp.Delta
-		br.Seek(c.Header.ConstantPoolOffset+delta, io.SeekStart)
+		rd.SeekStart(c.Header.ConstantPoolOffset + delta)
 	}
 
 	if options.CPoolProcessor != nil {
@@ -121,34 +138,127 @@ func (c *Chunk) Parse(r io.Reader, options *ChunkParseOptions) (err error) {
 	}
 
 	// Parse the rest of events
-	br.Seek(pointer, io.SeekStart)
-	for pointer != c.Header.ChunkSize {
-		if size, ok := events[pointer]; ok {
-			pointer += int64(size)
-		} else {
-			if _, err := br.Seek(pointer, io.SeekStart); err != nil {
-				return fmt.Errorf("unable to seek to position %d: %w", pointer, err)
-			}
-			size, err := rd.VarInt()
-			if err != nil {
-				return fmt.Errorf("unable to parse event size: %w", err)
-			}
-			events[pointer] = size
-			e, err := ParseEvent(rd, classes, cpools)
-			if err != nil {
-				return fmt.Errorf("unable to parse event: %w", err)
-			}
-			c.Events = append(c.Events, e)
-			pointer += int64(size)
-		}
-	}
+	rd.SeekStart(pointer)
+	c.rd = rd
+	c.classes = classes
+	c.cpools = cpools
+	c.events = events
 	return nil
 }
 
-func buildClasses(metadata MetadataEvent) ClassMap {
-	classes := make(map[int]ClassMetadata)
-	for _, class := range metadata.Root.Metadata.Classes {
+// Next fetches the next event into r.Event.  It returns true if
+// successful, and false if it reaches the end of the event stream or
+// encounters an error.
+//
+// The record stored in r.Event may be reused by later invocations of
+// Next, so if the caller may need the event after another call to
+// Next, it must make its own copy.
+func (c *Chunk) Next() bool {
+	if c.err != nil {
+		return false
+	}
+	for c.pointer != c.Header.ChunkSize {
+		if size, ok := c.events[c.pointer]; ok {
+			c.pointer += int64(size)
+		} else {
+			if _, err := c.rd.SeekStart(c.pointer); err != nil {
+				c.err = fmt.Errorf("unable to seek to position %d: %w", c.pointer, err)
+				return false
+			}
+			size, err := c.rd.VarInt()
+			if err != nil {
+				c.err = fmt.Errorf("unable to parse event size: %w", err)
+				return false
+			}
+			e, err := ParseEvent(c.rd, c.classes, c.cpools)
+			if err != nil {
+				c.err = fmt.Errorf("unable to parse event: %w", err)
+				return false
+			}
+			c.Event = e
+			c.pointer += int64(size)
+			return true
+		}
+	}
+	return false
+}
+
+// Err returns the first error encountered by Events.
+func (c *Chunk) Err() error {
+	return c.err
+}
+
+func (c *Chunk) buildClasses(metadata MetadataEvent) ClassMap {
+	cacheEventFns := map[string]func() Parseable{
+		"jdk.CPULoad": func() Parseable {
+			c.cpuLoad = CPULoad{}
+			return &c.cpuLoad
+		},
+		"jdk.ThreadPark": func() Parseable {
+			c.threadPark = ThreadPark{}
+			return &c.threadPark
+		},
+		"jdk.ExecutionSample": func() Parseable {
+			c.executionSample = ExecutionSample{} // threadstate
+			return &c.executionSample
+		},
+		"jdk.ObjectAllocationInNewTLAB": func() Parseable {
+			c.objectAllocationInNewTLAB = ObjectAllocationInNewTLAB{}
+			return &c.objectAllocationInNewTLAB
+		},
+		"jdk.InitialSystemProperty": func() Parseable {
+			c.initialSystemProperty = InitialSystemProperty{}
+			return &c.initialSystemProperty
+		},
+		"jdk.ActiveSetting": func() Parseable {
+			c.activeSetting = ActiveSetting{}
+			return &c.activeSetting
+		},
+		"jdk.NativeLibrary": func() Parseable {
+			c.nativeLibrary = NativeLibrary{}
+			return &c.nativeLibrary
+		},
+	}
+	classes := make(map[int]*ClassMetadata, len(metadata.Root.Metadata.Classes))
+	for i := range metadata.Root.Metadata.Classes {
+		class := &metadata.Root.Metadata.Classes[i]
+		var numConstants int
+		for _, field := range class.Fields {
+			if field.ConstantPool {
+				numConstants++
+			}
+		}
+
+		if cacheEventFn, ok := cacheEventFns[class.Name]; ok {
+			class.eventFn = cacheEventFn
+		} else if eventFn, ok := events[class.Name]; ok {
+			class.eventFn = eventFn
+		} else {
+			class.eventFn = func() Parseable {
+				return &UnsupportedEvent{}
+			}
+		}
+
+		if typeFn, ok := types[class.Name]; ok {
+			class.typeFn = typeFn
+		} else {
+			class.typeFn = func() ParseResolvable {
+				return &UnsupportedType{}
+			}
+		}
+		class.numConstants = numConstants
 		classes[int(class.ID)] = class
+	}
+
+	// init class field isBaseType
+	for i, class := range metadata.Root.Metadata.Classes {
+		for j, field := range class.Fields {
+			name := classes[int(field.Class)].Name
+			if _, ok := parseBaseTypeAndDrops[name]; ok {
+				metadata.Root.Metadata.Classes[i].Fields[j].isBaseType = true
+				metadata.Root.Metadata.Classes[i].Fields[j].parseBaseTypeAndDrop = parseBaseTypeAndDrops[name]
+			}
+		}
 	}
 	return classes
 }

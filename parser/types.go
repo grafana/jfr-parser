@@ -7,17 +7,43 @@ import (
 	"github.com/pyroscope-io/jfr-parser/reader"
 )
 
+var parseBaseTypeAndDrops = map[string]func(reader.Reader) error{
+	"boolean": func(r reader.Reader) (err error) {
+		_, err = toBoolean(r)
+		return
+	},
+	"byte": func(r reader.Reader) (err error) {
+		_, err = toByte(r)
+		return
+	},
+	"double": func(r reader.Reader) (err error) {
+		_, err = toDouble(r)
+		return
+	},
+	"float": func(r reader.Reader) (err error) {
+		_, err = toFloat(r)
+		return
+	},
+	"int": func(r reader.Reader) (err error) {
+		_, err = toInt(r)
+		return
+	},
+	"long": func(r reader.Reader) (err error) {
+		_, err = toLong(r)
+		return
+	},
+	"short": func(r reader.Reader) (err error) {
+		_, err = toShort(r)
+		return
+	},
+	"java.lang.String": func(r reader.Reader) (err error) {
+		_, err = toString(r)
+		return
+	},
+}
+
 var types = map[string]func() ParseResolvable{
-	"boolean": func() ParseResolvable { return new(Boolean) },
-	"byte":    func() ParseResolvable { return new(Byte) },
-	// TODO: char
-	"double":                         func() ParseResolvable { return new(Double) },
-	"float":                          func() ParseResolvable { return new(Float) },
-	"int":                            func() ParseResolvable { return new(Int) },
-	"long":                           func() ParseResolvable { return new(Long) },
-	"short":                          func() ParseResolvable { return new(Short) },
 	"java.lang.Class":                func() ParseResolvable { return new(Class) },
-	"java.lang.String":               func() ParseResolvable { return new(String) },
 	"java.lang.Thread":               func() ParseResolvable { return new(Thread) },
 	"jdk.types.ClassLoader":          func() ParseResolvable { return new(ClassLoader) },
 	"jdk.types.CodeBlobType":         func() ParseResolvable { return new(CodeBlobType) },
@@ -30,7 +56,6 @@ var types = map[string]func() ParseResolvable{
 	"jdk.types.NarrowOopMode":        func() ParseResolvable { return new(NarrowOopMode) },
 	"jdk.types.NetworkInterfaceName": func() ParseResolvable { return new(NetworkInterfaceName) },
 	"jdk.types.Package":              func() ParseResolvable { return new(Package) },
-	"jdk.types.StackFrame":           func() ParseResolvable { return new(StackFrame) },
 	"jdk.types.StackTrace":           func() ParseResolvable { return new(StackTrace) },
 	"jdk.types.Symbol":               func() ParseResolvable { return new(Symbol) },
 	"jdk.types.ThreadState":          func() ParseResolvable { return new(ThreadState) },
@@ -41,12 +66,7 @@ func ParseClass(r reader.Reader, classes ClassMap, cpools PoolMap, classID int64
 	if !ok {
 		return nil, fmt.Errorf("unexpected class %d", classID)
 	}
-	var v ParseResolvable
-	if typeFn, ok := types[class.Name]; ok {
-		v = typeFn()
-	} else {
-		v = new(UnsupportedType)
-	}
+	v := class.typeFn()
 	if err := v.Parse(r, classes, cpools, class); err != nil {
 		return nil, err
 	}
@@ -54,7 +74,7 @@ func ParseClass(r reader.Reader, classes ClassMap, cpools PoolMap, classID int64
 }
 
 type Parseable interface {
-	Parse(reader.Reader, ClassMap, PoolMap, ClassMetadata) error
+	Parse(reader.Reader, ClassMap, PoolMap, *ClassMetadata) error
 }
 
 type Resolvable interface {
@@ -81,8 +101,12 @@ func appendConstant(r reader.Reader, constants *[]constant, name string, class i
 	return nil
 }
 
-func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata, constants *[]constant, resolved bool, cb func(string, ParseResolvable) error) error {
-	for _, f := range class.Fields {
+func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata, constants *[]constant, resolved bool, cb func(reader.Reader, string, ParseResolvable) error) error {
+	if constants != nil && cap(*constants) == 0 && class.numConstants != 0 && !resolved {
+		*constants = make([]constant, 0, class.numConstants)
+	}
+	for i := range class.Fields {
+		f := &class.Fields[i]
 		if f.ConstantPool {
 			if constants != nil && !resolved {
 				if err := appendConstant(r, constants, f.Name, f.Class); err != nil {
@@ -101,31 +125,55 @@ func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassM
 				if !ok {
 					continue
 				}
-				if err := cb(f.Name, p); err != nil {
+				if err := cb(r, f.Name, p); err != nil {
 					return fmt.Errorf("unable to parse constant field %s: %w", f.Name, err)
 				}
 			}
 		} else if f.Dimension == 1 {
-			n, err := r.VarInt()
+			offset := r.Offset()
+			err := cb(r, "len", nil)
 			if err != nil {
 				return fmt.Errorf("failed to parse %s: unable to read array length: %w", class.Name, err)
 			}
+			_, _ = r.SeekStart(int64(offset))
+			n, _ := r.VarInt() // this must successfult
 			// TODO: assert n is small enough
 			for i := 0; i < int(n); i++ {
-				p, err := ParseClass(r, classes, cpools, f.Class)
-				if err != nil {
-					return fmt.Errorf("failed to parse %s: unable to read an array element: %w", class.Name, err)
+				var p ParseResolvable
+				oldOffset := r.Offset()
+				if !f.isBaseType {
+					p, err = ParseClass(r, classes, cpools, f.Class)
+					if err != nil {
+						return fmt.Errorf("failed to parse %s: unable to read an array element: %w", class.Name, err)
+					}
 				}
-				if err := cb(f.Name, p); err != nil {
+				err = cb(r, f.Name, p)
+				newOffset := r.Offset()
+				if newOffset == oldOffset {
+					err = f.parseBaseTypeAndDrop(r)
+				}
+				if err != nil {
 					return fmt.Errorf("failed to parse %s: unable to parse an array element: %w", class.Name, err)
 				}
 			}
 		} else {
-			p, err := ParseClass(r, classes, cpools, f.Class)
-			if err != nil {
-				return fmt.Errorf("failed to parse %s: unable to read a field: %w", class.Name, err)
+			var (
+				p   ParseResolvable
+				err error
+			)
+			oldOffset := r.Offset()
+			if !f.isBaseType {
+				p, err = ParseClass(r, classes, cpools, f.Class)
+				if err != nil {
+					return fmt.Errorf("failed to parse %s: unable to read an array element: %w", class.Name, err)
+				}
 			}
-			if err := cb(f.Name, p); err != nil {
+			err = cb(r, f.Name, p)
+			newOffset := r.Offset()
+			if newOffset == oldOffset {
+				err = f.parseBaseTypeAndDrop(r)
+			}
+			if err != nil {
 				return fmt.Errorf("failed to parse %s: unable to parse a field: %w", class.Name, err)
 			}
 		}
@@ -133,7 +181,7 @@ func parseFields(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassM
 	return nil
 }
 
-func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, resolved *bool, cb func(string, ParseResolvable) error) error {
+func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, resolved *bool, cb func(reader.Reader, string, ParseResolvable) error) error {
 	if *resolved {
 		return nil
 	}
@@ -155,7 +203,7 @@ func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, r
 		if err := it.Resolve(classes, cpools); err != nil {
 			return err
 		}
-		if err := cb(c.field, it); err != nil {
+		if err := cb(nil, c.field, it); err != nil {
 			return fmt.Errorf("unable to resolve constants for field %s: %w", c.field, err)
 		}
 	}
@@ -163,124 +211,37 @@ func resolveConstants(classes ClassMap, cpools PoolMap, constants *[]constant, r
 	return nil
 }
 
-type Boolean bool
-
-func (b *Boolean) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	// TODO: Assert simpletype, no fields, etc.
-	x, err := r.Boolean()
-	*b = Boolean(x)
-	return err
+func toBoolean(r reader.Reader) (bool, error) {
+	return r.Boolean()
 }
 
-func (Boolean) Resolve(ClassMap, PoolMap) error { return nil }
-
-func toBoolean(p Parseable) (bool, error) {
-	x, ok := p.(*Boolean)
-	if !ok {
-		return false, errors.New("not a Boolean")
-	}
-	return bool(*x), nil
+func toByte(r reader.Reader) (int8, error) {
+	return r.Byte()
 }
 
-type Byte int8
-
-func (b *Byte) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	x, err := r.Byte()
-	*b = Byte(x)
-	return err
+func toDouble(r reader.Reader) (float64, error) {
+	return r.Double()
 }
 
-func (Byte) Resolve(ClassMap, PoolMap) error { return nil }
-
-func toByte(p Parseable) (int8, error) {
-	x, ok := p.(*Byte)
-	if !ok {
-		return 0, errors.New("not a Byte")
-	}
-	return int8(*x), nil
+func toFloat(r reader.Reader) (float32, error) {
+	return r.Float()
 }
 
-type Double float64
-
-func (d *Double) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	x, err := r.Double()
-	*d = Double(x)
-	return err
+func toInt(r reader.Reader) (int32, error) {
+	return r.VarInt()
 }
 
-func (Double) Resolve(ClassMap, PoolMap) error { return nil }
-
-func toDouble(p Parseable) (float64, error) {
-	x, ok := p.(*Double)
-	if !ok {
-		return 0, errors.New("not a Double")
-	}
-	return float64(*x), nil
+func toLong(r reader.Reader) (int64, error) {
+	return r.VarLong()
 }
 
-type Float float32
-
-func (f *Float) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	x, err := r.Float()
-	*f = Float(x)
-	return err
+func toShort(r reader.Reader) (int16, error) {
+	return r.VarShort()
 }
 
-func (Float) Resolve(ClassMap, PoolMap) error { return nil }
-
-func toFloat(p Parseable) (float32, error) {
-	x, ok := p.(*Float)
-	if !ok {
-		return 0, errors.New("not a Float")
-	}
-	return float32(*x), nil
+func toString(r reader.Reader) (string, error) {
+	return r.String()
 }
-
-type Int int32
-
-func (i *Int) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	x, err := r.VarInt()
-	*i = Int(x)
-	return err
-}
-
-func (Int) Resolve(ClassMap, PoolMap) error { return nil }
-
-func toInt(p Parseable) (int32, error) {
-	x, ok := p.(*Int)
-	if !ok {
-		return 0, errors.New("not an Int")
-	}
-	return int32(*x), nil
-}
-
-type Long int64
-
-func (l *Long) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	x, err := r.VarLong()
-	*l = Long(x)
-	return err
-}
-
-func (Long) Resolve(ClassMap, PoolMap) error { return nil }
-
-func toLong(p Parseable) (int64, error) {
-	x, ok := p.(*Long)
-	if !ok {
-		return 0, errors.New("not a Long")
-	}
-	return int64(*x), nil
-}
-
-type Short int16
-
-func (s *Short) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	x, err := r.VarShort()
-	*s = Short(x)
-	return err
-}
-
-func (Short) Resolve(ClassMap, PoolMap) error { return nil }
 
 type Class struct {
 	ClassLoader *ClassLoader
@@ -291,7 +252,7 @@ type Class struct {
 	resolved    bool
 }
 
-func (c *Class) parseField(name string, p ParseResolvable) (err error) {
+func (c *Class) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "classLoader":
 		c.ClassLoader, err = toClassLoader(p)
@@ -300,12 +261,12 @@ func (c *Class) parseField(name string, p ParseResolvable) (err error) {
 	case "package":
 		c.Package, err = toPackage(p)
 	case "modifers":
-		c.Modifiers, err = toLong(p)
+		c.Modifiers, err = toLong(r)
 	}
 	return err
 }
 
-func (c *Class) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (c *Class) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &c.constants, c.resolved, c.parseField)
 }
 
@@ -315,11 +276,6 @@ func (c *Class) Resolve(classes ClassMap, cpools PoolMap) error {
 	}
 	if c.ClassLoader != nil {
 		if err := c.ClassLoader.Resolve(classes, cpools); err != nil {
-			return err
-		}
-	}
-	if c.Name != nil {
-		if err := c.Name.Resolve(classes, cpools); err != nil {
 			return err
 		}
 	}
@@ -338,24 +294,6 @@ func toClass(p ParseResolvable) (*Class, error) {
 	return c, nil
 }
 
-type String string
-
-func (s *String) Parse(r reader.Reader, _ ClassMap, _ PoolMap, _ ClassMetadata) error {
-	x, err := r.String()
-	*s = String(x)
-	return err
-}
-
-func (s String) Resolve(_ ClassMap, _ PoolMap) error { return nil }
-
-func toString(p Parseable) (string, error) {
-	s, ok := p.(*String)
-	if !ok {
-		return "", errors.New("not a String")
-	}
-	return string(*s), nil
-}
-
 type Thread struct {
 	OsName       string
 	OsThreadID   int64
@@ -365,21 +303,21 @@ type Thread struct {
 	resolved     bool
 }
 
-func (t *Thread) parseField(name string, p ParseResolvable) (err error) {
+func (t *Thread) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "osName":
-		t.OsName, err = toString(p)
+		t.OsName, err = toString(r)
 	case "osThreadId":
-		t.OsThreadID, err = toLong(p)
+		t.OsThreadID, err = toLong(r)
 	case "javaName":
-		t.JavaName, err = toString(p)
+		t.JavaName, err = toString(r)
 	case "javaThreadId":
-		t.JavaThreadID, err = toLong(p)
+		t.JavaThreadID, err = toLong(r)
 	}
 	return err
 }
 
-func (t *Thread) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (t *Thread) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &t.constants, t.resolved, t.parseField)
 }
 
@@ -402,7 +340,7 @@ type ClassLoader struct {
 	resolved  bool
 }
 
-func (cl *ClassLoader) parseField(name string, p ParseResolvable) (err error) {
+func (cl *ClassLoader) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "type":
 		cl.Type, err = toClass(p)
@@ -412,7 +350,7 @@ func (cl *ClassLoader) parseField(name string, p ParseResolvable) (err error) {
 	return err
 }
 
-func (cl *ClassLoader) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (cl *ClassLoader) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &cl.constants, cl.resolved, cl.parseField)
 }
 
@@ -424,9 +362,6 @@ func (cl *ClassLoader) Resolve(classes ClassMap, cpools PoolMap) error {
 		if err := cl.Type.Resolve(classes, cpools); err != nil {
 			return err
 		}
-	}
-	if cl.Name != nil {
-		return cl.Name.Resolve(classes, cpools)
 	}
 	return nil
 }
@@ -446,20 +381,20 @@ type CodeBlobType struct {
 	resolved  bool
 }
 
-func (cbt *CodeBlobType) parseField(name string, p ParseResolvable) (err error) {
+func (cbt *CodeBlobType) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "string":
-		cbt.String, err = toString(p)
+		cbt.String, err = toString(r)
 	}
 	return err
 }
 
-func (cbt *CodeBlobType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (cbt *CodeBlobType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &cbt.constants, cbt.resolved, cbt.parseField)
 }
 
 func (cbt *CodeBlobType) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &cbt.constants, &cbt.resolved, cbt.parseField)
+	return nil
 }
 
 func toCodeBlobType(p ParseResolvable) (*CodeBlobType, error) {
@@ -476,15 +411,15 @@ type FlagValueOrigin struct {
 	resolved  bool
 }
 
-func (fvo *FlagValueOrigin) parseField(name string, p ParseResolvable) (err error) {
+func (fvo *FlagValueOrigin) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "description":
-		fvo.String, err = toString(p)
+		fvo.String, err = toString(r)
 	}
 	return err
 }
 
-func (fvo *FlagValueOrigin) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (fvo *FlagValueOrigin) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &fvo.constants, fvo.resolved, fvo.parseField)
 }
 
@@ -506,20 +441,20 @@ type FrameType struct {
 	resolved    bool
 }
 
-func (ft *FrameType) parseField(name string, p ParseResolvable) (err error) {
+func (ft *FrameType) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "description":
-		ft.Description, err = toString(p)
+		ft.Description, err = toString(r)
 	}
 	return err
 }
 
-func (ft *FrameType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (ft *FrameType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &ft.constants, ft.resolved, ft.parseField)
 }
 
 func (ft *FrameType) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &ft.constants, &ft.resolved, ft.parseField)
+	return nil
 }
 
 func toFrameType(p Parseable) (*FrameType, error) {
@@ -536,20 +471,20 @@ type G1YCType struct {
 	resolved  bool
 }
 
-func (gyt *G1YCType) parseField(name string, p ParseResolvable) (err error) {
+func (gyt *G1YCType) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "string":
-		gyt.String, err = toString(p)
+		gyt.String, err = toString(r)
 	}
 	return err
 }
 
-func (gyt *G1YCType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (gyt *G1YCType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &gyt.constants, gyt.resolved, gyt.parseField)
 }
 
 func (gyt *G1YCType) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &gyt.constants, &gyt.resolved, gyt.parseField)
+	return nil
 }
 
 func toG1YCType(p Parseable) (*G1YCType, error) {
@@ -566,20 +501,20 @@ type GCName struct {
 	resolved  bool
 }
 
-func (gn *GCName) parseField(name string, p ParseResolvable) (err error) {
+func (gn *GCName) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "string":
-		gn.String, err = toString(p)
+		gn.String, err = toString(r)
 	}
 	return err
 }
 
-func (gn *GCName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (gn *GCName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &gn.constants, gn.resolved, gn.parseField)
 }
 
 func (gn *GCName) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &gn.constants, &gn.resolved, gn.parseField)
+	return nil
 }
 
 func toGCName(p Parseable) (*GCName, error) {
@@ -600,7 +535,7 @@ type Method struct {
 	resolved   bool
 }
 
-func (m *Method) parseField(name string, p ParseResolvable) (err error) {
+func (m *Method) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "type":
 		m.Type, err = toClass(p)
@@ -609,14 +544,14 @@ func (m *Method) parseField(name string, p ParseResolvable) (err error) {
 	case "descriptor":
 		m.Descriptor, err = toSymbol(p)
 	case "modifiers":
-		m.Modifiers, err = toInt(p)
+		m.Modifiers, err = toInt(r)
 	case "hidden":
-		m.Hidden, err = toBoolean(p)
+		m.Hidden, err = toBoolean(r)
 	}
 	return err
 }
 
-func (m *Method) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (m *Method) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &m.constants, m.resolved, m.parseField)
 }
 
@@ -628,14 +563,6 @@ func (m *Method) Resolve(classes ClassMap, cpools PoolMap) error {
 		if err := m.Type.Resolve(classes, cpools); err != nil {
 			return err
 		}
-	}
-	if m.Name != nil {
-		if err := m.Name.Resolve(classes, cpools); err != nil {
-			return err
-		}
-	}
-	if m.Descriptor != nil {
-		return m.Descriptor.Resolve(classes, cpools)
 	}
 	return nil
 }
@@ -657,7 +584,7 @@ type Module struct {
 	resolved    bool
 }
 
-func (m *Module) parseField(name string, p ParseResolvable) (err error) {
+func (m *Module) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "name":
 		m.Name, err = toSymbol(p)
@@ -671,28 +598,13 @@ func (m *Module) parseField(name string, p ParseResolvable) (err error) {
 	return err
 }
 
-func (m *Module) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (m *Module) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &m.constants, m.resolved, m.parseField)
 }
 
 func (m *Module) Resolve(classes ClassMap, cpools PoolMap) error {
 	if err := resolveConstants(classes, cpools, &m.constants, &m.resolved, m.parseField); err != nil {
 		return err
-	}
-	if m.Name != nil {
-		if err := m.Name.Resolve(classes, cpools); err != nil {
-			return err
-		}
-	}
-	if m.Version != nil {
-		if err := m.Version.Resolve(classes, cpools); err != nil {
-			return err
-		}
-	}
-	if m.Location != nil {
-		if err := m.Location.Resolve(classes, cpools); err != nil {
-			return err
-		}
 	}
 	if m.ClassLoader != nil {
 		return m.ClassLoader.Resolve(classes, cpools)
@@ -714,15 +626,15 @@ type NarrowOopMode struct {
 	resolved  bool
 }
 
-func (nom *NarrowOopMode) parseField(name string, p ParseResolvable) (err error) {
+func (nom *NarrowOopMode) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "string":
-		nom.String, err = toString(p)
+		nom.String, err = toString(r)
 	}
 	return err
 }
 
-func (nom *NarrowOopMode) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (nom *NarrowOopMode) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &nom.constants, nom.resolved, nom.parseField)
 }
 
@@ -744,15 +656,15 @@ type NetworkInterfaceName struct {
 	resolved         bool
 }
 
-func (nim *NetworkInterfaceName) parseField(name string, p ParseResolvable) (err error) {
+func (nim *NetworkInterfaceName) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "networkInterface":
-		nim.NetworkInterface, err = toString(p)
+		nim.NetworkInterface, err = toString(r)
 	}
 	return err
 }
 
-func (nim *NetworkInterfaceName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (nim *NetworkInterfaceName) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &nim.constants, nim.resolved, nim.parseField)
 }
 
@@ -774,7 +686,7 @@ type Package struct {
 	resolved  bool
 }
 
-func (pkg *Package) parseField(name string, p ParseResolvable) (err error) {
+func (pkg *Package) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "name":
 		pkg.Name, err = toSymbol(p)
@@ -782,7 +694,7 @@ func (pkg *Package) parseField(name string, p ParseResolvable) (err error) {
 	return err
 }
 
-func (p *Package) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (p *Package) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &p.constants, p.resolved, p.parseField)
 }
 
@@ -814,21 +726,21 @@ type StackFrame struct {
 	resolved      bool
 }
 
-func (sf *StackFrame) parseField(name string, p ParseResolvable) (err error) {
+func (sf *StackFrame) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "method":
 		sf.Method, err = toMethod(p)
 	case "lineNumber":
-		sf.LineNumber, err = toInt(p)
+		sf.LineNumber, err = toInt(r)
 	case "byteCodeIndex":
-		sf.ByteCodeIndex, err = toInt(p)
+		sf.ByteCodeIndex, err = toInt(r)
 	case "type":
 		sf.Type, err = toFrameType(p)
 	}
 	return err
 }
 
-func (sf *StackFrame) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (sf *StackFrame) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &sf.constants, sf.resolved, sf.parseField)
 }
 
@@ -840,9 +752,6 @@ func (sf *StackFrame) Resolve(classes ClassMap, cpools PoolMap) error {
 		if err := sf.Method.Resolve(classes, cpools); err != nil {
 			return err
 		}
-	}
-	if sf.Type != nil {
-		return sf.Type.Resolve(classes, cpools)
 	}
 	return nil
 }
@@ -856,16 +765,17 @@ func toStackFrame(p ParseResolvable) (*StackFrame, error) {
 }
 
 type StackTrace struct {
-	Truncated bool
-	Frames    []*StackFrame
-	constants []constant
-	resolved  bool
+	Truncated               bool
+	Frames                  []*StackFrame
+	constants               []constant
+	resolved                bool
+	getPointerToStackFrames func(int) []*StackFrame
 }
 
-func (st *StackTrace) parseField(name string, p ParseResolvable) (err error) {
+func (st *StackTrace) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "truncated":
-		st.Truncated, err = toBoolean(p)
+		st.Truncated, err = toBoolean(r)
 	case "frames":
 		var sf *StackFrame
 		sf, err := toStackFrame(p)
@@ -873,11 +783,17 @@ func (st *StackTrace) parseField(name string, p ParseResolvable) (err error) {
 			return err
 		}
 		st.Frames = append(st.Frames, sf)
+	case "len":
+		frameLen, err := r.VarInt()
+		if err != nil {
+			return err
+		}
+		st.Frames = st.getPointerToStackFrames(int(frameLen))
 	}
 	return err
 }
 
-func (st *StackTrace) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (st *StackTrace) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &st.constants, st.resolved, st.parseField)
 }
 
@@ -907,20 +823,20 @@ type Symbol struct {
 	resolved  bool
 }
 
-func (s *Symbol) parseField(name string, p ParseResolvable) (err error) {
+func (s *Symbol) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "string":
-		s.String, err = toString(p)
+		s.String, err = toString(r)
 	}
 	return err
 }
 
-func (s *Symbol) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (s *Symbol) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &s.constants, s.resolved, s.parseField)
 }
 
 func (s *Symbol) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &s.constants, &s.resolved, s.parseField)
+	return nil
 }
 
 func toSymbol(p ParseResolvable) (*Symbol, error) {
@@ -938,20 +854,20 @@ type ThreadState struct {
 	resolved  bool
 }
 
-func (ts *ThreadState) parseField(name string, p ParseResolvable) (err error) {
+func (ts *ThreadState) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
 	switch name {
 	case "name":
-		ts.Name, err = toString(p)
+		ts.Name, err = toString(r)
 	}
 	return err
 }
 
-func (ts *ThreadState) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (ts *ThreadState) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &ts.constants, ts.resolved, ts.parseField)
 }
 
 func (ts *ThreadState) Resolve(classes ClassMap, cpools PoolMap) error {
-	return resolveConstants(classes, cpools, &ts.constants, &ts.resolved, ts.parseField)
+	return nil
 }
 
 func toThreadState(p ParseResolvable) (*ThreadState, error) {
@@ -969,11 +885,11 @@ type UnsupportedType struct {
 	resolved  bool
 }
 
-func (ut *UnsupportedType) parseField(name string, p ParseResolvable) error {
+func (ut *UnsupportedType) parseField(r reader.Reader, name string, p ParseResolvable) error {
 	return nil
 }
 
-func (ut *UnsupportedType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class ClassMetadata) error {
+func (ut *UnsupportedType) Parse(r reader.Reader, classes ClassMap, cpools PoolMap, class *ClassMetadata) error {
 	return parseFields(r, classes, cpools, class, &ut.constants, ut.resolved, ut.parseField)
 }
 
