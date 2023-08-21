@@ -533,6 +533,7 @@ type Method struct {
 	Hidden     bool
 	constants  []constant
 	resolved   bool
+	Scratch    []byte
 }
 
 func (m *Method) parseField(r reader.Reader, name string, p ParseResolvable) (err error) {
