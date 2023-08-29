@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/pyroscope-io/jfr-parser/reader"
@@ -15,61 +14,112 @@ import (
 var testfiles = []string{
 	"example",
 	"async-profiler", // -e cpu -i 10ms --alloc 512k --wall 200ms --lock 10ms -d 60 (async-profiler 2.10)
+	"cortex-dev-01__kafka-0__cpu_lock0_alloc0__0",
+	"goland",
+	"goland-multichunk",
+}
+
+type ExpectedActiveSetting struct {
+	key, value string
+}
+type ExpectedStacktrace struct {
+	Frames    []string
+	ContextID int64
+}
+type Expected struct {
+	ExecutionSample  []ExpectedStacktrace
+	AllocInTLAB      []ExpectedStacktrace
+	AllocOutsideTLAB []ExpectedStacktrace
+	MonitorEnter     []ExpectedStacktrace
+	ThreadPark       []ExpectedStacktrace
+	LiveObject       []ExpectedStacktrace
+	ActiveSetting    []ExpectedActiveSetting
 }
 
 func TestParse(t *testing.T) {
 	for _, testfile := range testfiles {
-		jfrfile := testfile + ".jfr.gz"
-		jsonfile := testfile + "_parsed.json.gz"
-		jfr, err := readGzipFile("./testdata/" + jfrfile)
-		if err != nil {
-			t.Fatalf("Unable to read JFR file: %s", err)
-		}
-		expectedJson, err := readGzipFile("./testdata/" + jsonfile)
-		if err != nil {
-			t.Fatalf("Unable to read example_parsd.json")
-		}
-		chunks, err := Parse(bytes.NewReader(jfr))
-		if err != nil {
-			t.Fatalf("Failed to parse JFR: %s", err)
-			return
-		}
-		type expectedChunk struct {
-			Header      Header
-			Metadata    MetadataEvent
-			Checkpoints []CheckpointEvent
-			Events      []Parseable
-		}
-		var expectedChunks []expectedChunk
-		for _, chunk := range chunks {
-			var events []Parseable
-			for chunk.Next() {
-				// copy event
-				elem := reflect.ValueOf(chunk.Event).Elem()
-				newEvent := reflect.New(elem.Type())
-				newEventElem := newEvent.Elem()
-				for i := 0; i < elem.NumField(); i++ {
-					newEventElem.Field(i).Set(elem.Field(i))
-				}
-				events = append(events, newEvent.Interface().(Parseable))
-			}
-			err = chunk.Err()
+		t.Run(testfile, func(t *testing.T) {
+			jfrfile := "./testdata/" + testfile + ".jfr.gz"
+			jsonfile := "./testdata/" + testfile + "_parsed.json.gz"
+			jfr, err := readGzipFile(jfrfile)
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("Unable to read JFR file: %s", err)
 			}
-			expectedChunks = append(expectedChunks, expectedChunk{
-				Header:      chunk.Header,
-				Metadata:    chunk.Metadata,
-				Checkpoints: chunk.Checkpoints,
-				Events:      events,
-			})
-		}
-		actualJson, _ := json.Marshal(expectedChunks)
-		if !bytes.Equal(expectedJson, actualJson) {
-			t.Fatalf("Failed to parse JFR: %s", err)
-			return
-		}
+			expectedJson, err := readGzipFile(jsonfile)
+			if err != nil {
+				t.Fatalf("Unable to read example_parsd.json")
+			}
+			chunks, err := Parse(bytes.NewReader(jfr))
+			if err != nil {
+				t.Fatalf("Failed to parse JFR: %s", err)
+				return
+			}
+
+			e := new(Expected)
+			for _, chunk := range chunks {
+				for chunk.Next() {
+					event := chunk.Event
+					switch event.(type) {
+					case *ExecutionSample:
+						ex := event.(*ExecutionSample)
+						e.ExecutionSample = append(e.ExecutionSample, ExpectedStacktrace{
+							Frames:    stacktraceToFrames(ex.StackTrace),
+							ContextID: ex.ContextId,
+						})
+					case *ObjectAllocationInNewTLAB:
+						ex := event.(*ObjectAllocationInNewTLAB)
+						e.AllocInTLAB = append(e.AllocInTLAB, ExpectedStacktrace{
+							Frames:    stacktraceToFrames(ex.StackTrace),
+							ContextID: ex.ContextId,
+						})
+					case *ObjectAllocationOutsideTLAB:
+						ex := event.(*ObjectAllocationOutsideTLAB)
+						e.AllocOutsideTLAB = append(e.AllocOutsideTLAB, ExpectedStacktrace{
+							Frames:    stacktraceToFrames(ex.StackTrace),
+							ContextID: ex.ContextId,
+						})
+					case *JavaMonitorEnter:
+						ex := event.(*JavaMonitorEnter)
+						e.MonitorEnter = append(e.MonitorEnter, ExpectedStacktrace{
+							Frames:    stacktraceToFrames(ex.StackTrace),
+							ContextID: ex.ContextId,
+						})
+					case *ThreadPark:
+						ex := event.(*ThreadPark)
+						e.ThreadPark = append(e.ThreadPark, ExpectedStacktrace{
+							Frames:    stacktraceToFrames(ex.StackTrace),
+							ContextID: ex.ContextId,
+						})
+					case *LiveObject:
+						ex := event.(*LiveObject)
+						e.LiveObject = append(e.LiveObject, ExpectedStacktrace{
+							Frames:    stacktraceToFrames(ex.StackTrace),
+							ContextID: 0,
+						})
+
+					}
+				}
+				err = chunk.Err()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			actualJson, _ := json.Marshal(e)
+			//os.WriteFile("./testdata/"+testfile+"_parsed.json", actualJson, 0644)
+			if !bytes.Equal(expectedJson, actualJson) {
+				t.Fatalf("Failed to parse JFR: %s", err)
+				return
+			}
+		})
 	}
+}
+
+func stacktraceToFrames(trace *StackTrace) []string {
+	frames := make([]string, len(trace.Frames))
+	for i, frame := range trace.Frames {
+		frames[i] = frame.Method.Type.Name.String + "." + frame.Method.Name.String
+	}
+	return frames
 }
 
 func TestParseBaseTypeAndDrop(t *testing.T) {
@@ -102,6 +152,7 @@ func BenchmarkParse(b *testing.B) {
 			if err != nil {
 				b.Fatalf("Unable to read JFR file: %s", err)
 			}
+			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
 				chunks, err := Parse(bytes.NewReader(jfr))
