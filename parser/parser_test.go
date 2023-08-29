@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/pyroscope-io/jfr-parser/reader"
+	"github.com/pyroscope-io/jfr-parser/parser/types"
+	"github.com/pyroscope-io/jfr-parser/parser/types/def"
 )
 
 var testfiles = []string{
@@ -49,61 +54,83 @@ func TestParse(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unable to read example_parsd.json")
 			}
-			chunks, err := Parse(bytes.NewReader(jfr))
+			t1 := time.Now()
+			parser, err := NewParser(jfr, Options{})
 			if err != nil {
 				t.Fatalf("Failed to parse JFR: %s", err)
 				return
 			}
 
 			e := new(Expected)
-			for _, chunk := range chunks {
-				for chunk.Next() {
-					event := chunk.Event
-					switch event.(type) {
-					case *ExecutionSample:
-						ex := event.(*ExecutionSample)
-						e.ExecutionSample = append(e.ExecutionSample, ExpectedStacktrace{
-							Frames:    stacktraceToFrames(ex.StackTrace),
-							ContextID: ex.ContextId,
-						})
-					case *ObjectAllocationInNewTLAB:
-						ex := event.(*ObjectAllocationInNewTLAB)
-						e.AllocInTLAB = append(e.AllocInTLAB, ExpectedStacktrace{
-							Frames:    stacktraceToFrames(ex.StackTrace),
-							ContextID: ex.ContextId,
-						})
-					case *ObjectAllocationOutsideTLAB:
-						ex := event.(*ObjectAllocationOutsideTLAB)
-						e.AllocOutsideTLAB = append(e.AllocOutsideTLAB, ExpectedStacktrace{
-							Frames:    stacktraceToFrames(ex.StackTrace),
-							ContextID: ex.ContextId,
-						})
-					case *JavaMonitorEnter:
-						ex := event.(*JavaMonitorEnter)
-						e.MonitorEnter = append(e.MonitorEnter, ExpectedStacktrace{
-							Frames:    stacktraceToFrames(ex.StackTrace),
-							ContextID: ex.ContextId,
-						})
-					case *ThreadPark:
-						ex := event.(*ThreadPark)
-						e.ThreadPark = append(e.ThreadPark, ExpectedStacktrace{
-							Frames:    stacktraceToFrames(ex.StackTrace),
-							ContextID: ex.ContextId,
-						})
-					case *LiveObject:
-						ex := event.(*LiveObject)
-						e.LiveObject = append(e.LiveObject, ExpectedStacktrace{
-							Frames:    stacktraceToFrames(ex.StackTrace),
-							ContextID: 0,
-						})
-
-					}
+			stacktraceToFrames := func(stacktrace types.StackTraceRef) []string {
+				st := parser.GetStacktrace(stacktrace)
+				if st == nil {
+					t.Fatalf("stacktrace not found: %d\n", stacktrace)
 				}
-				err = chunk.Err()
+				frames := make([]string, len(st.Frames))
+				for i, frame := range st.Frames {
+					m := parser.GetMethod(frame.Method)
+					if m == nil {
+						t.Fatalf("method not found: %d\n", frame.Method)
+					}
+					if m.Scratch == "" {
+						cls := parser.GetClass(m.Type)
+						if cls == nil {
+							t.Fatalf("class not found: %d\n", m.Type)
+						}
+						m.Scratch = parser.GetSymbolString(cls.Name) + "." + parser.GetSymbolString(m.Name)
+					}
+					frames[i] = m.Scratch
+				}
+				return frames
+			}
+
+			for {
+				typ, err := parser.ParseEvent()
 				if err != nil {
-					t.Fatal(err)
+					if errors.Is(err, io.EOF) {
+						break
+					}
+					t.Fatalf("Failed to parse JFR: %s", err)
+				}
+
+				switch typ {
+				case def.T_EXECUTION_SAMPLE:
+					e.ExecutionSample = append(e.ExecutionSample, ExpectedStacktrace{
+						Frames:    stacktraceToFrames(parser.ExecutionSample.StackTrace),
+						ContextID: int64(parser.ExecutionSample.ContextId),
+					})
+				case def.T_ALLOC_IN_NEW_TLAB:
+					e.AllocInTLAB = append(e.AllocInTLAB, ExpectedStacktrace{
+						Frames:    stacktraceToFrames(parser.ObjectAllocationInNewTLAB.StackTrace),
+						ContextID: int64(parser.ObjectAllocationInNewTLAB.ContextId),
+					})
+				case def.T_ALLOC_OUTSIDE_TLAB:
+					e.AllocOutsideTLAB = append(e.AllocOutsideTLAB, ExpectedStacktrace{
+						Frames:    stacktraceToFrames(parser.ObjectAllocationOutsideTLAB.StackTrace),
+						ContextID: int64(parser.ObjectAllocationOutsideTLAB.ContextId),
+					})
+				case def.T_MONITOR_ENTER:
+
+					e.MonitorEnter = append(e.MonitorEnter, ExpectedStacktrace{
+						Frames:    stacktraceToFrames(parser.JavaMonitorEnter.StackTrace),
+						ContextID: int64(parser.JavaMonitorEnter.ContextId),
+					})
+				case def.T_THREAD_PARK:
+					e.ThreadPark = append(e.ThreadPark, ExpectedStacktrace{
+						Frames:    stacktraceToFrames(parser.ThreadPark.StackTrace),
+						ContextID: int64(parser.ThreadPark.ContextId),
+					})
+				case def.T_LIVE_OBJECT:
+					e.LiveObject = append(e.LiveObject, ExpectedStacktrace{
+						Frames:    stacktraceToFrames(parser.LiveObject.StackTrace),
+						ContextID: 0,
+					})
+
 				}
 			}
+			t2 := time.Now()
+			fmt.Println(t2.Sub(t1))
 			actualJson, _ := json.Marshal(e)
 			//os.WriteFile("./testdata/"+testfile+"_parsed.json", actualJson, 0644)
 			if !bytes.Equal(expectedJson, actualJson) {
@@ -114,63 +141,56 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func stacktraceToFrames(trace *StackTrace) []string {
-	frames := make([]string, len(trace.Frames))
-	for i, frame := range trace.Frames {
-		frames[i] = frame.Method.Type.Name.String + "." + frame.Method.Name.String
-	}
-	return frames
-}
+//
+//func TestParseBaseTypeAndDrop(t *testing.T) {
+//	r := reader.NewReader([]byte{1}, false, false)
+//	err := parseFields(
+//		r,
+//		map[int]*ClassMetadata{}, map[int]*CPool{},
+//		&ClassMetadata{
+//			Fields: []FieldMetadata{
+//				{
+//					Name:                 "boolean",
+//					isBaseType:           true,
+//					parseBaseTypeAndDrop: parseBaseTypeAndDrops["boolean"],
+//				},
+//			},
+//		},
+//		nil, false,
+//		func(reader reader.Reader, s string, resolvable ParseResolvable) error {
+//			return nil
+//		})
+//	if err != nil || r.Offset() != 1 {
+//		t.Fatalf("failed to parse and drop base type: %s", err)
+//	}
+//}
 
-func TestParseBaseTypeAndDrop(t *testing.T) {
-	r := reader.NewReader([]byte{1}, false, false)
-	err := parseFields(
-		r,
-		map[int]*ClassMetadata{}, map[int]*CPool{},
-		&ClassMetadata{
-			Fields: []FieldMetadata{
-				{
-					Name:                 "boolean",
-					isBaseType:           true,
-					parseBaseTypeAndDrop: parseBaseTypeAndDrops["boolean"],
-				},
-			},
-		},
-		nil, false,
-		func(reader reader.Reader, s string, resolvable ParseResolvable) error {
-			return nil
-		})
-	if err != nil || r.Offset() != 1 {
-		t.Fatalf("failed to parse and drop base type: %s", err)
-	}
-}
-
-func BenchmarkParse(b *testing.B) {
-	for _, testfile := range testfiles {
-		b.Run(testfile, func(b *testing.B) {
-			jfr, err := readGzipFile("./testdata/" + testfile + ".jfr.gz")
-			if err != nil {
-				b.Fatalf("Unable to read JFR file: %s", err)
-			}
-			b.ResetTimer()
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
-				chunks, err := Parse(bytes.NewReader(jfr))
-				if err != nil {
-					b.Fatalf("Unable to parse JFR file: %s", err)
-				}
-				for _, chunk := range chunks {
-					for chunk.Next() {
-					}
-					err = chunk.Err()
-					if err != nil {
-						b.Fatal(err)
-					}
-				}
-			}
-		})
-	}
-}
+//func BenchmarkParse(b *testing.B) {
+//	for _, testfile := range testfiles {
+//		b.Run(testfile, func(b *testing.B) {
+//			jfr, err := readGzipFile("./testdata/" + testfile + ".jfr.gz")
+//			if err != nil {
+//				b.Fatalf("Unable to read JFR file: %s", err)
+//			}
+//			b.ResetTimer()
+//			b.ReportAllocs()
+//			for i := 0; i < b.N; i++ {
+//				chunks, err := Parse(bytes.NewReader(jfr))
+//				if err != nil {
+//					b.Fatalf("Unable to parse JFR file: %s", err)
+//				}
+//				for _, chunk := range chunks {
+//					for chunk.Next() {
+//					}
+//					err = chunk.Err()
+//					if err != nil {
+//						b.Fatal(err)
+//					}
+//				}
+//			}
+//		})
+//	}
+//}
 
 func readGzipFile(fname string) ([]byte, error) {
 	f, err := os.Open(fname)
