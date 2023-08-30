@@ -8,29 +8,44 @@ import (
 	"github.com/pyroscope-io/jfr-parser/parser/types/def"
 )
 
+type BindStackTrace struct {
+	Temp   StackTrace
+	Fields []BindFieldStackTrace
+}
+
+type BindFieldStackTrace struct {
+	Field      *def.Field
+	bool       *bool
+	StackFrame *[]StackFrame
+}
+
+func NewBindStackTrace(typ *def.Class, typeMap *def.TypeMap) *BindStackTrace {
+	res := new(BindStackTrace)
+	for i := 0; i < len(typ.Fields); i++ {
+		switch typ.Fields[i].Name {
+		case "truncated":
+			if typ.Fields[i].Equals(&def.Field{Name: "truncated", Type: typeMap.T_BOOLEAN, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i], bool: &res.Temp.Truncated})
+			} else {
+				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip
+			}
+		case "frames":
+			if typ.Fields[i].Equals(&def.Field{Name: "frames", Type: typeMap.T_STACK_FRAME, ConstantPool: false, Array: true}) {
+				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i], StackFrame: &res.Temp.Frames})
+			} else {
+				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip
+			}
+		default:
+			res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip
+		}
+	}
+	return res
+}
+
 type StackTraceRef uint32
 type StackTraceList struct {
 	IDMap      map[StackTraceRef]uint32
 	StackTrace []StackTrace
-}
-
-var ExpectedMetaStackTrace = &def.Class{
-	Name: "jdk.types.StackTrace",
-	ID:   def.T_STACK_TRACE,
-	Fields: []def.Field{
-		{
-			Name:         "truncated",
-			Type:         def.T_BOOLEAN,
-			ConstantPool: false,
-			Array:        false,
-		},
-		{
-			Name:         "frames",
-			Type:         def.T_STACK_FRAME,
-			ConstantPool: false,
-			Array:        true,
-		},
-	},
 }
 
 type StackTrace struct {
@@ -38,7 +53,7 @@ type StackTrace struct {
 	Frames    []StackFrame
 }
 
-func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *def.Class, typeMap map[def.TypeID]*def.Class) (pos int, err error) {
+func (this *StackTraceList) Parse(data []byte, bind *BindStackTrace, bindStackFrame *BindStackFrame, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
 		v32_  uint32
@@ -50,9 +65,6 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 	_ = v64_
 	_ = v32_
 	_ = s_
-	nFields := len(ExpectedMetaStackTrace.Fields)
-	skipFields := typ.Fields[nFields:]
-	stackFrameSkipFields := stackFrameType.Fields[len(def.TypeStackFrame.Fields):]
 	v32_ = uint32(0)
 	for shift = uint(0); ; shift += 7 {
 		if shift >= 32 {
@@ -88,1144 +100,9 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 			}
 		}
 		id := StackTraceRef(v32_)
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		this.StackTrace[i].Truncated = b_ == 0
-		v32_ = uint32(0)
-		for shift = uint(0); ; shift += 7 {
-			if shift >= 32 {
-				return 0, def.ErrIntOverflow
-			}
-			if pos >= l {
-				return 0, io.ErrUnexpectedEOF
-			}
-			b_ = data[pos]
-			pos++
-			v32_ |= uint32(b_&0x7F) << shift
-			if b_ < 0x80 {
-				break
-			}
-		}
-		m := int(v32_)
-		this.StackTrace[i].Frames = make([]StackFrame, m)
-		for j := 0; j < m; j++ {
-			v32_ = uint32(0)
-			for shift = uint(0); ; shift += 7 {
-				if shift >= 32 {
-					return 0, def.ErrIntOverflow
-				}
-				if pos >= l {
-					return 0, io.ErrUnexpectedEOF
-				}
-				b_ = data[pos]
-				pos++
-				v32_ |= uint32(b_&0x7F) << shift
-				if b_ < 0x80 {
-					break
-				}
-			}
-			this.StackTrace[i].Frames[j].Method = MethodRef(v32_)
-
-			// skipping added fields
-			for skipFI := range stackFrameSkipFields {
-				nSkip := int(1)
-				if stackFrameSkipFields[skipFI].Array {
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
-						}
-						b_ = data[pos]
-						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
-							break
-						}
-					}
-					nSkip = int(v32_)
-				}
-				for iSkip := 0; iSkip < nSkip; iSkip++ {
-					if stackFrameSkipFields[skipFI].ConstantPool {
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
-						}
-					} else {
-						switch stackFrameSkipFields[skipFI].Type {
-						case def.T_STRING:
-							s_ = ""
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							switch b_ {
-							case 0:
-							case 1:
-								break
-							case 3:
-								v32_ = uint32(0)
-								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
-									}
-									b_ = data[pos]
-									pos++
-									v32_ |= uint32(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-								if pos+int(v32_) > l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								bs := data[pos : pos+int(v32_)]
-								s_ = *(*string)(unsafe.Pointer(&bs))
-								pos += int(v32_)
-							default:
-								return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-							}
-						case def.T_LONG:
-							v64_ = 0
-							for shift = uint(0); shift <= 56; shift += 7 {
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								if shift == 56 {
-									v64_ |= uint64(b_&0xFF) << shift
-									break
-								} else {
-									v64_ |= uint64(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-							}
-						case def.T_INT:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-						case def.T_FLOAT:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-						case def.T_BOOLEAN:
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-						default:
-							gt := typeMap[stackFrameSkipFields[skipFI].Type]
-							if gt == nil {
-								return 0, fmt.Errorf("unknown type %d", stackFrameSkipFields[skipFI].Type)
-							}
-							for gti := 0; gti < len(gt.Fields); gti++ {
-								if gt.Fields[gti].Array {
-									return 0, fmt.Errorf("two dimentional array not supported")
-								}
-								if gt.Fields[gti].ConstantPool {
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
-									}
-								} else {
-									switch gt.Fields[gti].Type {
-									case def.T_STRING:
-										s_ = ""
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										switch b_ {
-										case 0:
-										case 1:
-											break
-										case 3:
-											v32_ = uint32(0)
-											for shift = uint(0); ; shift += 7 {
-												if shift >= 32 {
-													return 0, def.ErrIntOverflow
-												}
-												if pos >= l {
-													return 0, io.ErrUnexpectedEOF
-												}
-												b_ = data[pos]
-												pos++
-												v32_ |= uint32(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-											if pos+int(v32_) > l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											bs := data[pos : pos+int(v32_)]
-											s_ = *(*string)(unsafe.Pointer(&bs))
-											pos += int(v32_)
-										default:
-											return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-										}
-									case def.T_LONG:
-										v64_ = 0
-										for shift = uint(0); shift <= 56; shift += 7 {
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											if shift == 56 {
-												v64_ |= uint64(b_&0xFF) << shift
-												break
-											} else {
-												v64_ |= uint64(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-										}
-									case def.T_INT:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-									case def.T_FLOAT:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-									case def.T_BOOLEAN:
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-									default:
-										return 0, fmt.Errorf("unknown type %d", gt.Fields[gti].Type)
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			v32_ = uint32(0)
-			for shift = uint(0); ; shift += 7 {
-				if shift >= 32 {
-					return 0, def.ErrIntOverflow
-				}
-				if pos >= l {
-					return 0, io.ErrUnexpectedEOF
-				}
-				b_ = data[pos]
-				pos++
-				v32_ |= uint32(b_&0x7F) << shift
-				if b_ < 0x80 {
-					break
-				}
-			}
-			this.StackTrace[i].Frames[j].LineNumber = v32_
-
-			// skipping added fields
-			for skipFI := range stackFrameSkipFields {
-				nSkip := int(1)
-				if stackFrameSkipFields[skipFI].Array {
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
-						}
-						b_ = data[pos]
-						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
-							break
-						}
-					}
-					nSkip = int(v32_)
-				}
-				for iSkip := 0; iSkip < nSkip; iSkip++ {
-					if stackFrameSkipFields[skipFI].ConstantPool {
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
-						}
-					} else {
-						switch stackFrameSkipFields[skipFI].Type {
-						case def.T_STRING:
-							s_ = ""
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							switch b_ {
-							case 0:
-							case 1:
-								break
-							case 3:
-								v32_ = uint32(0)
-								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
-									}
-									b_ = data[pos]
-									pos++
-									v32_ |= uint32(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-								if pos+int(v32_) > l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								bs := data[pos : pos+int(v32_)]
-								s_ = *(*string)(unsafe.Pointer(&bs))
-								pos += int(v32_)
-							default:
-								return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-							}
-						case def.T_LONG:
-							v64_ = 0
-							for shift = uint(0); shift <= 56; shift += 7 {
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								if shift == 56 {
-									v64_ |= uint64(b_&0xFF) << shift
-									break
-								} else {
-									v64_ |= uint64(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-							}
-						case def.T_INT:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-						case def.T_FLOAT:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-						case def.T_BOOLEAN:
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-						default:
-							gt := typeMap[stackFrameSkipFields[skipFI].Type]
-							if gt == nil {
-								return 0, fmt.Errorf("unknown type %d", stackFrameSkipFields[skipFI].Type)
-							}
-							for gti := 0; gti < len(gt.Fields); gti++ {
-								if gt.Fields[gti].Array {
-									return 0, fmt.Errorf("two dimentional array not supported")
-								}
-								if gt.Fields[gti].ConstantPool {
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
-									}
-								} else {
-									switch gt.Fields[gti].Type {
-									case def.T_STRING:
-										s_ = ""
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										switch b_ {
-										case 0:
-										case 1:
-											break
-										case 3:
-											v32_ = uint32(0)
-											for shift = uint(0); ; shift += 7 {
-												if shift >= 32 {
-													return 0, def.ErrIntOverflow
-												}
-												if pos >= l {
-													return 0, io.ErrUnexpectedEOF
-												}
-												b_ = data[pos]
-												pos++
-												v32_ |= uint32(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-											if pos+int(v32_) > l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											bs := data[pos : pos+int(v32_)]
-											s_ = *(*string)(unsafe.Pointer(&bs))
-											pos += int(v32_)
-										default:
-											return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-										}
-									case def.T_LONG:
-										v64_ = 0
-										for shift = uint(0); shift <= 56; shift += 7 {
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											if shift == 56 {
-												v64_ |= uint64(b_&0xFF) << shift
-												break
-											} else {
-												v64_ |= uint64(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-										}
-									case def.T_INT:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-									case def.T_FLOAT:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-									case def.T_BOOLEAN:
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-									default:
-										return 0, fmt.Errorf("unknown type %d", gt.Fields[gti].Type)
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			v32_ = uint32(0)
-			for shift = uint(0); ; shift += 7 {
-				if shift >= 32 {
-					return 0, def.ErrIntOverflow
-				}
-				if pos >= l {
-					return 0, io.ErrUnexpectedEOF
-				}
-				b_ = data[pos]
-				pos++
-				v32_ |= uint32(b_&0x7F) << shift
-				if b_ < 0x80 {
-					break
-				}
-			}
-			this.StackTrace[i].Frames[j].BytecodeIndex = v32_
-
-			// skipping added fields
-			for skipFI := range stackFrameSkipFields {
-				nSkip := int(1)
-				if stackFrameSkipFields[skipFI].Array {
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
-						}
-						b_ = data[pos]
-						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
-							break
-						}
-					}
-					nSkip = int(v32_)
-				}
-				for iSkip := 0; iSkip < nSkip; iSkip++ {
-					if stackFrameSkipFields[skipFI].ConstantPool {
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
-						}
-					} else {
-						switch stackFrameSkipFields[skipFI].Type {
-						case def.T_STRING:
-							s_ = ""
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							switch b_ {
-							case 0:
-							case 1:
-								break
-							case 3:
-								v32_ = uint32(0)
-								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
-									}
-									b_ = data[pos]
-									pos++
-									v32_ |= uint32(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-								if pos+int(v32_) > l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								bs := data[pos : pos+int(v32_)]
-								s_ = *(*string)(unsafe.Pointer(&bs))
-								pos += int(v32_)
-							default:
-								return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-							}
-						case def.T_LONG:
-							v64_ = 0
-							for shift = uint(0); shift <= 56; shift += 7 {
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								if shift == 56 {
-									v64_ |= uint64(b_&0xFF) << shift
-									break
-								} else {
-									v64_ |= uint64(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-							}
-						case def.T_INT:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-						case def.T_FLOAT:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-						case def.T_BOOLEAN:
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-						default:
-							gt := typeMap[stackFrameSkipFields[skipFI].Type]
-							if gt == nil {
-								return 0, fmt.Errorf("unknown type %d", stackFrameSkipFields[skipFI].Type)
-							}
-							for gti := 0; gti < len(gt.Fields); gti++ {
-								if gt.Fields[gti].Array {
-									return 0, fmt.Errorf("two dimentional array not supported")
-								}
-								if gt.Fields[gti].ConstantPool {
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
-									}
-								} else {
-									switch gt.Fields[gti].Type {
-									case def.T_STRING:
-										s_ = ""
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										switch b_ {
-										case 0:
-										case 1:
-											break
-										case 3:
-											v32_ = uint32(0)
-											for shift = uint(0); ; shift += 7 {
-												if shift >= 32 {
-													return 0, def.ErrIntOverflow
-												}
-												if pos >= l {
-													return 0, io.ErrUnexpectedEOF
-												}
-												b_ = data[pos]
-												pos++
-												v32_ |= uint32(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-											if pos+int(v32_) > l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											bs := data[pos : pos+int(v32_)]
-											s_ = *(*string)(unsafe.Pointer(&bs))
-											pos += int(v32_)
-										default:
-											return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-										}
-									case def.T_LONG:
-										v64_ = 0
-										for shift = uint(0); shift <= 56; shift += 7 {
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											if shift == 56 {
-												v64_ |= uint64(b_&0xFF) << shift
-												break
-											} else {
-												v64_ |= uint64(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-										}
-									case def.T_INT:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-									case def.T_FLOAT:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-									case def.T_BOOLEAN:
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-									default:
-										return 0, fmt.Errorf("unknown type %d", gt.Fields[gti].Type)
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			v32_ = uint32(0)
-			for shift = uint(0); ; shift += 7 {
-				if shift >= 32 {
-					return 0, def.ErrIntOverflow
-				}
-				if pos >= l {
-					return 0, io.ErrUnexpectedEOF
-				}
-				b_ = data[pos]
-				pos++
-				v32_ |= uint32(b_&0x7F) << shift
-				if b_ < 0x80 {
-					break
-				}
-			}
-			this.StackTrace[i].Frames[j].Type = FrameTypeRef(v32_)
-
-			// skipping added fields
-			for skipFI := range stackFrameSkipFields {
-				nSkip := int(1)
-				if stackFrameSkipFields[skipFI].Array {
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
-						}
-						b_ = data[pos]
-						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
-							break
-						}
-					}
-					nSkip = int(v32_)
-				}
-				for iSkip := 0; iSkip < nSkip; iSkip++ {
-					if stackFrameSkipFields[skipFI].ConstantPool {
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
-						}
-					} else {
-						switch stackFrameSkipFields[skipFI].Type {
-						case def.T_STRING:
-							s_ = ""
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							switch b_ {
-							case 0:
-							case 1:
-								break
-							case 3:
-								v32_ = uint32(0)
-								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
-									}
-									b_ = data[pos]
-									pos++
-									v32_ |= uint32(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-								if pos+int(v32_) > l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								bs := data[pos : pos+int(v32_)]
-								s_ = *(*string)(unsafe.Pointer(&bs))
-								pos += int(v32_)
-							default:
-								return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-							}
-						case def.T_LONG:
-							v64_ = 0
-							for shift = uint(0); shift <= 56; shift += 7 {
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								if shift == 56 {
-									v64_ |= uint64(b_&0xFF) << shift
-									break
-								} else {
-									v64_ |= uint64(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-							}
-						case def.T_INT:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-						case def.T_FLOAT:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-						case def.T_BOOLEAN:
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-						default:
-							gt := typeMap[stackFrameSkipFields[skipFI].Type]
-							if gt == nil {
-								return 0, fmt.Errorf("unknown type %d", stackFrameSkipFields[skipFI].Type)
-							}
-							for gti := 0; gti < len(gt.Fields); gti++ {
-								if gt.Fields[gti].Array {
-									return 0, fmt.Errorf("two dimentional array not supported")
-								}
-								if gt.Fields[gti].ConstantPool {
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
-									}
-								} else {
-									switch gt.Fields[gti].Type {
-									case def.T_STRING:
-										s_ = ""
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										switch b_ {
-										case 0:
-										case 1:
-											break
-										case 3:
-											v32_ = uint32(0)
-											for shift = uint(0); ; shift += 7 {
-												if shift >= 32 {
-													return 0, def.ErrIntOverflow
-												}
-												if pos >= l {
-													return 0, io.ErrUnexpectedEOF
-												}
-												b_ = data[pos]
-												pos++
-												v32_ |= uint32(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-											if pos+int(v32_) > l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											bs := data[pos : pos+int(v32_)]
-											s_ = *(*string)(unsafe.Pointer(&bs))
-											pos += int(v32_)
-										default:
-											return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-										}
-									case def.T_LONG:
-										v64_ = 0
-										for shift = uint(0); shift <= 56; shift += 7 {
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											if shift == 56 {
-												v64_ |= uint64(b_&0xFF) << shift
-												break
-											} else {
-												v64_ |= uint64(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-										}
-									case def.T_INT:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-									case def.T_FLOAT:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-									case def.T_BOOLEAN:
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-									default:
-										return 0, fmt.Errorf("unknown type %d", gt.Fields[gti].Type)
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// skipping added fields
-		for skipFI := range skipFields {
-			nSkip := int(1)
-			if skipFields[skipFI].Array {
+		for bindFieldIndex := 0; bindFieldIndex < len(bind.Fields); bindFieldIndex++ {
+			bindArraySize := 1
+			if bind.Fields[bindFieldIndex].Field.Array {
 				v32_ = uint32(0)
 				for shift = uint(0); ; shift += 7 {
 					if shift >= 32 {
@@ -1241,10 +118,13 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 						break
 					}
 				}
-				nSkip = int(v32_)
+				bindArraySize = int(v32_)
+				if bind.Fields[bindFieldIndex].Field.Type == typeMap.T_STACK_FRAME {
+					*bind.Fields[bindFieldIndex].StackFrame = make([]StackFrame, 0, bindArraySize)
+				}
 			}
-			for iSkip := 0; iSkip < nSkip; iSkip++ {
-				if skipFields[skipFI].ConstantPool {
+			for bindArrayIndex := 0; bindArrayIndex < bindArraySize; bindArrayIndex++ {
+				if bind.Fields[bindFieldIndex].Field.ConstantPool {
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
 						if shift >= 32 {
@@ -1261,8 +141,8 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 						}
 					}
 				} else {
-					switch skipFields[skipFI].Type {
-					case def.T_STRING:
+					bindFieldTypeID := bind.Fields[bindFieldIndex].Field.Type
+					if bindFieldTypeID == typeMap.T_STRING {
 						s_ = ""
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
@@ -1298,7 +178,25 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 						default:
 							return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 						}
-					case def.T_LONG:
+						// skipping
+					} else if bindFieldTypeID == typeMap.T_INT {
+						v32_ = uint32(0)
+						for shift = uint(0); ; shift += 7 {
+							if shift >= 32 {
+								return 0, def.ErrIntOverflow
+							}
+							if pos >= l {
+								return 0, io.ErrUnexpectedEOF
+							}
+							b_ = data[pos]
+							pos++
+							v32_ |= uint32(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
+						}
+						// skipping
+					} else if bindFieldTypeID == typeMap.T_LONG {
 						v64_ = 0
 						for shift = uint(0); shift <= 56; shift += 7 {
 							if pos >= l {
@@ -1316,54 +214,37 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 								}
 							}
 						}
-					case def.T_INT:
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
-						}
-					case def.T_FLOAT:
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
-						}
-					case def.T_BOOLEAN:
+						// skipping
+					} else if bindFieldTypeID == typeMap.T_BOOLEAN {
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
 						b_ = data[pos]
 						pos++
-					default:
-						gt := typeMap[skipFields[skipFI].Type]
-						if gt == nil {
-							return 0, fmt.Errorf("unknown type %d", skipFields[skipFI].Type)
+						if bind.Fields[bindFieldIndex].bool != nil {
+							*bind.Fields[bindFieldIndex].bool = b_ != 0
 						}
-						for gti := 0; gti < len(gt.Fields); gti++ {
-							if gt.Fields[gti].Array {
-								return 0, fmt.Errorf("two dimentional array not supported")
+					} else if bindFieldTypeID == typeMap.T_FLOAT {
+						v32_ = uint32(0)
+						for shift = uint(0); ; shift += 7 {
+							if shift >= 32 {
+								return 0, def.ErrIntOverflow
 							}
-							if gt.Fields[gti].ConstantPool {
+							if pos >= l {
+								return 0, io.ErrUnexpectedEOF
+							}
+							b_ = data[pos]
+							pos++
+							v32_ |= uint32(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
+						}
+						// skipping
+					} else if bindFieldTypeID == typeMap.T_STACK_FRAME {
+						for bindStackFrameFieldIndex := 0; bindStackFrameFieldIndex < len(bindStackFrame.Fields); bindStackFrameFieldIndex++ {
+							bindStackFrameArraySize := 1
+							if bindStackFrame.Fields[bindStackFrameFieldIndex].Field.Array {
 								v32_ = uint32(0)
 								for shift = uint(0); ; shift += 7 {
 									if shift >= 32 {
@@ -1379,9 +260,327 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 										break
 									}
 								}
-							} else {
-								switch gt.Fields[gti].Type {
-								case def.T_STRING:
+								bindStackFrameArraySize = int(v32_)
+							}
+							for bindStackFrameArrayIndex := 0; bindStackFrameArrayIndex < bindStackFrameArraySize; bindStackFrameArrayIndex++ {
+								if bindStackFrame.Fields[bindStackFrameFieldIndex].Field.ConstantPool {
+									v32_ = uint32(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v32_ |= uint32(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
+									switch bindStackFrame.Fields[bindStackFrameFieldIndex].Field.Type {
+									case typeMap.T_METHOD:
+										if bindStackFrame.Fields[bindStackFrameFieldIndex].MethodRef != nil {
+											*bindStackFrame.Fields[bindStackFrameFieldIndex].MethodRef = MethodRef(v32_)
+										}
+									case typeMap.T_FRAME_TYPE:
+										if bindStackFrame.Fields[bindStackFrameFieldIndex].FrameTypeRef != nil {
+											*bindStackFrame.Fields[bindStackFrameFieldIndex].FrameTypeRef = FrameTypeRef(v32_)
+										}
+									}
+								} else {
+									bindStackFrameFieldTypeID := bindStackFrame.Fields[bindStackFrameFieldIndex].Field.Type
+									if bindStackFrameFieldTypeID == typeMap.T_STRING {
+										s_ = ""
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										switch b_ {
+										case 0:
+										case 1:
+											break
+										case 3:
+											v32_ = uint32(0)
+											for shift = uint(0); ; shift += 7 {
+												if shift >= 32 {
+													return 0, def.ErrIntOverflow
+												}
+												if pos >= l {
+													return 0, io.ErrUnexpectedEOF
+												}
+												b_ = data[pos]
+												pos++
+												v32_ |= uint32(b_&0x7F) << shift
+												if b_ < 0x80 {
+													break
+												}
+											}
+											if pos+int(v32_) > l {
+												return 0, io.ErrUnexpectedEOF
+											}
+											bs := data[pos : pos+int(v32_)]
+											s_ = *(*string)(unsafe.Pointer(&bs))
+											pos += int(v32_)
+										default:
+											return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
+										}
+										// skipping
+									} else if bindStackFrameFieldTypeID == typeMap.T_INT {
+										v32_ = uint32(0)
+										for shift = uint(0); ; shift += 7 {
+											if shift >= 32 {
+												return 0, def.ErrIntOverflow
+											}
+											if pos >= l {
+												return 0, io.ErrUnexpectedEOF
+											}
+											b_ = data[pos]
+											pos++
+											v32_ |= uint32(b_&0x7F) << shift
+											if b_ < 0x80 {
+												break
+											}
+										}
+										if bindStackFrame.Fields[bindStackFrameFieldIndex].uint32 != nil {
+											*bindStackFrame.Fields[bindStackFrameFieldIndex].uint32 = v32_
+										}
+									} else if bindStackFrameFieldTypeID == typeMap.T_LONG {
+										v64_ = 0
+										for shift = uint(0); shift <= 56; shift += 7 {
+											if pos >= l {
+												return 0, io.ErrUnexpectedEOF
+											}
+											b_ = data[pos]
+											pos++
+											if shift == 56 {
+												v64_ |= uint64(b_&0xFF) << shift
+												break
+											} else {
+												v64_ |= uint64(b_&0x7F) << shift
+												if b_ < 0x80 {
+													break
+												}
+											}
+										}
+										// skipping
+									} else if bindStackFrameFieldTypeID == typeMap.T_BOOLEAN {
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										// skipping
+									} else if bindStackFrameFieldTypeID == typeMap.T_FLOAT {
+										v32_ = uint32(0)
+										for shift = uint(0); ; shift += 7 {
+											if shift >= 32 {
+												return 0, def.ErrIntOverflow
+											}
+											if pos >= l {
+												return 0, io.ErrUnexpectedEOF
+											}
+											b_ = data[pos]
+											pos++
+											v32_ |= uint32(b_&0x7F) << shift
+											if b_ < 0x80 {
+												break
+											}
+										}
+										// skipping
+									} else {
+										bindStackFrameFieldType := typeMap.IDMap[bindStackFrame.Fields[bindStackFrameFieldIndex].Field.Type]
+										if bindStackFrameFieldType == nil || len(bindStackFrameFieldType.Fields) == 0 {
+											return 0, fmt.Errorf("unknown type %d", bindStackFrame.Fields[bindStackFrameFieldIndex].Field.Type)
+										}
+										bindStackFrameSkipObjects := 1
+										if bindStackFrame.Fields[bindStackFrameFieldIndex].Field.Array {
+											v32_ = uint32(0)
+											for shift = uint(0); ; shift += 7 {
+												if shift >= 32 {
+													return 0, def.ErrIntOverflow
+												}
+												if pos >= l {
+													return 0, io.ErrUnexpectedEOF
+												}
+												b_ = data[pos]
+												pos++
+												v32_ |= uint32(b_&0x7F) << shift
+												if b_ < 0x80 {
+													break
+												}
+											}
+											bindStackFrameSkipObjects = int(v32_)
+										}
+										for bindStackFrameSkipObjectIndex := 0; bindStackFrameSkipObjectIndex < bindStackFrameSkipObjects; bindStackFrameSkipObjectIndex++ {
+											for bindStackFrameskipFieldIndex := 0; bindStackFrameskipFieldIndex < len(bindStackFrameFieldType.Fields); bindStackFrameskipFieldIndex++ {
+												bindStackFrameSkipFieldType := bindStackFrameFieldType.Fields[bindStackFrameskipFieldIndex].Type
+												if bindStackFrameFieldType.Fields[bindStackFrameskipFieldIndex].ConstantPool {
+													v32_ = uint32(0)
+													for shift = uint(0); ; shift += 7 {
+														if shift >= 32 {
+															return 0, def.ErrIntOverflow
+														}
+														if pos >= l {
+															return 0, io.ErrUnexpectedEOF
+														}
+														b_ = data[pos]
+														pos++
+														v32_ |= uint32(b_&0x7F) << shift
+														if b_ < 0x80 {
+															break
+														}
+													}
+												} else if bindStackFrameSkipFieldType == typeMap.T_STRING {
+													s_ = ""
+													if pos >= l {
+														return 0, io.ErrUnexpectedEOF
+													}
+													b_ = data[pos]
+													pos++
+													switch b_ {
+													case 0:
+													case 1:
+														break
+													case 3:
+														v32_ = uint32(0)
+														for shift = uint(0); ; shift += 7 {
+															if shift >= 32 {
+																return 0, def.ErrIntOverflow
+															}
+															if pos >= l {
+																return 0, io.ErrUnexpectedEOF
+															}
+															b_ = data[pos]
+															pos++
+															v32_ |= uint32(b_&0x7F) << shift
+															if b_ < 0x80 {
+																break
+															}
+														}
+														if pos+int(v32_) > l {
+															return 0, io.ErrUnexpectedEOF
+														}
+														bs := data[pos : pos+int(v32_)]
+														s_ = *(*string)(unsafe.Pointer(&bs))
+														pos += int(v32_)
+													default:
+														return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
+													}
+												} else if bindStackFrameSkipFieldType == typeMap.T_INT {
+													v32_ = uint32(0)
+													for shift = uint(0); ; shift += 7 {
+														if shift >= 32 {
+															return 0, def.ErrIntOverflow
+														}
+														if pos >= l {
+															return 0, io.ErrUnexpectedEOF
+														}
+														b_ = data[pos]
+														pos++
+														v32_ |= uint32(b_&0x7F) << shift
+														if b_ < 0x80 {
+															break
+														}
+													}
+												} else if bindStackFrameSkipFieldType == typeMap.T_FLOAT {
+													v32_ = uint32(0)
+													for shift = uint(0); ; shift += 7 {
+														if shift >= 32 {
+															return 0, def.ErrIntOverflow
+														}
+														if pos >= l {
+															return 0, io.ErrUnexpectedEOF
+														}
+														b_ = data[pos]
+														pos++
+														v32_ |= uint32(b_&0x7F) << shift
+														if b_ < 0x80 {
+															break
+														}
+													}
+												} else if bindStackFrameSkipFieldType == typeMap.T_LONG {
+													v64_ = 0
+													for shift = uint(0); shift <= 56; shift += 7 {
+														if pos >= l {
+															return 0, io.ErrUnexpectedEOF
+														}
+														b_ = data[pos]
+														pos++
+														if shift == 56 {
+															v64_ |= uint64(b_&0xFF) << shift
+															break
+														} else {
+															v64_ |= uint64(b_&0x7F) << shift
+															if b_ < 0x80 {
+																break
+															}
+														}
+													}
+												} else if bindStackFrameSkipFieldType == typeMap.T_BOOLEAN {
+													if pos >= l {
+														return 0, io.ErrUnexpectedEOF
+													}
+													b_ = data[pos]
+													pos++
+												} else {
+													return 0, fmt.Errorf("nested objects not implemented. ")
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+						if bind.Fields[bindFieldIndex].StackFrame != nil {
+							*bind.Fields[bindFieldIndex].StackFrame = append(*bind.Fields[bindFieldIndex].StackFrame, bindStackFrame.Temp)
+						}
+					} else {
+						bindFieldType := typeMap.IDMap[bind.Fields[bindFieldIndex].Field.Type]
+						if bindFieldType == nil || len(bindFieldType.Fields) == 0 {
+							return 0, fmt.Errorf("unknown type %d", bind.Fields[bindFieldIndex].Field.Type)
+						}
+						bindSkipObjects := 1
+						if bind.Fields[bindFieldIndex].Field.Array {
+							v32_ = uint32(0)
+							for shift = uint(0); ; shift += 7 {
+								if shift >= 32 {
+									return 0, def.ErrIntOverflow
+								}
+								if pos >= l {
+									return 0, io.ErrUnexpectedEOF
+								}
+								b_ = data[pos]
+								pos++
+								v32_ |= uint32(b_&0x7F) << shift
+								if b_ < 0x80 {
+									break
+								}
+							}
+							bindSkipObjects = int(v32_)
+						}
+						for bindSkipObjectIndex := 0; bindSkipObjectIndex < bindSkipObjects; bindSkipObjectIndex++ {
+							for bindskipFieldIndex := 0; bindskipFieldIndex < len(bindFieldType.Fields); bindskipFieldIndex++ {
+								bindSkipFieldType := bindFieldType.Fields[bindskipFieldIndex].Type
+								if bindFieldType.Fields[bindskipFieldIndex].ConstantPool {
+									v32_ = uint32(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v32_ |= uint32(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
+								} else if bindSkipFieldType == typeMap.T_STRING {
 									s_ = ""
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
@@ -1417,7 +616,39 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 									default:
 										return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 									}
-								case def.T_LONG:
+								} else if bindSkipFieldType == typeMap.T_INT {
+									v32_ = uint32(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v32_ |= uint32(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
+								} else if bindSkipFieldType == typeMap.T_FLOAT {
+									v32_ = uint32(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v32_ |= uint32(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
+								} else if bindSkipFieldType == typeMap.T_LONG {
 									v64_ = 0
 									for shift = uint(0); shift <= 56; shift += 7 {
 										if pos >= l {
@@ -1435,46 +666,14 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 											}
 										}
 									}
-								case def.T_INT:
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
-									}
-								case def.T_FLOAT:
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
-									}
-								case def.T_BOOLEAN:
+								} else if bindSkipFieldType == typeMap.T_BOOLEAN {
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}
 									b_ = data[pos]
 									pos++
-								default:
-									return 0, fmt.Errorf("unknown type %d", gt.Fields[gti].Type)
+								} else {
+									return 0, fmt.Errorf("nested objects not implemented. ")
 								}
 							}
 						}
@@ -1482,6 +681,7 @@ func (this *StackTraceList) Parse(data []byte, typ *def.Class, stackFrameType *d
 				}
 			}
 		}
+		this.StackTrace[i] = bind.Temp
 		this.IDMap[id] = uint32(i)
 	}
 	return pos, nil

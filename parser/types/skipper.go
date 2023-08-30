@@ -8,7 +8,34 @@ import (
 	"github.com/pyroscope-io/jfr-parser/parser/types/def"
 )
 
-func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool bool) (pos int, err error) {
+type BindSkipConstantPool struct {
+	Temp   SkipConstantPool
+	Fields []BindFieldSkipConstantPool
+}
+
+type BindFieldSkipConstantPool struct {
+	Field *def.Field
+}
+
+func NewBindSkipConstantPool(typ *def.Class, typeMap *def.TypeMap) *BindSkipConstantPool {
+	res := new(BindSkipConstantPool)
+	for i := 0; i < len(typ.Fields); i++ {
+		switch typ.Fields[i].Name {
+		default:
+			res.Fields = append(res.Fields, BindFieldSkipConstantPool{Field: &typ.Fields[i]}) // skip
+		}
+	}
+	return res
+}
+
+type SkipConstantPoolRef uint32
+type SkipConstantPoolList struct {
+}
+
+type SkipConstantPool struct {
+}
+
+func (this *SkipConstantPoolList) Parse(data []byte, bind *BindSkipConstantPool, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
 		v32_  uint32
@@ -20,8 +47,23 @@ func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool 
 	_ = v64_
 	_ = v32_
 	_ = s_
-	nObj := 1
-	if cpool {
+	v32_ = uint32(0)
+	for shift = uint(0); ; shift += 7 {
+		if shift >= 32 {
+			return 0, def.ErrIntOverflow
+		}
+		if pos >= l {
+			return 0, io.ErrUnexpectedEOF
+		}
+		b_ = data[pos]
+		pos++
+		v32_ |= uint32(b_&0x7F) << shift
+		if b_ < 0x80 {
+			break
+		}
+	}
+	n := int(v32_)
+	for i := 0; i < n; i++ {
 		v32_ = uint32(0)
 		for shift = uint(0); ; shift += 7 {
 			if shift >= 32 {
@@ -37,31 +79,9 @@ func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool 
 				break
 			}
 		}
-		nObj = int(v32_)
-	}
-	for i := 0; i < nObj; i++ {
-		if cpool {
-			v32_ = uint32(0)
-			for shift = uint(0); ; shift += 7 {
-				if shift >= 32 {
-					return 0, def.ErrIntOverflow
-				}
-				if pos >= l {
-					return 0, io.ErrUnexpectedEOF
-				}
-				b_ = data[pos]
-				pos++
-				v32_ |= uint32(b_&0x7F) << shift
-				if b_ < 0x80 {
-					break
-				}
-			}
-		}
-
-		// skipping added fields
-		for skipFI := range typ.Fields {
-			nSkip := int(1)
-			if typ.Fields[skipFI].Array {
+		for bindFieldIndex := 0; bindFieldIndex < len(bind.Fields); bindFieldIndex++ {
+			bindArraySize := 1
+			if bind.Fields[bindFieldIndex].Field.Array {
 				v32_ = uint32(0)
 				for shift = uint(0); ; shift += 7 {
 					if shift >= 32 {
@@ -77,10 +97,10 @@ func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool 
 						break
 					}
 				}
-				nSkip = int(v32_)
+				bindArraySize = int(v32_)
 			}
-			for iSkip := 0; iSkip < nSkip; iSkip++ {
-				if typ.Fields[skipFI].ConstantPool {
+			for bindArrayIndex := 0; bindArrayIndex < bindArraySize; bindArrayIndex++ {
+				if bind.Fields[bindFieldIndex].Field.ConstantPool {
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
 						if shift >= 32 {
@@ -97,8 +117,8 @@ func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool 
 						}
 					}
 				} else {
-					switch typ.Fields[skipFI].Type {
-					case def.T_STRING:
+					bindFieldTypeID := bind.Fields[bindFieldIndex].Field.Type
+					if bindFieldTypeID == typeMap.T_STRING {
 						s_ = ""
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
@@ -134,7 +154,25 @@ func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool 
 						default:
 							return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 						}
-					case def.T_LONG:
+						// skipping
+					} else if bindFieldTypeID == typeMap.T_INT {
+						v32_ = uint32(0)
+						for shift = uint(0); ; shift += 7 {
+							if shift >= 32 {
+								return 0, def.ErrIntOverflow
+							}
+							if pos >= l {
+								return 0, io.ErrUnexpectedEOF
+							}
+							b_ = data[pos]
+							pos++
+							v32_ |= uint32(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
+						}
+						// skipping
+					} else if bindFieldTypeID == typeMap.T_LONG {
 						v64_ = 0
 						for shift = uint(0); shift <= 56; shift += 7 {
 							if pos >= l {
@@ -152,72 +190,75 @@ func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool 
 								}
 							}
 						}
-					case def.T_INT:
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
-						}
-					case def.T_FLOAT:
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
-						}
-					case def.T_BOOLEAN:
+						// skipping
+					} else if bindFieldTypeID == typeMap.T_BOOLEAN {
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
 						b_ = data[pos]
 						pos++
-					default:
-						gt := typeMap[typ.Fields[skipFI].Type]
-						if gt == nil {
-							return 0, fmt.Errorf("unknown type %d", typ.Fields[skipFI].Type)
-						}
-						for gti := 0; gti < len(gt.Fields); gti++ {
-							if gt.Fields[gti].Array {
-								return 0, fmt.Errorf("two dimentional array not supported")
+						// skipping
+					} else if bindFieldTypeID == typeMap.T_FLOAT {
+						v32_ = uint32(0)
+						for shift = uint(0); ; shift += 7 {
+							if shift >= 32 {
+								return 0, def.ErrIntOverflow
 							}
-							if gt.Fields[gti].ConstantPool {
-								v32_ = uint32(0)
-								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
-									}
-									b_ = data[pos]
-									pos++
-									v32_ |= uint32(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
+							if pos >= l {
+								return 0, io.ErrUnexpectedEOF
+							}
+							b_ = data[pos]
+							pos++
+							v32_ |= uint32(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
+						}
+						// skipping
+					} else {
+						bindFieldType := typeMap.IDMap[bind.Fields[bindFieldIndex].Field.Type]
+						if bindFieldType == nil || len(bindFieldType.Fields) == 0 {
+							return 0, fmt.Errorf("unknown type %d", bind.Fields[bindFieldIndex].Field.Type)
+						}
+						bindSkipObjects := 1
+						if bind.Fields[bindFieldIndex].Field.Array {
+							v32_ = uint32(0)
+							for shift = uint(0); ; shift += 7 {
+								if shift >= 32 {
+									return 0, def.ErrIntOverflow
 								}
-							} else {
-								switch gt.Fields[gti].Type {
-								case def.T_STRING:
+								if pos >= l {
+									return 0, io.ErrUnexpectedEOF
+								}
+								b_ = data[pos]
+								pos++
+								v32_ |= uint32(b_&0x7F) << shift
+								if b_ < 0x80 {
+									break
+								}
+							}
+							bindSkipObjects = int(v32_)
+						}
+						for bindSkipObjectIndex := 0; bindSkipObjectIndex < bindSkipObjects; bindSkipObjectIndex++ {
+							for bindskipFieldIndex := 0; bindskipFieldIndex < len(bindFieldType.Fields); bindskipFieldIndex++ {
+								bindSkipFieldType := bindFieldType.Fields[bindskipFieldIndex].Type
+								if bindFieldType.Fields[bindskipFieldIndex].ConstantPool {
+									v32_ = uint32(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v32_ |= uint32(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
+								} else if bindSkipFieldType == typeMap.T_STRING {
 									s_ = ""
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
@@ -253,7 +294,39 @@ func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool 
 									default:
 										return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 									}
-								case def.T_LONG:
+								} else if bindSkipFieldType == typeMap.T_INT {
+									v32_ = uint32(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v32_ |= uint32(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
+								} else if bindSkipFieldType == typeMap.T_FLOAT {
+									v32_ = uint32(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v32_ |= uint32(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
+								} else if bindSkipFieldType == typeMap.T_LONG {
 									v64_ = 0
 									for shift = uint(0); shift <= 56; shift += 7 {
 										if pos >= l {
@@ -271,46 +344,14 @@ func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool 
 											}
 										}
 									}
-								case def.T_INT:
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
-									}
-								case def.T_FLOAT:
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
-									}
-								case def.T_BOOLEAN:
+								} else if bindSkipFieldType == typeMap.T_BOOLEAN {
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}
 									b_ = data[pos]
 									pos++
-								default:
-									return 0, fmt.Errorf("unknown type %d", gt.Fields[gti].Type)
+								} else {
+									return 0, fmt.Errorf("nested objects not implemented. ")
 								}
 							}
 						}

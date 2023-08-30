@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/pyroscope-io/jfr-parser/parser/types"
-	"github.com/pyroscope-io/jfr-parser/parser/types/def"
 )
 
 var testfiles = []string{
@@ -25,7 +24,7 @@ var testfiles = []string{
 }
 
 type ExpectedActiveSetting struct {
-	key, value string
+	Key, Value string
 }
 type ExpectedStacktrace struct {
 	Frames    []string
@@ -95,33 +94,32 @@ func TestParse(t *testing.T) {
 				}
 
 				switch typ {
-				case def.T_EXECUTION_SAMPLE:
+				case parser.TypeMap.T_EXECUTION_SAMPLE:
 					e.ExecutionSample = append(e.ExecutionSample, ExpectedStacktrace{
 						Frames:    stacktraceToFrames(parser.ExecutionSample.StackTrace),
 						ContextID: int64(parser.ExecutionSample.ContextId),
 					})
-				case def.T_ALLOC_IN_NEW_TLAB:
+				case parser.TypeMap.T_ALLOC_IN_NEW_TLAB:
 					e.AllocInTLAB = append(e.AllocInTLAB, ExpectedStacktrace{
 						Frames:    stacktraceToFrames(parser.ObjectAllocationInNewTLAB.StackTrace),
 						ContextID: int64(parser.ObjectAllocationInNewTLAB.ContextId),
 					})
-				case def.T_ALLOC_OUTSIDE_TLAB:
+				case parser.TypeMap.T_ALLOC_OUTSIDE_TLAB:
 					e.AllocOutsideTLAB = append(e.AllocOutsideTLAB, ExpectedStacktrace{
 						Frames:    stacktraceToFrames(parser.ObjectAllocationOutsideTLAB.StackTrace),
 						ContextID: int64(parser.ObjectAllocationOutsideTLAB.ContextId),
 					})
-				case def.T_MONITOR_ENTER:
-
+				case parser.TypeMap.T_MONITOR_ENTER:
 					e.MonitorEnter = append(e.MonitorEnter, ExpectedStacktrace{
 						Frames:    stacktraceToFrames(parser.JavaMonitorEnter.StackTrace),
 						ContextID: int64(parser.JavaMonitorEnter.ContextId),
 					})
-				case def.T_THREAD_PARK:
+				case parser.TypeMap.T_THREAD_PARK:
 					e.ThreadPark = append(e.ThreadPark, ExpectedStacktrace{
 						Frames:    stacktraceToFrames(parser.ThreadPark.StackTrace),
 						ContextID: int64(parser.ThreadPark.ContextId),
 					})
-				case def.T_LIVE_OBJECT:
+				case parser.TypeMap.T_LIVE_OBJECT:
 					e.LiveObject = append(e.LiveObject, ExpectedStacktrace{
 						Frames:    stacktraceToFrames(parser.LiveObject.StackTrace),
 						ContextID: 0,

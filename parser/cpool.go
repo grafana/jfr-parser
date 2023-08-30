@@ -44,9 +44,7 @@ func (p *Parser) readConstantPool(pos int) error {
 	_ = duration
 	_ = delta
 	_ = sz
-	if def.TypeID(typ) != def.T_CPOOL {
-		return fmt.Errorf("expected ConstantPool type %d, got %d", def.T_CPOOL, typ)
-	}
+
 	if typeMask != 1 {
 		return fmt.Errorf("expected ConstantPool typeMask 1, got %d", typeMask)
 	}
@@ -60,7 +58,7 @@ func (p *Parser) readConstantPool(pos int) error {
 		}
 		c := p.TypeMap.IDMap[def.TypeID(typ)]
 		if c == nil {
-			return fmt.Errorf("unknown type %s", def.TypeID2Sym(def.TypeID(typ)))
+			return fmt.Errorf("unknown type %d", def.TypeID(typ))
 		}
 		err = p.readConstants(c)
 		if err != nil {
@@ -105,15 +103,14 @@ func (p *Parser) readConstants(c *def.Class) error {
 		p.pos += o
 		return err
 	case "jdk.types.StackTrace":
-		sft := p.TypeMap.NameMap["jdk.types.StackFrame"]
-		o, err := p.Stacktrace.Parse(p.buf[p.pos:], c, sft, p.TypeMap.IDMap)
+		o, err := p.Stacktrace.Parse(p.buf[p.pos:], p.bindStackTrace, p.bindStackFrame, &p.TypeMap)
 		p.pos += o
 		return err
 	default:
-		//todo test wtih above
-		o, err := types.Skip(p.buf[p.pos:], c, p.TypeMap.IDMap, true)
+		b := types.NewBindSkipConstantPool(c, &p.TypeMap)
+		skipper := types.SkipConstantPoolList{}
+		o, err := skipper.Parse(p.buf[p.pos:], b, &p.TypeMap)
 		p.pos += o
 		return err
-		//return fmt.Errorf("unknown type %s ", def.TypeID2Sym(c.ID))
 	}
 }

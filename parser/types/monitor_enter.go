@@ -8,59 +8,76 @@ import (
 	"github.com/pyroscope-io/jfr-parser/parser/types/def"
 )
 
-var ExpectedMetaJavaMonitorEnter = &def.Class{
-	Name: "jdk.JavaMonitorEnter",
-	ID:   def.T_MONITOR_ENTER,
-	Fields: []def.Field{
-		{
-			Name:         "startTime",
-			Type:         def.T_LONG,
-			ConstantPool: false,
-			Array:        false,
-		},
-		{
-			Name:         "duration",
-			Type:         def.T_LONG,
-			ConstantPool: false,
-			Array:        false,
-		},
-		{
-			Name:         "eventThread",
-			Type:         def.T_THREAD,
-			ConstantPool: true,
-			Array:        false,
-		},
-		{
-			Name:         "stackTrace",
-			Type:         def.T_STACK_TRACE,
-			ConstantPool: true,
-			Array:        false,
-		},
-		{
-			Name:         "monitorClass",
-			Type:         def.T_CLASS,
-			ConstantPool: true,
-			Array:        false,
-		},
-		{
-			Name:         "previousOwner",
-			Type:         def.T_THREAD,
-			ConstantPool: true,
-			Array:        false,
-		},
-		{
-			Name:         "address",
-			Type:         def.T_LONG,
-			ConstantPool: false,
-			Array:        false,
-		},
-		{
-			Name:         "contextId",
-			Type:         def.T_LONG,
-			ConstantPool: false,
-			Array:        false,
-		},
-	},
+type BindJavaMonitorEnter struct {
+	Temp   JavaMonitorEnter
+	Fields []BindFieldJavaMonitorEnter
+}
+
+type BindFieldJavaMonitorEnter struct {
+	Field         *def.Field
+	uint64        *uint64
+	ThreadRef     *ThreadRef
+	StackTraceRef *StackTraceRef
+	ClassRef      *ClassRef
+}
+
+func NewBindJavaMonitorEnter(typ *def.Class, typeMap *def.TypeMap) *BindJavaMonitorEnter {
+	res := new(BindJavaMonitorEnter)
+	for i := 0; i < len(typ.Fields); i++ {
+		switch typ.Fields[i].Name {
+		case "startTime":
+			if typ.Fields[i].Equals(&def.Field{Name: "startTime", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i], uint64: &res.Temp.StartTime})
+			} else {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+			}
+		case "duration":
+			if typ.Fields[i].Equals(&def.Field{Name: "duration", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i], uint64: &res.Temp.Duration})
+			} else {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+			}
+		case "eventThread":
+			if typ.Fields[i].Equals(&def.Field{Name: "eventThread", Type: typeMap.T_THREAD, ConstantPool: true, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i], ThreadRef: &res.Temp.EventThread})
+			} else {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+			}
+		case "stackTrace":
+			if typ.Fields[i].Equals(&def.Field{Name: "stackTrace", Type: typeMap.T_STACK_TRACE, ConstantPool: true, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i], StackTraceRef: &res.Temp.StackTrace})
+			} else {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+			}
+		case "monitorClass":
+			if typ.Fields[i].Equals(&def.Field{Name: "monitorClass", Type: typeMap.T_CLASS, ConstantPool: true, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i], ClassRef: &res.Temp.MonitorClass})
+			} else {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+			}
+		case "previousOwner":
+			if typ.Fields[i].Equals(&def.Field{Name: "previousOwner", Type: typeMap.T_THREAD, ConstantPool: true, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i], ThreadRef: &res.Temp.PreviousOwner})
+			} else {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+			}
+		case "address":
+			if typ.Fields[i].Equals(&def.Field{Name: "address", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i], uint64: &res.Temp.Address})
+			} else {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+			}
+		case "contextId":
+			if typ.Fields[i].Equals(&def.Field{Name: "contextId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i], uint64: &res.Temp.ContextId})
+			} else {
+				res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+			}
+		default:
+			res.Fields = append(res.Fields, BindFieldJavaMonitorEnter{Field: &typ.Fields[i]}) // skip
+		}
+	}
+	return res
 }
 
 type JavaMonitorEnter struct {
@@ -74,7 +91,7 @@ type JavaMonitorEnter struct {
 	ContextId     uint64
 }
 
-func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, havecontextId bool) (pos int, err error) {
+func (this *JavaMonitorEnter) Parse(data []byte, bind *BindJavaMonitorEnter, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
 		v32_  uint32
@@ -86,154 +103,9 @@ func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def
 	_ = v64_
 	_ = v32_
 	_ = s_
-	nFields := len(ExpectedMetaJavaMonitorEnter.Fields)
-	if !havecontextId {
-		nFields -= 1
-	}
-	skipFields := typ.Fields[nFields:]
-	v64_ = 0
-	for shift = uint(0); shift <= 56; shift += 7 {
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		if shift == 56 {
-			v64_ |= uint64(b_&0xFF) << shift
-			break
-		} else {
-			v64_ |= uint64(b_&0x7F) << shift
-			if b_ < 0x80 {
-				break
-			}
-		}
-	}
-	this.StartTime = v64_
-	v64_ = 0
-	for shift = uint(0); shift <= 56; shift += 7 {
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		if shift == 56 {
-			v64_ |= uint64(b_&0xFF) << shift
-			break
-		} else {
-			v64_ |= uint64(b_&0x7F) << shift
-			if b_ < 0x80 {
-				break
-			}
-		}
-	}
-	this.Duration = v64_
-	v32_ = uint32(0)
-	for shift = uint(0); ; shift += 7 {
-		if shift >= 32 {
-			return 0, def.ErrIntOverflow
-		}
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		v32_ |= uint32(b_&0x7F) << shift
-		if b_ < 0x80 {
-			break
-		}
-	}
-	this.EventThread = ThreadRef(v32_)
-	v32_ = uint32(0)
-	for shift = uint(0); ; shift += 7 {
-		if shift >= 32 {
-			return 0, def.ErrIntOverflow
-		}
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		v32_ |= uint32(b_&0x7F) << shift
-		if b_ < 0x80 {
-			break
-		}
-	}
-	this.StackTrace = StackTraceRef(v32_)
-	v32_ = uint32(0)
-	for shift = uint(0); ; shift += 7 {
-		if shift >= 32 {
-			return 0, def.ErrIntOverflow
-		}
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		v32_ |= uint32(b_&0x7F) << shift
-		if b_ < 0x80 {
-			break
-		}
-	}
-	this.MonitorClass = ClassRef(v32_)
-	v32_ = uint32(0)
-	for shift = uint(0); ; shift += 7 {
-		if shift >= 32 {
-			return 0, def.ErrIntOverflow
-		}
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		v32_ |= uint32(b_&0x7F) << shift
-		if b_ < 0x80 {
-			break
-		}
-	}
-	this.PreviousOwner = ThreadRef(v32_)
-	v64_ = 0
-	for shift = uint(0); shift <= 56; shift += 7 {
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		if shift == 56 {
-			v64_ |= uint64(b_&0xFF) << shift
-			break
-		} else {
-			v64_ |= uint64(b_&0x7F) << shift
-			if b_ < 0x80 {
-				break
-			}
-		}
-	}
-	this.Address = v64_
-	if havecontextId {
-		v64_ = 0
-		for shift = uint(0); shift <= 56; shift += 7 {
-			if pos >= l {
-				return 0, io.ErrUnexpectedEOF
-			}
-			b_ = data[pos]
-			pos++
-			if shift == 56 {
-				v64_ |= uint64(b_&0xFF) << shift
-				break
-			} else {
-				v64_ |= uint64(b_&0x7F) << shift
-				if b_ < 0x80 {
-					break
-				}
-			}
-		}
-		this.ContextId = v64_
-	}
-
-	// skipping added fields
-	for skipFI := range skipFields {
-		nSkip := int(1)
-		if skipFields[skipFI].Array {
+	for bindFieldIndex := 0; bindFieldIndex < len(bind.Fields); bindFieldIndex++ {
+		bindArraySize := 1
+		if bind.Fields[bindFieldIndex].Field.Array {
 			v32_ = uint32(0)
 			for shift = uint(0); ; shift += 7 {
 				if shift >= 32 {
@@ -249,10 +121,10 @@ func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def
 					break
 				}
 			}
-			nSkip = int(v32_)
+			bindArraySize = int(v32_)
 		}
-		for iSkip := 0; iSkip < nSkip; iSkip++ {
-			if skipFields[skipFI].ConstantPool {
+		for bindArrayIndex := 0; bindArrayIndex < bindArraySize; bindArrayIndex++ {
+			if bind.Fields[bindFieldIndex].Field.ConstantPool {
 				v32_ = uint32(0)
 				for shift = uint(0); ; shift += 7 {
 					if shift >= 32 {
@@ -268,9 +140,23 @@ func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def
 						break
 					}
 				}
+				switch bind.Fields[bindFieldIndex].Field.Type {
+				case typeMap.T_THREAD:
+					if bind.Fields[bindFieldIndex].ThreadRef != nil {
+						*bind.Fields[bindFieldIndex].ThreadRef = ThreadRef(v32_)
+					}
+				case typeMap.T_STACK_TRACE:
+					if bind.Fields[bindFieldIndex].StackTraceRef != nil {
+						*bind.Fields[bindFieldIndex].StackTraceRef = StackTraceRef(v32_)
+					}
+				case typeMap.T_CLASS:
+					if bind.Fields[bindFieldIndex].ClassRef != nil {
+						*bind.Fields[bindFieldIndex].ClassRef = ClassRef(v32_)
+					}
+				}
 			} else {
-				switch skipFields[skipFI].Type {
-				case def.T_STRING:
+				bindFieldTypeID := bind.Fields[bindFieldIndex].Field.Type
+				if bindFieldTypeID == typeMap.T_STRING {
 					s_ = ""
 					if pos >= l {
 						return 0, io.ErrUnexpectedEOF
@@ -306,7 +192,25 @@ func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def
 					default:
 						return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 					}
-				case def.T_LONG:
+					// skipping
+				} else if bindFieldTypeID == typeMap.T_INT {
+					v32_ = uint32(0)
+					for shift = uint(0); ; shift += 7 {
+						if shift >= 32 {
+							return 0, def.ErrIntOverflow
+						}
+						if pos >= l {
+							return 0, io.ErrUnexpectedEOF
+						}
+						b_ = data[pos]
+						pos++
+						v32_ |= uint32(b_&0x7F) << shift
+						if b_ < 0x80 {
+							break
+						}
+					}
+					// skipping
+				} else if bindFieldTypeID == typeMap.T_LONG {
 					v64_ = 0
 					for shift = uint(0); shift <= 56; shift += 7 {
 						if pos >= l {
@@ -324,72 +228,77 @@ func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def
 							}
 						}
 					}
-				case def.T_INT:
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
-						}
-						b_ = data[pos]
-						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
-							break
-						}
+					if bind.Fields[bindFieldIndex].uint64 != nil {
+						*bind.Fields[bindFieldIndex].uint64 = v64_
 					}
-				case def.T_FLOAT:
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
-						}
-						b_ = data[pos]
-						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
-							break
-						}
-					}
-				case def.T_BOOLEAN:
+				} else if bindFieldTypeID == typeMap.T_BOOLEAN {
 					if pos >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
 					b_ = data[pos]
 					pos++
-				default:
-					gt := typeMap[skipFields[skipFI].Type]
-					if gt == nil {
-						return 0, fmt.Errorf("unknown type %d", skipFields[skipFI].Type)
-					}
-					for gti := 0; gti < len(gt.Fields); gti++ {
-						if gt.Fields[gti].Array {
-							return 0, fmt.Errorf("two dimentional array not supported")
+					// skipping
+				} else if bindFieldTypeID == typeMap.T_FLOAT {
+					v32_ = uint32(0)
+					for shift = uint(0); ; shift += 7 {
+						if shift >= 32 {
+							return 0, def.ErrIntOverflow
 						}
-						if gt.Fields[gti].ConstantPool {
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
+						if pos >= l {
+							return 0, io.ErrUnexpectedEOF
+						}
+						b_ = data[pos]
+						pos++
+						v32_ |= uint32(b_&0x7F) << shift
+						if b_ < 0x80 {
+							break
+						}
+					}
+					// skipping
+				} else {
+					bindFieldType := typeMap.IDMap[bind.Fields[bindFieldIndex].Field.Type]
+					if bindFieldType == nil || len(bindFieldType.Fields) == 0 {
+						return 0, fmt.Errorf("unknown type %d", bind.Fields[bindFieldIndex].Field.Type)
+					}
+					bindSkipObjects := 1
+					if bind.Fields[bindFieldIndex].Field.Array {
+						v32_ = uint32(0)
+						for shift = uint(0); ; shift += 7 {
+							if shift >= 32 {
+								return 0, def.ErrIntOverflow
 							}
-						} else {
-							switch gt.Fields[gti].Type {
-							case def.T_STRING:
+							if pos >= l {
+								return 0, io.ErrUnexpectedEOF
+							}
+							b_ = data[pos]
+							pos++
+							v32_ |= uint32(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
+						}
+						bindSkipObjects = int(v32_)
+					}
+					for bindSkipObjectIndex := 0; bindSkipObjectIndex < bindSkipObjects; bindSkipObjectIndex++ {
+						for bindskipFieldIndex := 0; bindskipFieldIndex < len(bindFieldType.Fields); bindskipFieldIndex++ {
+							bindSkipFieldType := bindFieldType.Fields[bindskipFieldIndex].Type
+							if bindFieldType.Fields[bindskipFieldIndex].ConstantPool {
+								v32_ = uint32(0)
+								for shift = uint(0); ; shift += 7 {
+									if shift >= 32 {
+										return 0, def.ErrIntOverflow
+									}
+									if pos >= l {
+										return 0, io.ErrUnexpectedEOF
+									}
+									b_ = data[pos]
+									pos++
+									v32_ |= uint32(b_&0x7F) << shift
+									if b_ < 0x80 {
+										break
+									}
+								}
+							} else if bindSkipFieldType == typeMap.T_STRING {
 								s_ = ""
 								if pos >= l {
 									return 0, io.ErrUnexpectedEOF
@@ -425,7 +334,39 @@ func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def
 								default:
 									return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 								}
-							case def.T_LONG:
+							} else if bindSkipFieldType == typeMap.T_INT {
+								v32_ = uint32(0)
+								for shift = uint(0); ; shift += 7 {
+									if shift >= 32 {
+										return 0, def.ErrIntOverflow
+									}
+									if pos >= l {
+										return 0, io.ErrUnexpectedEOF
+									}
+									b_ = data[pos]
+									pos++
+									v32_ |= uint32(b_&0x7F) << shift
+									if b_ < 0x80 {
+										break
+									}
+								}
+							} else if bindSkipFieldType == typeMap.T_FLOAT {
+								v32_ = uint32(0)
+								for shift = uint(0); ; shift += 7 {
+									if shift >= 32 {
+										return 0, def.ErrIntOverflow
+									}
+									if pos >= l {
+										return 0, io.ErrUnexpectedEOF
+									}
+									b_ = data[pos]
+									pos++
+									v32_ |= uint32(b_&0x7F) << shift
+									if b_ < 0x80 {
+										break
+									}
+								}
+							} else if bindSkipFieldType == typeMap.T_LONG {
 								v64_ = 0
 								for shift = uint(0); shift <= 56; shift += 7 {
 									if pos >= l {
@@ -443,46 +384,14 @@ func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def
 										}
 									}
 								}
-							case def.T_INT:
-								v32_ = uint32(0)
-								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
-									}
-									b_ = data[pos]
-									pos++
-									v32_ |= uint32(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-							case def.T_FLOAT:
-								v32_ = uint32(0)
-								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
-									}
-									b_ = data[pos]
-									pos++
-									v32_ |= uint32(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-							case def.T_BOOLEAN:
+							} else if bindSkipFieldType == typeMap.T_BOOLEAN {
 								if pos >= l {
 									return 0, io.ErrUnexpectedEOF
 								}
 								b_ = data[pos]
 								pos++
-							default:
-								return 0, fmt.Errorf("unknown type %d", gt.Fields[gti].Type)
+							} else {
+								return 0, fmt.Errorf("nested objects not implemented. ")
 							}
 						}
 					}
@@ -490,5 +399,6 @@ func (this *JavaMonitorEnter) Parse(data []byte, typ *def.Class, typeMap map[def
 			}
 		}
 	}
+	*this = bind.Temp
 	return pos, nil
 }

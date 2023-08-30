@@ -8,68 +8,52 @@ import (
 	"github.com/pyroscope-io/jfr-parser/parser/types/def"
 )
 
-type BindClass struct {
-	Temp   Class
-	Fields []BindFieldClass
+type BindClassLoader struct {
+	Temp   ClassLoader
+	Fields []BindFieldClassLoader
 }
 
-type BindFieldClass struct {
-	Field          *def.Field
-	ClassLoaderRef *ClassLoaderRef
-	SymbolRef      *SymbolRef
-	PackageRef     *PackageRef
-	uint32         *uint32
+type BindFieldClassLoader struct {
+	Field     *def.Field
+	ClassRef  *ClassRef
+	SymbolRef *SymbolRef
 }
 
-func NewBindClass(typ *def.Class, typeMap *def.TypeMap) *BindClass {
-	res := new(BindClass)
+func NewBindClassLoader(typ *def.Class, typeMap *def.TypeMap) *BindClassLoader {
+	res := new(BindClassLoader)
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
-		case "classLoader":
-			if typ.Fields[i].Equals(&def.Field{Name: "classLoader", Type: typeMap.T_CLASS_LOADER, ConstantPool: true, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], ClassLoaderRef: &res.Temp.ClassLoader})
+		case "type":
+			if typ.Fields[i].Equals(&def.Field{Name: "type", Type: typeMap.T_CLASS, ConstantPool: true, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i], ClassRef: &res.Temp.Type})
 			} else {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip
 			}
 		case "name":
 			if typ.Fields[i].Equals(&def.Field{Name: "name", Type: typeMap.T_SYMBOL, ConstantPool: true, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], SymbolRef: &res.Temp.Name})
+				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i], SymbolRef: &res.Temp.Name})
 			} else {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
-			}
-		case "package":
-			if typ.Fields[i].Equals(&def.Field{Name: "package", Type: typeMap.T_PACKAGE, ConstantPool: true, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], PackageRef: &res.Temp.Package})
-			} else {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
-			}
-		case "modifiers":
-			if typ.Fields[i].Equals(&def.Field{Name: "modifiers", Type: typeMap.T_INT, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], uint32: &res.Temp.Modifiers})
-			} else {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip
 			}
 		default:
-			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip
 		}
 	}
 	return res
 }
 
-type ClassRef uint32
-type ClassList struct {
-	IDMap map[ClassRef]uint32
-	Class []Class
+type ClassLoaderRef uint32
+type ClassLoaderList struct {
+	IDMap       map[ClassLoaderRef]uint32
+	ClassLoader []ClassLoader
 }
 
-type Class struct {
-	ClassLoader ClassLoaderRef
-	Name        SymbolRef
-	Package     PackageRef
-	Modifiers   uint32
+type ClassLoader struct {
+	Type ClassRef
+	Name SymbolRef
 }
 
-func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap) (pos int, err error) {
+func (this *ClassLoaderList) Parse(data []byte, bind *BindClassLoader, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
 		v32_  uint32
@@ -97,8 +81,8 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 		}
 	}
 	n := int(v32_)
-	this.IDMap = make(map[ClassRef]uint32, n)
-	this.Class = make([]Class, n)
+	this.IDMap = make(map[ClassLoaderRef]uint32, n)
+	this.ClassLoader = make([]ClassLoader, n)
 	for i := 0; i < n; i++ {
 		v32_ = uint32(0)
 		for shift = uint(0); ; shift += 7 {
@@ -115,7 +99,7 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 				break
 			}
 		}
-		id := ClassRef(v32_)
+		id := ClassLoaderRef(v32_)
 		for bindFieldIndex := 0; bindFieldIndex < len(bind.Fields); bindFieldIndex++ {
 			bindArraySize := 1
 			if bind.Fields[bindFieldIndex].Field.Array {
@@ -154,17 +138,13 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 						}
 					}
 					switch bind.Fields[bindFieldIndex].Field.Type {
-					case typeMap.T_CLASS_LOADER:
-						if bind.Fields[bindFieldIndex].ClassLoaderRef != nil {
-							*bind.Fields[bindFieldIndex].ClassLoaderRef = ClassLoaderRef(v32_)
+					case typeMap.T_CLASS:
+						if bind.Fields[bindFieldIndex].ClassRef != nil {
+							*bind.Fields[bindFieldIndex].ClassRef = ClassRef(v32_)
 						}
 					case typeMap.T_SYMBOL:
 						if bind.Fields[bindFieldIndex].SymbolRef != nil {
 							*bind.Fields[bindFieldIndex].SymbolRef = SymbolRef(v32_)
-						}
-					case typeMap.T_PACKAGE:
-						if bind.Fields[bindFieldIndex].PackageRef != nil {
-							*bind.Fields[bindFieldIndex].PackageRef = PackageRef(v32_)
 						}
 					}
 				} else {
@@ -222,9 +202,7 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 								break
 							}
 						}
-						if bind.Fields[bindFieldIndex].uint32 != nil {
-							*bind.Fields[bindFieldIndex].uint32 = v32_
-						}
+						// skipping
 					} else if bindFieldTypeID == typeMap.T_LONG {
 						v64_ = 0
 						for shift = uint(0); shift <= 56; shift += 7 {
@@ -412,7 +390,7 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 				}
 			}
 		}
-		this.Class[i] = bind.Temp
+		this.ClassLoader[i] = bind.Temp
 		this.IDMap[id] = uint32(i)
 	}
 	return pos, nil

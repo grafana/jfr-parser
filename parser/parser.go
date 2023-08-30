@@ -65,20 +65,6 @@ type Parser struct {
 
 	TypeMap def.TypeMap
 
-	executionSampleHaveContextId       bool
-	allocationInNewTlabHaveContextId   bool
-	allocationOutsideTlabHaveContextId bool
-	monitorEnterHaveContextId          bool
-	threadParkHaveContextId            bool
-
-	typeExecutionSample  *def.Class
-	typeAllocInNewTLAB   *def.Class
-	typeALlocOutsideTLAB *def.Class
-	typeMonitorEnter     *def.Class
-	typeThreadPark       *def.Class
-	typeLiveObject       *def.Class
-	typeActiveSetting    *def.Class
-
 	bindFrameType   *types2.BindFrameType
 	bindThreadState *types2.BindThreadState
 	bindThread      *types2.BindThread
@@ -87,6 +73,17 @@ type Parser struct {
 	bindPackage     *types2.BindPackage
 	bindSymbol      *types2.BindSymbol
 	bindLogLevel    *types2.BindLogLevel
+	bindStackFrame  *types2.BindStackFrame
+	bindStackTrace  *types2.BindStackTrace
+
+	bindExecutionSample *types2.BindExecutionSample
+
+	bindAllocInNewTLAB   *types2.BindObjectAllocationInNewTLAB
+	bindAllocOutsideTLAB *types2.BindObjectAllocationOutsideTLAB
+	bindMonitorEnter     *types2.BindJavaMonitorEnter
+	bindThreadPark       *types2.BindThreadPark
+	bindLiveObject       *types2.BindLiveObject
+	bindActiveSetting    *types2.BindActiveSetting
 }
 
 func NewParser(buf []byte, options Options) (res *Parser, err error) {
@@ -126,67 +123,79 @@ func (p *Parser) ParseEvent() (def.TypeID, error) {
 
 		ttyp := def.TypeID(typ)
 		switch ttyp {
-		case def.T_EXECUTION_SAMPLE:
-			if p.typeExecutionSample == nil {
+		case p.TypeMap.T_EXECUTION_SAMPLE:
+			if p.bindExecutionSample == nil {
 				p.pos = pp + int(size) // skip
 				continue
 			}
-			_, err := p.ExecutionSample.Parse(p.buf[p.pos:], p.typeExecutionSample, p.TypeMap.IDMap, p.executionSampleHaveContextId)
+			_, err := p.ExecutionSample.Parse(p.buf[p.pos:], p.bindExecutionSample, &p.TypeMap)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		case def.T_ALLOC_IN_NEW_TLAB:
-			if p.typeAllocInNewTLAB == nil {
+		case p.TypeMap.T_ALLOC_IN_NEW_TLAB:
+			if p.bindAllocInNewTLAB == nil {
 				p.pos = pp + int(size) // skip
 				continue
 			}
-			_, err := p.ObjectAllocationInNewTLAB.Parse(p.buf[p.pos:], p.typeAllocInNewTLAB, p.TypeMap.IDMap, p.allocationInNewTlabHaveContextId)
+			_, err := p.ObjectAllocationInNewTLAB.Parse(p.buf[p.pos:], p.bindAllocInNewTLAB, &p.TypeMap)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		case def.T_ALLOC_OUTSIDE_TLAB:
-			if p.typeALlocOutsideTLAB == nil {
+		case p.TypeMap.T_ALLOC_OUTSIDE_TLAB:
+			if p.bindAllocOutsideTLAB == nil {
 				p.pos = pp + int(size) // skip
 				continue
 			}
-			_, err := p.ObjectAllocationOutsideTLAB.Parse(p.buf[p.pos:], p.typeALlocOutsideTLAB, p.TypeMap.IDMap, p.allocationOutsideTlabHaveContextId)
+			_, err := p.ObjectAllocationOutsideTLAB.Parse(p.buf[p.pos:], p.bindAllocOutsideTLAB, &p.TypeMap)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		case def.T_LIVE_OBJECT:
-			if p.typeLiveObject == nil {
+		case p.TypeMap.T_LIVE_OBJECT:
+			if p.bindLiveObject == nil {
 				p.pos = pp + int(size) // skip
 				continue
 			}
-			_, err := p.LiveObject.Parse(p.buf[p.pos:], p.typeLiveObject, p.TypeMap.IDMap)
+			_, err := p.LiveObject.Parse(p.buf[p.pos:], p.bindLiveObject, &p.TypeMap)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		case def.T_MONITOR_ENTER:
-			if p.typeMonitorEnter == nil {
+		case p.TypeMap.T_MONITOR_ENTER:
+			if p.bindMonitorEnter == nil {
 				p.pos = pp + int(size) // skip
 				continue
 			}
-			_, err := p.JavaMonitorEnter.Parse(p.buf[p.pos:], p.typeMonitorEnter, p.TypeMap.IDMap, p.monitorEnterHaveContextId)
+			_, err := p.JavaMonitorEnter.Parse(p.buf[p.pos:], p.bindMonitorEnter, &p.TypeMap)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		case def.T_THREAD_PARK:
-			if p.typeThreadPark == nil {
+		case p.TypeMap.T_THREAD_PARK:
+			if p.bindThreadPark == nil {
 				p.pos = pp + int(size) // skip
 				continue
 			}
-			_, err := p.ThreadPark.Parse(p.buf[p.pos:], p.typeThreadPark, p.TypeMap.IDMap, p.threadParkHaveContextId)
+			_, err := p.ThreadPark.Parse(p.buf[p.pos:], p.bindThreadPark, &p.TypeMap)
+			if err != nil {
+				return 0, err
+			}
+			p.pos = pp + int(size)
+			return ttyp, nil
+
+		case p.TypeMap.T_ACTIVE_SETTING:
+			if p.bindActiveSetting == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.ActiveSetting.Parse(p.buf[p.pos:], p.bindActiveSetting, &p.TypeMap)
 			if err != nil {
 				return 0, err
 			}
@@ -365,7 +374,7 @@ func (p *Parser) bytes() ([]byte, error) {
 }
 
 func (p *Parser) checkTypes() error {
-	var err error
+
 	tint := p.TypeMap.NameMap["int"]
 	tlong := p.TypeMap.NameMap["long"]
 	tfloat := p.TypeMap.NameMap["float"]
@@ -392,20 +401,6 @@ func (p *Parser) checkTypes() error {
 	p.TypeMap.T_FLOAT = tfloat.ID
 	p.TypeMap.T_BOOLEAN = tboolean.ID
 	p.TypeMap.T_STRING = tstring.ID
-
-	p.typeExecutionSample = p.TypeMap.NameMap["jdk.ExecutionSample"]
-	p.typeAllocInNewTLAB = p.TypeMap.NameMap["jdk.ObjectAllocationInNewTLAB"]
-	p.typeALlocOutsideTLAB = p.TypeMap.NameMap["jdk.ObjectAllocationOutsideTLAB"]
-	p.typeMonitorEnter = p.TypeMap.NameMap["jdk.JavaMonitorEnter"]
-	p.typeThreadPark = p.TypeMap.NameMap["jdk.ThreadPark"]
-	p.typeLiveObject = p.TypeMap.NameMap["profiler.LiveObject"]
-	p.typeActiveSetting = p.TypeMap.NameMap["jdk.ActiveSetting"]
-
-	p.executionSampleHaveContextId = p.typeExecutionSample != nil && p.typeExecutionSample.Field("contextId") != nil
-	p.allocationInNewTlabHaveContextId = p.typeAllocInNewTLAB != nil && p.typeAllocInNewTLAB.Field("contextId") != nil
-	p.allocationOutsideTlabHaveContextId = p.typeALlocOutsideTLAB != nil && p.typeALlocOutsideTLAB.Field("contextId") != nil
-	p.monitorEnterHaveContextId = p.typeMonitorEnter != nil && p.typeMonitorEnter.Field("contextId") != nil
-	p.threadParkHaveContextId = p.typeThreadPark != nil && p.typeThreadPark.Field("contextId") != nil
 
 	typeCPFrameType := p.TypeMap.NameMap["jdk.types.FrameType"]
 	typeCPThreadState := p.TypeMap.NameMap["jdk.types.ThreadState"]
@@ -466,37 +461,52 @@ func (p *Parser) checkTypes() error {
 	}
 	p.TypeMap.T_STACK_FRAME = typeStackFrame.ID
 
-	p.bindFrameType, err = types2.NewBindFrameType(typeCPFrameType, &p.TypeMap)
-	if err != nil {
-		return fmt.Errorf("unsupported jdk.types.FrameType %w", err)
+	p.bindFrameType = types2.NewBindFrameType(typeCPFrameType, &p.TypeMap)
+	p.bindThreadState = types2.NewBindThreadState(typeCPThreadState, &p.TypeMap)
+	p.bindThread = types2.NewBindThread(typeCPThread, &p.TypeMap)
+	p.bindClass = types2.NewBindClass(typeCPClass, &p.TypeMap)
+	p.bindMethod = types2.NewBindMethod(typeCPMethod, &p.TypeMap)
+	p.bindPackage = types2.NewBindPackage(typeCPPackage, &p.TypeMap)
+	p.bindSymbol = types2.NewBindSymbol(typeCPSymbol, &p.TypeMap)
+	p.bindLogLevel = types2.NewBindLogLevel(typeCPLogLevel, &p.TypeMap)
+	p.bindStackTrace = types2.NewBindStackTrace(typeCPStackTrace, &p.TypeMap)
+	p.bindStackFrame = types2.NewBindStackFrame(typeStackFrame, &p.TypeMap)
+
+	typeExecutionSample := p.TypeMap.NameMap["jdk.ExecutionSample"]
+	typeAllocInNewTLAB := p.TypeMap.NameMap["jdk.ObjectAllocationInNewTLAB"]
+	typeALlocOutsideTLAB := p.TypeMap.NameMap["jdk.ObjectAllocationOutsideTLAB"]
+	typeMonitorEnter := p.TypeMap.NameMap["jdk.JavaMonitorEnter"]
+	typeThreadPark := p.TypeMap.NameMap["jdk.ThreadPark"]
+	typeLiveObject := p.TypeMap.NameMap["profiler.LiveObject"]
+	typeActiveSetting := p.TypeMap.NameMap["jdk.ActiveSetting"]
+
+	if typeExecutionSample != nil {
+		p.TypeMap.T_EXECUTION_SAMPLE = typeExecutionSample.ID
+		p.bindExecutionSample = types2.NewBindExecutionSample(typeExecutionSample, &p.TypeMap)
 	}
-	p.bindThreadState, err = types2.NewBindThreadState(typeCPThreadState, &p.TypeMap)
-	if err != nil {
-		return fmt.Errorf("unsupported jdk.types.ThreadState %w", err)
+	if typeAllocInNewTLAB != nil {
+		p.TypeMap.T_ALLOC_IN_NEW_TLAB = typeAllocInNewTLAB.ID
+		p.bindAllocInNewTLAB = types2.NewBindObjectAllocationInNewTLAB(typeAllocInNewTLAB, &p.TypeMap)
 	}
-	p.bindThread, err = types2.NewBindThread(typeCPThread, &p.TypeMap)
-	if err != nil {
-		return fmt.Errorf("unsupported java.lang.Thread %w", err)
+	if typeALlocOutsideTLAB != nil {
+		p.TypeMap.T_ALLOC_OUTSIDE_TLAB = typeALlocOutsideTLAB.ID
+		p.bindAllocOutsideTLAB = types2.NewBindObjectAllocationOutsideTLAB(typeALlocOutsideTLAB, &p.TypeMap)
 	}
-	p.bindClass, err = types2.NewBindClass(typeCPClass, &p.TypeMap)
-	if err != nil {
-		return fmt.Errorf("unsupported java.lang.Class %w", err)
+	if typeMonitorEnter != nil {
+		p.TypeMap.T_MONITOR_ENTER = typeMonitorEnter.ID
+		p.bindMonitorEnter = types2.NewBindJavaMonitorEnter(typeMonitorEnter, &p.TypeMap)
 	}
-	p.bindMethod, err = types2.NewBindMethod(typeCPMethod, &p.TypeMap)
-	if err != nil {
-		return fmt.Errorf("unsupported jdk.types.Method %w", err)
+	if typeThreadPark != nil {
+		p.TypeMap.T_THREAD_PARK = typeThreadPark.ID
+		p.bindThreadPark = types2.NewBindThreadPark(typeThreadPark, &p.TypeMap)
 	}
-	p.bindPackage, err = types2.NewBindPackage(typeCPPackage, &p.TypeMap)
-	if err != nil {
-		return fmt.Errorf("unsupported jdk.types.Package %w", err)
+	if typeLiveObject != nil {
+		p.TypeMap.T_LIVE_OBJECT = typeLiveObject.ID
+		p.bindLiveObject = types2.NewBindLiveObject(typeLiveObject, &p.TypeMap)
 	}
-	p.bindSymbol, err = types2.NewBindSymbol(typeCPSymbol, &p.TypeMap)
-	if err != nil {
-		return fmt.Errorf("unsupported jdk.types.Symbol %w", err)
-	}
-	p.bindLogLevel, err = types2.NewBindLogLevel(typeCPLogLevel, &p.TypeMap)
-	if err != nil {
-		return fmt.Errorf("unsupported profiler.types.LogLevel %w", err)
+	if typeActiveSetting != nil {
+		p.TypeMap.T_ACTIVE_SETTING = typeActiveSetting.ID
+		p.bindActiveSetting = types2.NewBindActiveSetting(typeActiveSetting, &p.TypeMap)
 	}
 
 	p.FrameTypes.IDMap = nil
