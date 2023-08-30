@@ -124,6 +124,11 @@ func TestParse(t *testing.T) {
 						Frames:    stacktraceToFrames(parser.LiveObject.StackTrace),
 						ContextID: 0,
 					})
+				case parser.TypeMap.T_ACTIVE_SETTING:
+					e.ActiveSetting = append(e.ActiveSetting, ExpectedActiveSetting{
+						Key:   parser.ActiveSetting.Name,
+						Value: parser.ActiveSetting.Value,
+					})
 
 				}
 			}
