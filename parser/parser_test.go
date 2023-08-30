@@ -134,6 +134,9 @@ func TestParse(t *testing.T) {
 			actualJson, _ := json.Marshal(e)
 			//os.WriteFile("./testdata/"+testfile+"_parsed.json", actualJson, 0644)
 			if !bytes.Equal(expectedJson, actualJson) {
+				os.WriteFile("./"+testfile+"_actual.json", actualJson, 0644)
+				os.WriteFile("./"+testfile+"_expected.json", expectedJson, 0644)
+
 				t.Fatalf("Failed to parse JFR: %s", err)
 				return
 			}

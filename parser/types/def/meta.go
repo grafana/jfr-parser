@@ -45,19 +45,6 @@ func (c *Class) TrimLastField(fieldName string) []Field {
 	}
 }
 
-// check if real type has same fields as we had nad maybe some more which we skip
-func CanParse(expectedFields []Field, otherFields []Field) bool {
-	if len(otherFields) < len(expectedFields) {
-		return false
-	}
-	for i := range expectedFields {
-		if !expectedFields[i].Equal(&otherFields[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 func (c *Class) Field(name string) *Field {
 	for i := range c.Fields {
 		if c.Fields[i].Name == name {
@@ -74,7 +61,7 @@ type Field struct {
 	Array        bool
 }
 
-func (f *Field) Equal(other *Field) bool {
+func (f *Field) Equals(other *Field) bool {
 	return f.Name == other.Name &&
 		f.Type == other.Type &&
 		f.ConstantPool == other.ConstantPool &&

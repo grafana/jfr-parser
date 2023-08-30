@@ -50,74 +50,70 @@ func (p *Parser) readConstantPool(pos int) error {
 	if typeMask != 1 {
 		return fmt.Errorf("expected ConstantPool typeMask 1, got %d", typeMask)
 	}
-	if n != 9 {
-		return fmt.Errorf("expected ConstantPool n 9, got %d", n)
-	}
+	//if n != 9 {
+	//	return fmt.Errorf("expected ConstantPool n 9, got %d", n)
+	//}
 	for i := 0; i < int(n); i++ {
 		typ, err = p.varInt()
 		if err != nil {
 			return err
 		}
-		c := p.typeMap[def.TypeID(typ)]
+		c := p.TypeMap.IDMap[def.TypeID(typ)]
 		if c == nil {
 			return fmt.Errorf("unknown type %s", def.TypeID2Sym(def.TypeID(typ)))
 		}
 		err = p.readConstants(c)
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading %+v %w", c, err)
 		}
 	}
 	return nil
 }
 
 func (p *Parser) readConstants(c *def.Class) error {
-	switch c.ID {
-	case def.T_FRAME_TYPE:
-		o, err := p.FrameTypes.Parse(p.buf[p.pos:], c, p.typeMap)
-		//o, err := types.Skip(p.buf[p.pos:], p.typeMap[c.ID], p.typeMap, true)
+	switch c.Name {
+	case "jdk.types.FrameType":
+		o, err := p.FrameTypes.Parse(p.buf[p.pos:], p.bindFrameType, &p.TypeMap)
 		p.pos += o
 		return err
-	case def.T_THREAD_STATE:
-		o, err := p.ThreadStates.Parse(p.buf[p.pos:], c, p.typeMap)
+	case "jdk.types.ThreadState":
+		o, err := p.ThreadStates.Parse(p.buf[p.pos:], p.bindThreadState, &p.TypeMap)
 		p.pos += o
 		return err
-	case def.T_THREAD:
-		o, err := p.Threads.Parse(p.buf[p.pos:], c, p.typeMap)
+	case "java.lang.Thread":
+		o, err := p.Threads.Parse(p.buf[p.pos:], p.bindThread, &p.TypeMap)
 		p.pos += o
 		return err
-	case def.T_CLASS:
-		o, err := p.Classes.Parse(p.buf[p.pos:], c, p.typeMap)
+	case "java.lang.Class":
+		o, err := p.Classes.Parse(p.buf[p.pos:], p.bindClass, &p.TypeMap)
 		p.pos += o
 		return err
-	case def.T_METHOD:
-		o, err := p.Methods.Parse(p.buf[p.pos:], c, p.typeMap)
+	case "jdk.types.Method":
+		o, err := p.Methods.Parse(p.buf[p.pos:], p.bindMethod, &p.TypeMap)
 		p.pos += o
 		return err
-	case def.T_PACKAGE:
-		o, err := p.Packages.Parse(p.buf[p.pos:], c, p.typeMap)
+	case "jdk.types.Package":
+		o, err := p.Packages.Parse(p.buf[p.pos:], p.bindPackage, &p.TypeMap)
 		p.pos += o
 		return err
-	case def.T_SYMBOL:
-		o, err := p.Symbols.Parse(p.buf[p.pos:], c, p.typeMap)
+	case "jdk.types.Symbol":
+		o, err := p.Symbols.Parse(p.buf[p.pos:], p.bindSymbol, &p.TypeMap)
 		p.pos += o
 		return err
-	case def.T_LOG_LEVEL:
-		//o, err := types.Skip(p.buf[p.pos:], p.typeMap[c.ID], p.typeMap, true)
-		o, err := p.LogLevels.Parse(p.buf[p.pos:], c, p.typeMap)
+	case "profiler.types.LogLevel":
+		o, err := p.LogLevels.Parse(p.buf[p.pos:], p.bindLogLevel, &p.TypeMap)
 		p.pos += o
 		return err
-	case def.T_STACK_TRACE:
-		sft := p.typeMap[def.T_STACK_FRAME]
-		if sft == nil {
-			return fmt.Errorf("unknown type %s", def.TypeID2Sym(def.T_STACK_FRAME))
-		}
-		o, err := p.Stacktrace.Parse(p.buf[p.pos:], c, sft, p.typeMap)
+	case "jdk.types.StackTrace":
+		sft := p.TypeMap.NameMap["jdk.types.StackFrame"]
+		o, err := p.Stacktrace.Parse(p.buf[p.pos:], c, sft, p.TypeMap.IDMap)
 		p.pos += o
 		return err
 	default:
 		//todo test wtih above
-		o, err := types.Skip(p.buf[p.pos:], c, p.typeMap, true)
+		o, err := types.Skip(p.buf[p.pos:], c, p.TypeMap.IDMap, true)
 		p.pos += o
 		return err
+		//return fmt.Errorf("unknown type %s ", def.TypeID2Sym(c.ID))
 	}
 }

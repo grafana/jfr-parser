@@ -1,12 +1,12 @@
 package types
 
-type IDMap[REF interface{ MethodRef }] struct {
+type IDMap[REF interface{ MethodRef | FrameTypeRef }] struct {
 	Dict  map[REF]uint32
 	Slice []uint32
 	Size  int
 }
 
-func NewIDMap[REF interface{ MethodRef }](n int) IDMap[REF] {
+func NewIDMap[REF interface{ MethodRef | FrameTypeRef }](n int) IDMap[REF] {
 	return IDMap[REF]{
 		Slice: make([]uint32, n+1),
 	}

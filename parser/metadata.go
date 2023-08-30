@@ -7,7 +7,8 @@ import (
 )
 
 func (p *Parser) readMeta(pos int) error {
-	p.typeMap = make(map[def.TypeID]*def.Class, 43+5)
+	p.TypeMap.IDMap = make(map[def.TypeID]*def.Class, 43+5)
+	p.TypeMap.NameMap = make(map[string]*def.Class, 43+5)
 
 	if err := p.seek(pos); err != nil {
 		return err
@@ -92,7 +93,8 @@ func (p *Parser) readMeta(pos int) error {
 
 				}
 				//fmt.Println(cls.String())
-				p.typeMap[cls.ID] = cls
+				p.TypeMap.IDMap[cls.ID] = cls
+				p.TypeMap.NameMap[cls.Name] = cls
 
 			}
 		case "region":

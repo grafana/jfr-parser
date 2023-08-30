@@ -63,7 +63,7 @@ type Parser struct {
 	metaSize uint32
 	chunkEnd int
 
-	typeMap map[def.TypeID]*def.Class
+	TypeMap def.TypeMap
 
 	executionSampleHaveContextId       bool
 	allocationInNewTlabHaveContextId   bool
@@ -78,6 +78,15 @@ type Parser struct {
 	typeThreadPark       *def.Class
 	typeLiveObject       *def.Class
 	typeActiveSetting    *def.Class
+
+	bindFrameType   *types2.BindFrameType
+	bindThreadState *types2.BindThreadState
+	bindThread      *types2.BindThread
+	bindClass       *types2.BindClass
+	bindMethod      *types2.BindMethod
+	bindPackage     *types2.BindPackage
+	bindSymbol      *types2.BindSymbol
+	bindLogLevel    *types2.BindLogLevel
 }
 
 func NewParser(buf []byte, options Options) (res *Parser, err error) {
@@ -116,49 +125,74 @@ func (p *Parser) ParseEvent() (def.TypeID, error) {
 		_ = size
 
 		ttyp := def.TypeID(typ)
-		if ttyp == def.T_EXECUTION_SAMPLE {
-			_, err := p.ExecutionSample.Parse(p.buf[p.pos:], p.typeExecutionSample, p.typeMap, p.executionSampleHaveContextId)
+		switch ttyp {
+		case def.T_EXECUTION_SAMPLE:
+			if p.typeExecutionSample == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.ExecutionSample.Parse(p.buf[p.pos:], p.typeExecutionSample, p.TypeMap.IDMap, p.executionSampleHaveContextId)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		} else if ttyp == def.T_ALLOC_IN_NEW_TLAB {
-			_, err := p.ObjectAllocationInNewTLAB.Parse(p.buf[p.pos:], p.typeAllocInNewTLAB, p.typeMap, p.allocationInNewTlabHaveContextId)
+		case def.T_ALLOC_IN_NEW_TLAB:
+			if p.typeAllocInNewTLAB == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.ObjectAllocationInNewTLAB.Parse(p.buf[p.pos:], p.typeAllocInNewTLAB, p.TypeMap.IDMap, p.allocationInNewTlabHaveContextId)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		} else if ttyp == def.T_ALLOC_OUTSIDE_TLAB {
-			_, err := p.ObjectAllocationOutsideTLAB.Parse(p.buf[p.pos:], p.typeALlocOutsideTLAB, p.typeMap, p.allocationOutsideTlabHaveContextId)
+		case def.T_ALLOC_OUTSIDE_TLAB:
+			if p.typeALlocOutsideTLAB == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.ObjectAllocationOutsideTLAB.Parse(p.buf[p.pos:], p.typeALlocOutsideTLAB, p.TypeMap.IDMap, p.allocationOutsideTlabHaveContextId)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		} else if ttyp == def.T_LIVE_OBJECT {
-			_, err := p.LiveObject.Parse(p.buf[p.pos:], p.typeLiveObject, p.typeMap)
+		case def.T_LIVE_OBJECT:
+			if p.typeLiveObject == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.LiveObject.Parse(p.buf[p.pos:], p.typeLiveObject, p.TypeMap.IDMap)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		} else if ttyp == def.T_MONITOR_ENTER {
-			_, err := p.JavaMonitorEnter.Parse(p.buf[p.pos:], p.typeMonitorEnter, p.typeMap, p.monitorEnterHaveContextId)
+		case def.T_MONITOR_ENTER:
+			if p.typeMonitorEnter == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.JavaMonitorEnter.Parse(p.buf[p.pos:], p.typeMonitorEnter, p.TypeMap.IDMap, p.monitorEnterHaveContextId)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		} else if ttyp == def.T_THREAD_PARK {
-			_, err := p.ThreadPark.Parse(p.buf[p.pos:], p.typeThreadPark, p.typeMap, p.threadParkHaveContextId)
+		case def.T_THREAD_PARK:
+			if p.typeThreadPark == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.ThreadPark.Parse(p.buf[p.pos:], p.typeThreadPark, p.TypeMap.IDMap, p.threadParkHaveContextId)
 			if err != nil {
 				return 0, err
 			}
 			p.pos = pp + int(size)
 			return ttyp, nil
-		} else {
+		default:
 			//fmt.Printf("skipping %s %v\n", def.TypeID2Sym(ttyp), ttyp)
 			p.pos = pp + int(size)
 		}
@@ -331,81 +365,138 @@ func (p *Parser) bytes() ([]byte, error) {
 }
 
 func (p *Parser) checkTypes() error {
-	var expected = []*def.Class{
-		types2.ExpectedMetaFrameType,
-		types2.ExpectedMetaThreadState,
-		types2.ExpectedMetaThread,
-		types2.ExpectedMetaClass,
-		types2.ExpectedMetaMethod,
-		types2.ExpectedMetaPackage,
-		types2.ExpectedMetaSymbol,
-		types2.ExpectedMetaLogLevel,
-		types2.ExpectedMetaStackTrace,
-		types2.ExpectedMetaActiveRecording,
-		types2.ExpectedMetaActiveSetting,
-		types2.ExpectedMetaOSInformation,
-		types2.ExpectedMetaJVMInformation,
-		types2.ExpectedMetaInitialSystemProperty,
-		types2.ExpectedMetaNativeLibrary,
-		types2.ExpectedMetaExecutionSample,
-		types2.ExpectedMetaObjectAllocationInNewTLAB,
-		types2.ExpectedMetaObjectAllocationOutsideTLAB,
-		types2.ExpectedMetaJavaMonitorEnter,
-		types2.ExpectedMetaThreadPark,
-		types2.ExpectedMetaLiveObject,
-		types2.ExpectedMetaLog,
-		types2.ExpectedMetaCPULoad,
+	var err error
+	tint := p.TypeMap.NameMap["int"]
+	tlong := p.TypeMap.NameMap["long"]
+	tfloat := p.TypeMap.NameMap["float"]
+	tboolean := p.TypeMap.NameMap["boolean"]
+	tstring := p.TypeMap.NameMap["java.lang.String"]
+
+	if tint == nil {
+		return fmt.Errorf("missing \"int\"")
 	}
-	p.typeExecutionSample = p.typeMap[def.T_EXECUTION_SAMPLE]
-	p.typeAllocInNewTLAB = p.typeMap[def.T_ALLOC_IN_NEW_TLAB]
-	p.typeALlocOutsideTLAB = p.typeMap[def.T_ALLOC_OUTSIDE_TLAB]
-	p.typeMonitorEnter = p.typeMap[def.T_MONITOR_ENTER]
-	p.typeThreadPark = p.typeMap[def.T_THREAD_PARK]
-	p.typeLiveObject = p.typeMap[def.T_LIVE_OBJECT]
-	p.typeActiveSetting = p.typeMap[def.T_ACTIVE_SETTING]
-	p.executionSampleHaveContextId = false
-	p.allocationInNewTlabHaveContextId = false
-	p.allocationOutsideTlabHaveContextId = false
-	p.monitorEnterHaveContextId = false
-	p.threadParkHaveContextId = false
+	if tlong == nil {
+		return fmt.Errorf("missing \"long\"")
+	}
+	if tfloat == nil {
+		return fmt.Errorf("missing \"float\"")
+	}
+	if tboolean == nil {
+		return fmt.Errorf("missing \"boolean\"")
+	}
+	if tstring == nil {
+		return fmt.Errorf("missing \"java.lang.String\"")
+	}
+	p.TypeMap.T_INT = tint.ID
+	p.TypeMap.T_LONG = tlong.ID
+	p.TypeMap.T_FLOAT = tfloat.ID
+	p.TypeMap.T_BOOLEAN = tboolean.ID
+	p.TypeMap.T_STRING = tstring.ID
 
-	for i := range expected {
-		realTyp := p.typeMap[expected[i].ID]
-		if realTyp == nil {
-			continue
-		}
-		expectedHaveContextID := expected[i].Field("contextId") != nil
-		if expectedHaveContextID {
+	p.typeExecutionSample = p.TypeMap.NameMap["jdk.ExecutionSample"]
+	p.typeAllocInNewTLAB = p.TypeMap.NameMap["jdk.ObjectAllocationInNewTLAB"]
+	p.typeALlocOutsideTLAB = p.TypeMap.NameMap["jdk.ObjectAllocationOutsideTLAB"]
+	p.typeMonitorEnter = p.TypeMap.NameMap["jdk.JavaMonitorEnter"]
+	p.typeThreadPark = p.TypeMap.NameMap["jdk.ThreadPark"]
+	p.typeLiveObject = p.TypeMap.NameMap["profiler.LiveObject"]
+	p.typeActiveSetting = p.TypeMap.NameMap["jdk.ActiveSetting"]
 
-			realHaveContextID := realTyp.Field("contextId") != nil
-			if realHaveContextID {
-				switch realTyp.ID {
-				case def.T_EXECUTION_SAMPLE:
-					p.executionSampleHaveContextId = true
-				case def.T_ALLOC_IN_NEW_TLAB:
-					p.allocationInNewTlabHaveContextId = true
-				case def.T_ALLOC_OUTSIDE_TLAB:
-					p.allocationOutsideTlabHaveContextId = true
-				case def.T_MONITOR_ENTER:
-					p.monitorEnterHaveContextId = true
-				case def.T_THREAD_PARK:
-					p.threadParkHaveContextId = true
-				default:
-					return fmt.Errorf("unexpected contextId in type %+v", realTyp)
-				}
-				if !def.CanParse(expected[i].Fields, realTyp.Fields) {
-					return fmt.Errorf("unable to parse %+v", realTyp)
-				}
-			} else {
-				if !def.CanParse(expected[i].TrimLastField("contextId"), realTyp.Fields) {
-					return fmt.Errorf("unable to parse %+v", realTyp)
-				}
-			}
-		} else {
-			if !def.CanParse(expected[i].Fields, realTyp.Fields) {
-				return fmt.Errorf("unable to parse %+v", realTyp)
-			}
-		}
+	p.executionSampleHaveContextId = p.typeExecutionSample != nil && p.typeExecutionSample.Field("contextId") != nil
+	p.allocationInNewTlabHaveContextId = p.typeAllocInNewTLAB != nil && p.typeAllocInNewTLAB.Field("contextId") != nil
+	p.allocationOutsideTlabHaveContextId = p.typeALlocOutsideTLAB != nil && p.typeALlocOutsideTLAB.Field("contextId") != nil
+	p.monitorEnterHaveContextId = p.typeMonitorEnter != nil && p.typeMonitorEnter.Field("contextId") != nil
+	p.threadParkHaveContextId = p.typeThreadPark != nil && p.typeThreadPark.Field("contextId") != nil
+
+	typeCPFrameType := p.TypeMap.NameMap["jdk.types.FrameType"]
+	typeCPThreadState := p.TypeMap.NameMap["jdk.types.ThreadState"]
+	typeCPThread := p.TypeMap.NameMap["java.lang.Thread"]
+	typeCPClass := p.TypeMap.NameMap["java.lang.Class"]
+	typeCPMethod := p.TypeMap.NameMap["jdk.types.Method"]
+	typeCPPackage := p.TypeMap.NameMap["jdk.types.Package"]
+	typeCPSymbol := p.TypeMap.NameMap["jdk.types.Symbol"]
+	typeCPLogLevel := p.TypeMap.NameMap["profiler.types.LogLevel"]
+	typeCPStackTrace := p.TypeMap.NameMap["jdk.types.StackTrace"]
+	typeCPClassLoader := p.TypeMap.NameMap["jdk.types.ClassLoader"]
+
+	if typeCPFrameType == nil {
+		return fmt.Errorf("missing \"jdk.types.FrameType\"")
+	}
+	if typeCPThreadState == nil {
+		return fmt.Errorf("missing \"jdk.types.ThreadState\"")
+	}
+	if typeCPThread == nil {
+		return fmt.Errorf("missing \"java.lang.Thread\"")
+	}
+	if typeCPClass == nil {
+		return fmt.Errorf("missing \"java.lang.Class\"")
+	}
+	if typeCPMethod == nil {
+		return fmt.Errorf("missing \"jdk.types.Method\"")
+	}
+	if typeCPPackage == nil {
+		return fmt.Errorf("missing \"jdk.types.Package\"")
+	}
+	if typeCPSymbol == nil {
+		return fmt.Errorf("missing \"jdk.types.Symbol\"")
+	}
+	if typeCPLogLevel == nil {
+		return fmt.Errorf("missing \"profiler.types.LogLevel\"")
+	}
+	if typeCPStackTrace == nil {
+		return fmt.Errorf("missing \"jdk.types.StackTrace\"")
+	}
+	if typeCPClassLoader == nil {
+		return fmt.Errorf("missing \"jdk.types.ClassLoader\"")
+	}
+	p.TypeMap.T_FRAME_TYPE = typeCPFrameType.ID
+	p.TypeMap.T_THREAD_STATE = typeCPThreadState.ID
+	p.TypeMap.T_THREAD = typeCPThread.ID
+	p.TypeMap.T_CLASS = typeCPClass.ID
+	p.TypeMap.T_METHOD = typeCPMethod.ID
+	p.TypeMap.T_PACKAGE = typeCPPackage.ID
+	p.TypeMap.T_SYMBOL = typeCPSymbol.ID
+	p.TypeMap.T_LOG_LEVEL = typeCPLogLevel.ID
+	p.TypeMap.T_STACK_TRACE = typeCPStackTrace.ID
+	p.TypeMap.T_CLASS_LOADER = typeCPClassLoader.ID
+
+	typeStackFrame := p.TypeMap.NameMap["jdk.types.StackFrame"]
+
+	if typeStackFrame == nil {
+		return fmt.Errorf("missing \"jdk.types.StackFrame\"")
+	}
+	p.TypeMap.T_STACK_FRAME = typeStackFrame.ID
+
+	p.bindFrameType, err = types2.NewBindFrameType(typeCPFrameType, &p.TypeMap)
+	if err != nil {
+		return fmt.Errorf("unsupported jdk.types.FrameType %w", err)
+	}
+	p.bindThreadState, err = types2.NewBindThreadState(typeCPThreadState, &p.TypeMap)
+	if err != nil {
+		return fmt.Errorf("unsupported jdk.types.ThreadState %w", err)
+	}
+	p.bindThread, err = types2.NewBindThread(typeCPThread, &p.TypeMap)
+	if err != nil {
+		return fmt.Errorf("unsupported java.lang.Thread %w", err)
+	}
+	p.bindClass, err = types2.NewBindClass(typeCPClass, &p.TypeMap)
+	if err != nil {
+		return fmt.Errorf("unsupported java.lang.Class %w", err)
+	}
+	p.bindMethod, err = types2.NewBindMethod(typeCPMethod, &p.TypeMap)
+	if err != nil {
+		return fmt.Errorf("unsupported jdk.types.Method %w", err)
+	}
+	p.bindPackage, err = types2.NewBindPackage(typeCPPackage, &p.TypeMap)
+	if err != nil {
+		return fmt.Errorf("unsupported jdk.types.Package %w", err)
+	}
+	p.bindSymbol, err = types2.NewBindSymbol(typeCPSymbol, &p.TypeMap)
+	if err != nil {
+		return fmt.Errorf("unsupported jdk.types.Symbol %w", err)
+	}
+	p.bindLogLevel, err = types2.NewBindLogLevel(typeCPLogLevel, &p.TypeMap)
+	if err != nil {
+		return fmt.Errorf("unsupported profiler.types.LogLevel %w", err)
 	}
 
 	p.FrameTypes.IDMap = nil
@@ -413,7 +504,6 @@ func (p *Parser) checkTypes() error {
 	p.Threads.IDMap = nil
 	p.Classes.IDMap = nil
 	p.Methods.IDMap.Slice = nil
-	p.Methods.IDMap.Dict = nil
 	p.Packages.IDMap = nil
 	p.Symbols.IDMap = nil
 	p.LogLevels.IDMap = nil

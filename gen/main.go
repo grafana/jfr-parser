@@ -10,7 +10,11 @@ import (
 
 func main() {
 	write("types/frametype.go", generate(&Type_jdk_types_FrameType, options{
-		cpool: true,
+		cpool:     true,
+		sortedIDs: false,
+	}))
+	write("types/stackframe.go", generate(&Type_jdk_types_StackFrame, options{
+		cpool: false,
 	}))
 	write("types/threadstate.go", generate(&Type_jdk_types_ThreadState, options{
 		cpool: true,
@@ -19,14 +23,15 @@ func main() {
 		cpool: true,
 	}))
 	write("types/class.go", generate(&Type_java_lang_Class, options{
-		skipFields: []string{"classLoader", "modifiers"},
-		cpool:      true,
+		cpool: true,
+	}))
+	write("types/classloader.go", generate(&Type_jdk_types_ClassLoader, options{
+		cpool: true,
 	}))
 	write("types/method.go", generate(&Type_jdk_types_Method, options{
-		skipFields: []string{"hidden", "descriptor", "modifiers"},
-		cpool:      true,
-		sortedIDs:  true,
-		Scratch:    true,
+		cpool:     true,
+		sortedIDs: true,
+		Scratch:   true,
 	}))
 	write("types/package.go", generate(&Type_jdk_types_Package, options{
 		cpool: true,
@@ -37,39 +42,40 @@ func main() {
 	write("types/loglevel.go", generate(&Type_profiler_types_LogLevel, options{
 		cpool: true,
 	}))
-	write("types/stacktrace.go", generate(&Type_jdk_types_StackTrace, options{
-		cpool: true,
-	}))
+	//write("types/stacktrace.go", generate(&Type_jdk_types_StackTrace, options{
+	//	cpool: true,
+	//}))
 
-	write("types/generic.go", generateGeneric())
-
-	write("types/active_recording.go", generate(&Type_jdk_ActiveRecording, options{}))
-	write("types/active_settings.go", generate(&Type_jdk_ActiveSetting, options{}))
-	write("types/os_info.go", generate(&Type_jdk_OSInformation, options{}))
-	write("types/jvm_info.go", generate(&Type_jdk_JVMInformation, options{}))
-	write("types/initial_system_property.go", generate(&Type_jdk_InitialSystemProperty, options{}))
-	write("types/native_libraries.go", generate(&Type_jdk_NativeLibrary, options{}))
-	//todo cpuload
-
-	write("types/execution_sample.go", generate(&Type_jdk_ExecutionSample, options{
-		optionalField: "contextId",
-	}))
-	write("types/allocation_in_new_tlab.go", generate(&Type_jdk_ObjectAllocationInNewTLAB, options{
-		optionalField: "contextId",
-	}))
-	write("types/allocation_outside_tlab.go", generate(&Type_jdk_ObjectAllocationOutsideTLAB, options{
-		optionalField: "contextId",
-	}))
-	write("types/monitor_enter.go", generate(&Type_jdk_JavaMonitorEnter, options{
-		optionalField: "contextId",
-	}))
-	write("types/thread_park.go", generate(&Type_jdk_ThreadPark, options{
-		optionalField: "contextId",
-	}))
-	write("types/live_object.go", generate(&Type_profiler_LiveObject, options{}))
-
-	write("types/log.go", generate(&Type_profiler_Log, options{}))
-	write("types/cpu_load.go", generate(&Type_jdk_CPULoad, options{}))
+	//todo skip
+	//write("types/generic.go", generateGeneric())
+	//
+	//write("types/active_recording.go", generate(&Type_jdk_ActiveRecording, options{}))
+	//write("types/active_settings.go", generate(&Type_jdk_ActiveSetting, options{}))
+	//write("types/os_info.go", generate(&Type_jdk_OSInformation, options{}))
+	//write("types/jvm_info.go", generate(&Type_jdk_JVMInformation, options{}))
+	//write("types/initial_system_property.go", generate(&Type_jdk_InitialSystemProperty, options{}))
+	//write("types/native_libraries.go", generate(&Type_jdk_NativeLibrary, options{}))
+	////todo cpuload
+	//
+	//write("types/execution_sample.go", generate(&Type_jdk_ExecutionSample, options{
+	//	optionalField: "contextId",
+	//}))
+	//write("types/allocation_in_new_tlab.go", generate(&Type_jdk_ObjectAllocationInNewTLAB, options{
+	//	optionalField: "contextId",
+	//}))
+	//write("types/allocation_outside_tlab.go", generate(&Type_jdk_ObjectAllocationOutsideTLAB, options{
+	//	optionalField: "contextId",
+	//}))
+	//write("types/monitor_enter.go", generate(&Type_jdk_JavaMonitorEnter, options{
+	//	optionalField: "contextId",
+	//}))
+	//write("types/thread_park.go", generate(&Type_jdk_ThreadPark, options{
+	//	optionalField: "contextId",
+	//}))
+	//write("types/live_object.go", generate(&Type_profiler_LiveObject, options{}))
+	//
+	//write("types/log.go", generate(&Type_profiler_Log, options{}))
+	//write("types/cpu_load.go", generate(&Type_jdk_CPULoad, options{}))
 
 }
 
@@ -81,21 +87,9 @@ func write(dst, s string) {
 }
 
 type options struct {
-	skipFields []string
-
-	optionalField string
-	cpool         bool
-	sortedIDs     bool
-	Scratch       bool
-}
-
-func (o *options) skipField(field def.Field) bool {
-	for _, skipField := range o.skipFields {
-		if skipField == field.Name {
-			return true
-		}
-	}
-	return false
+	cpool     bool
+	sortedIDs bool
+	Scratch   bool
 }
 
 func TypeForCPoolID(ID def.TypeID) *def.Class {
@@ -118,6 +112,8 @@ func TypeForCPoolID(ID def.TypeID) *def.Class {
 		return &Type_profiler_types_LogLevel
 	case def.T_STACK_TRACE:
 		return &Type_jdk_types_StackTrace
+	case def.T_CLASS_LOADER:
+		return &Type_jdk_types_ClassLoader
 	default:
 		panic("unknown type " + def.TypeID2Sym(ID))
 	}
@@ -125,38 +121,23 @@ func TypeForCPoolID(ID def.TypeID) *def.Class {
 
 func generate(typ *def.Class, opt options) string {
 	res := ""
+	res += generateBinding(typ, opt)
 
 	if opt.cpool {
-		res += fmt.Sprintf("type %sRef uint32\n", name(typ))
-		res += fmt.Sprintf("type %sList struct {\n", name(typ))
+		res += fmt.Sprintf("type %s uint32\n", refName(typ))
+		res += fmt.Sprintf("type %s struct {\n", listName(typ))
 		if opt.sortedIDs {
-			res += fmt.Sprintf("	IDMap IDMap[%sRef]\n", name(typ))
+			res += fmt.Sprintf("	IDMap IDMap[%s]\n", refName(typ))
 		} else {
-			res += fmt.Sprintf("	IDMap map[%sRef]uint32\n", name(typ))
+			res += fmt.Sprintf("	IDMap map[%s]uint32\n", refName(typ))
 		}
 		res += fmt.Sprintf("	%s []%s\n", name(typ), name(typ))
 		res += fmt.Sprintf("}\n\n")
 	}
 
-	res += fmt.Sprintf("var ExpectedMeta%s = &def.Class{\n", name(typ))
-	res += fmt.Sprintf("	Name: \"%s\",\n", typ.Name)
-	res += fmt.Sprintf("	ID: def.%s,\n", def.TypeID2Sym(typ.ID))
-	res += fmt.Sprintf("	Fields: []def.Field{\n")
-	for _, field := range typ.Fields {
-		res += fmt.Sprintf("		{\n")
-		res += fmt.Sprintf("			Name: \"%s\",\n", field.Name)
-		res += fmt.Sprintf("			Type: def.%s,\n", def.TypeID2Sym(field.Type))
-		res += fmt.Sprintf("			ConstantPool: %t,\n", field.ConstantPool)
-		res += fmt.Sprintf("			Array: %t,\n", field.Array)
-		res += fmt.Sprintf("		},\n")
-	}
-	res += fmt.Sprintf("	},\n")
-	res += fmt.Sprintf("}\n\n")
 	res += fmt.Sprintf("type %s struct {\n", name(typ))
 	for _, field := range typ.Fields {
-		if opt.skipField(field) {
-			continue
-		}
+
 		if field.Array {
 			if field.ConstantPool {
 				panic("cp array not implemented")
@@ -175,19 +156,13 @@ func generate(typ *def.Class, opt options) string {
 
 	var receiver string
 	if opt.cpool {
-		optinoal := ""
-		if typ.ID == def.T_STACK_TRACE {
-			optinoal = " stackFrameType *def.Class,"
-		}
-		res += fmt.Sprintf("func (this *%sList) Parse(data []byte, typ *def.Class,%s typeMap map[def.TypeID]*def.Class) (pos int, err error) {\n", name(typ), optinoal)
+
+		res += fmt.Sprintf("func (this *%sList) Parse(data []byte, bind *%s, typeMap *def.TypeMap) (pos int, err error) {\n", name(typ), bindName(typ))
 		receiver = fmt.Sprintf("this.%s[i]", name(typ))
 	} else {
 		receiver = fmt.Sprintf("this")
-		optional := ""
-		if opt.optionalField != "" {
-			optional = ", have" + opt.optionalField + " bool"
-		}
-		res += fmt.Sprintf("func (this *%s) Parse(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class%s) (pos int, err error) {\n", name(typ), optional)
+
+		res += fmt.Sprintf("func (this *%s) Parse(data []byte, bind *%s, typeMap *def.TypeMap) (pos int, err error) {\n", name(typ), bindName(typ))
 	}
 	_ = receiver
 
@@ -203,13 +178,6 @@ func generate(typ *def.Class, opt options) string {
 	res += "	_ = v32_\n"
 	res += "	_ = s_\n"
 
-	res += pad(1) + fmt.Sprintf("nFields := len(ExpectedMeta%s.Fields)\n", name(typ))
-	if opt.optionalField != "" {
-		res += pad(1) + fmt.Sprintf("if !have%s {\n", opt.optionalField)
-		res += pad(1) + fmt.Sprintf("	nFields -= 1\n")
-		res += pad(1) + fmt.Sprintf("}\n")
-	}
-	res += pad(1) + fmt.Sprintf("skipFields := typ.Fields[nFields:]\n")
 	if typ.ID == def.T_STACK_TRACE {
 		res += pad(1) + fmt.Sprintf("stackFrameSkipFields := stackFrameType.Fields[len(def.TypeStackFrame.Fields):]\n")
 	}
@@ -219,9 +187,9 @@ func generate(typ *def.Class, opt options) string {
 		res += emitReadI32(1)
 		res += pad(1) + "n := int(v32_)\n"
 		if opt.sortedIDs {
-			res += pad(1) + fmt.Sprintf("this.IDMap = NewIDMap[%sRef](n)\n", name(typ))
+			res += pad(1) + fmt.Sprintf("this.IDMap = NewIDMap[%s](n)\n", refName(typ))
 		} else {
-			res += pad(1) + fmt.Sprintf("this.IDMap = make(map[%sRef]uint32, n)\n", name(typ))
+			res += pad(1) + fmt.Sprintf("this.IDMap = make(map[%s]uint32, n)\n", refName(typ))
 		}
 		res += pad(1) + fmt.Sprintf("this.%s = make([]%s, n)\n", name(typ), name(typ))
 		res += "	for i := 0; i < n; i++ {\n"
@@ -231,118 +199,90 @@ func generate(typ *def.Class, opt options) string {
 
 	if opt.cpool {
 		res += emitReadI32(depth)
-		res += pad(depth) + fmt.Sprintf("id := %sRef(v32_)\n", name(typ))
+		res += pad(depth) + fmt.Sprintf("id := %s(v32_)\n", refName(typ))
 	}
-	for _, field := range typ.Fields {
-		if field.Name == opt.optionalField {
-			res += fmt.Sprintf("		if have%s {\n", opt.optionalField)
-		}
-		if field.ConstantPool {
-			if field.Array {
-				panic("TODO " + field.String())
-			}
-			res += emitReadI32(depth)
-			if opt.skipField(field) {
-				res += fmt.Sprintf("\t\t// skipped %s\n", field.Name)
-				continue
-			}
-			res += fmt.Sprintf("		%s.%s = %sRef(v32_)\n", receiver, capitalize(field.Name), name(TypeForCPoolID(field.Type)))
-		} else {
-			if field.Array {
-				res += emitReadI32(depth)
-				res += pad(depth) + "m := int(v32_)\n"
-				res += pad(depth) + fmt.Sprintf("%s.%s = make([]%s, m)\n", receiver, capitalize(field.Name), goTypeName(field))
-				res += pad(depth) + "for j := 0; j < m; j++ {\n"
-				//
-				switch field.Type {
-				case def.T_STACK_FRAME:
-					st := &Type_jdk_types_StackFrame
-					for _, sf := range st.Fields {
-						if sf.ConstantPool {
-							res += emitReadI32(depth + 1)
-							res += fmt.Sprintf("			%s.%s[j].%s = %sRef(v32_)\n", receiver, capitalize(field.Name), capitalize(sf.Name), name(TypeForCPoolID(sf.Type)))
-						} else {
-							switch sf.Type {
-							case def.T_STRING:
-								res += emitString(depth + 1)
-								res += fmt.Sprintf("			%s.%s[j].%s  = s_\n", receiver, capitalize(field.Name), capitalize(sf.Name))
-							case def.T_LONG:
-								res += emitReadU64(depth + 1)
-								res += fmt.Sprintf("			%s.%s[j].%s = v64_\n", receiver, capitalize(field.Name), capitalize(sf.Name))
-							case def.T_INT:
-								res += emitReadI32(depth + 1)
-								res += fmt.Sprintf("			%s.%s[j].%s = v32_\n", receiver, capitalize(field.Name), capitalize(sf.Name))
-							case def.T_BOOLEAN:
-								res += emitReadByte(depth + 1)
-								res += fmt.Sprintf("			%s.%s[j].%s = b_ == 0\n", receiver, capitalize(field.Name), capitalize(sf.Name))
-							default:
-								panic("TODO " + field.String())
-							}
-						}
-						res += emitSkipFields("stackFrameSkipFields", "typeMap", 3)
-
-					}
-				default:
-					panic("TODO " + field.String())
-				}
-				res += "		}\n"
-			} else {
-				switch field.Type {
-				case def.T_STRING:
-
-					res += emitString(depth)
-
-					if opt.skipField(field) {
-						res += pad(depth) + fmt.Sprintf("// skipped %s\n", field.Name)
-						continue
-					}
-					res += pad(depth) + fmt.Sprintf("%s.%s  = s_\n", receiver, capitalize(field.Name))
-
-				case def.T_LONG:
-					res += emitReadU64(depth)
-
-					if opt.skipField(field) {
-						res += pad(depth) + fmt.Sprintf("// skipped %s\n", field.Name)
-						continue
-					}
-					res += pad(depth) + fmt.Sprintf("%s.%s = v64_\n", receiver, capitalize(field.Name))
-				case def.T_INT:
-					res += emitReadI32(depth)
-
-					if opt.skipField(field) {
-						res += pad(depth) + fmt.Sprintf("// skipped %s\n", field.Name)
-						continue
-					}
-					res += pad(depth) + fmt.Sprintf("%s.%s = v32_\n", receiver, capitalize(field.Name))
-				case def.T_FLOAT:
-					res += emitReadI32(depth)
-
-					if opt.skipField(field) {
-						res += pad(depth) + fmt.Sprintf("// skipped %s\n", field.Name)
-						continue
-					}
-					res += pad(depth) + fmt.Sprintf("%s.%s = *(*float32)(unsafe.Pointer(&v32_))\n", receiver, capitalize(field.Name))
-				case def.T_BOOLEAN:
-					res += emitReadByte(2)
-
-					if opt.skipField(field) {
-						res += pad(depth) + fmt.Sprintf("// skipped %s\n", field.Name)
-						continue
-					}
-					res += pad(depth) + fmt.Sprintf("this.%s[i].%s = b_ == 0\n", name(typ), capitalize(field.Name))
-				default:
-					panic("TODO " + field.String())
-				}
-			}
-
-		}
-		if field.Name == opt.optionalField {
-			res += pad(depth) + fmt.Sprintf("}\n")
-		}
-	}
-	res += emitSkipFields("skipFields", "typeMap", 2)
+	//for _, field := range typ.Fields {
+	//
+	//	if field.ConstantPool {
+	//		if field.Array {
+	//			panic("TODO " + field.String())
+	//		}
+	//		res += emitReadI32(depth)
+	//		res += fmt.Sprintf("		%s.%s = %sRef(v32_)\n", receiver, capitalize(field.Name), name(TypeForCPoolID(field.Type)))
+	//	} else {
+	//		if field.Array {
+	//			res += emitReadI32(depth)
+	//			res += pad(depth) + "m := int(v32_)\n"
+	//			res += pad(depth) + fmt.Sprintf("%s.%s = make([]%s, m)\n", receiver, capitalize(field.Name), goTypeName(field))
+	//			res += pad(depth) + "for j := 0; j < m; j++ {\n"
+	//			//
+	//			switch field.Type {
+	//			case def.T_STACK_FRAME:
+	//				st := &Type_jdk_types_StackFrame
+	//				for _, sf := range st.Fields {
+	//					if sf.ConstantPool {
+	//						res += emitReadI32(depth + 1)
+	//						res += fmt.Sprintf("			%s.%s[j].%s = %s(v32_)\n", receiver, capitalize(field.Name), capitalize(sf.Name), refName(TypeForCPoolID(sf.Type)))
+	//					} else {
+	//						switch sf.Type {
+	//						case def.T_STRING:
+	//							res += emitString(depth + 1)
+	//							res += fmt.Sprintf("			%s.%s[j].%s  = s_\n", receiver, capitalize(field.Name), capitalize(sf.Name))
+	//						case def.T_LONG:
+	//							res += emitReadU64(depth + 1)
+	//							res += fmt.Sprintf("			%s.%s[j].%s = v64_\n", receiver, capitalize(field.Name), capitalize(sf.Name))
+	//						case def.T_INT:
+	//							res += emitReadI32(depth + 1)
+	//							res += fmt.Sprintf("			%s.%s[j].%s = v32_\n", receiver, capitalize(field.Name), capitalize(sf.Name))
+	//						case def.T_BOOLEAN:
+	//							res += emitReadByte(depth + 1)
+	//							res += fmt.Sprintf("			%s.%s[j].%s = b_ == 0\n", receiver, capitalize(field.Name), capitalize(sf.Name))
+	//						default:
+	//							panic("TODO " + field.String())
+	//						}
+	//					}
+	//				}
+	//			default:
+	//				panic("TODO " + field.String())
+	//			}
+	//			res += "		}\n"
+	//		} else {
+	//			switch field.Type {
+	//			case def.T_STRING:
+	//
+	//				res += emitString(depth)
+	//
+	//				res += pad(depth) + fmt.Sprintf("%s.%s  = s_\n", receiver, capitalize(field.Name))
+	//
+	//			case def.T_LONG:
+	//				res += emitReadU64(depth)
+	//
+	//				res += pad(depth) + fmt.Sprintf("%s.%s = v64_\n", receiver, capitalize(field.Name))
+	//			case def.T_INT:
+	//				res += emitReadI32(depth)
+	//
+	//				res += pad(depth) + fmt.Sprintf("%s.%s = v32_\n", receiver, capitalize(field.Name))
+	//			case def.T_FLOAT:
+	//				res += emitReadI32(depth)
+	//
+	//				res += pad(depth) + fmt.Sprintf("%s.%s = *(*float32)(unsafe.Pointer(&v32_))\n", receiver, capitalize(field.Name))
+	//			case def.T_BOOLEAN:
+	//				res += emitReadByte(2)
+	//
+	//				res += pad(depth) + fmt.Sprintf("this.%s[i].%s = b_ == 0\n", name(typ), capitalize(field.Name))
+	//			default:
+	//				panic("TODO " + field.String())
+	//			}
+	//		}
+	//
+	//	}
+	//
+	//}
+	res += generateBindLoop(typ, opt, depth)
+	//res += emitSkipFields("skipFields", "typeMap", 2)
 
 	if opt.cpool {
+		res += pad(depth) + fmt.Sprintf("this.%s[i] = bind.Temp\n", name(typ))
 		if opt.sortedIDs {
 			res += pad(depth) + "this.IDMap.Set(id, i)\n"
 		} else {
@@ -363,6 +303,188 @@ func generate(typ *def.Class, opt options) string {
 
 	fmt.Println("types2.ExpectedMeta" + name(typ) + ",")
 	//fmt.Println(res)
+	return res
+}
+
+func generateBindLoop(typ *def.Class, opt options, depth int) string {
+	fs := getUniqueFields(typ)
+	cpoolFields := getUniqueCpoolFields(typ)
+
+	res := ""
+	res += pad(depth) + fmt.Sprintf("for bindFieldIndex := 0; bindFieldIndex < len(bind.Fields); bindFieldIndex++ {\n")
+	res += pad(depth) + fmt.Sprintf("	if bind.Fields[bindFieldIndex].Field.ConstantPool {\n")
+	res += emitReadI32(depth + 2)
+	if len(cpoolFields) > 0 {
+		res += pad(depth) + fmt.Sprintf("		switch bind.Fields[bindFieldIndex].Field.Type {\n")
+		for _, field := range cpoolFields {
+			res += pad(depth) + fmt.Sprintf("		case typeMap.%s:\n", def.TypeID2Sym(field.Type))
+			res += pad(depth) + fmt.Sprintf("			if bind.Fields[bindFieldIndex].%s != nil {\n", goTypeName(field))
+			res += pad(depth) + fmt.Sprintf("				*bind.Fields[bindFieldIndex].%s = %s(v32_)\n", goTypeName(field), goTypeName(field))
+			res += pad(depth) + fmt.Sprintf("			}\n")
+		}
+		res += pad(depth) + fmt.Sprintf("		}\n")
+	}
+	res += pad(depth) + fmt.Sprintf("	} else {\n")
+	res += pad(depth) + fmt.Sprintf("		bft := bind.Fields[bindFieldIndex].Field.Type\n")
+
+	res += pad(depth) + fmt.Sprintf("		if bft == typeMap.T_STRING {\n")
+	res += emitString(depth + 3)
+	if fieldsHas(fs, def.T_STRING) {
+		res += pad(depth) + fmt.Sprintf("			if bind.Fields[bindFieldIndex].string != nil {\n")
+		res += pad(depth) + fmt.Sprintf("				*bind.Fields[bindFieldIndex].string = s_\n")
+		res += pad(depth) + fmt.Sprintf("			}\n")
+	} else {
+		res += pad(depth) + fmt.Sprintf("			// skipping\n")
+	}
+
+	res += pad(depth) + fmt.Sprintf("		} else if bft == typeMap.T_INT {\n")
+	res += emitReadI32(depth + 3)
+	if fieldsHas(fs, def.T_INT) {
+		res += pad(depth) + fmt.Sprintf("			if bind.Fields[bindFieldIndex].uint32 != nil {\n")
+		res += pad(depth) + fmt.Sprintf("				*bind.Fields[bindFieldIndex].uint32 = v32_\n")
+		res += pad(depth) + fmt.Sprintf("			}\n")
+	} else {
+		res += pad(depth) + fmt.Sprintf("			// skipping\n")
+	}
+	res += pad(depth) + fmt.Sprintf("		} else if bft == typeMap.T_LONG {\n")
+	res += emitReadU64(depth + 3)
+	if fieldsHas(fs, def.T_LONG) {
+		res += pad(depth) + fmt.Sprintf("			if bind.Fields[bindFieldIndex].uint64 != nil {\n")
+		res += pad(depth) + fmt.Sprintf("				*bind.Fields[bindFieldIndex].uint64 = v64_\n")
+		res += pad(depth) + fmt.Sprintf("			}\n")
+	} else {
+		res += pad(depth) + fmt.Sprintf("			// skipping\n")
+	}
+
+	res += pad(depth) + fmt.Sprintf("		} else if bft == typeMap.T_BOOLEAN {\n")
+	res += emitReadByte(depth + 3)
+	if fieldsHas(fs, def.T_BOOLEAN) {
+		res += pad(depth) + fmt.Sprintf("			if bind.Fields[bindFieldIndex].bool != nil {\n")
+		res += pad(depth) + fmt.Sprintf("				*bind.Fields[bindFieldIndex].bool = b_ != 0\n")
+		res += pad(depth) + fmt.Sprintf("			}\n")
+	} else {
+		res += pad(depth) + fmt.Sprintf("			// skipping\n")
+	}
+	res += pad(depth) + fmt.Sprintf("		} else if bft == typeMap.T_FLOAT {\n")
+	res += emitReadI32(depth + 3)
+	if fieldsHas(fs, def.T_FLOAT) {
+		res += pad(depth) + fmt.Sprintf("			if bind.Fields[bindFieldIndex].float32 != nil {\n")
+		res += pad(depth) + fmt.Sprintf("				*bind.Fields[bindFieldIndex].float32 = *(*float32)(unsafe.Pointer(&v32_))\n")
+		res += pad(depth) + fmt.Sprintf("			}\n")
+	} else {
+		res += pad(depth) + fmt.Sprintf("			// skipping\n")
+	}
+
+	res += pad(depth) + fmt.Sprintf("		} else {\n")
+	res += pad(depth) + fmt.Sprintf("			fieldTyp := typeMap.IDMap[bind.Fields[bindFieldIndex].Field.Type]\n")
+	res += pad(depth) + fmt.Sprintf("			if fieldTyp == nil {\n")
+	res += pad(depth) + fmt.Sprintf("				return 0, fmt.Errorf(\"unknown type %%d\", bind.Fields[bindFieldIndex].Field.Type)\n")
+	res += pad(depth) + fmt.Sprintf("			}\n")
+	res += pad(depth) + fmt.Sprintf("			for skipFieldIndex := 0; skipFieldIndex < len(fieldTyp.Fields); skipFieldIndex++ {\n")
+	res += pad(depth) + fmt.Sprintf("				skipFieldType :=  fieldTyp.Fields[skipFieldIndex].Type\n")
+	res += pad(depth) + fmt.Sprintf("				if skipFieldType == typeMap.T_STRING{\n")
+	res += emitString(depth + 6)
+	res += pad(depth) + fmt.Sprintf("				} else if skipFieldType == typeMap.T_INT {\n")
+	res += emitReadI32(depth + 6)
+	res += pad(depth) + fmt.Sprintf("				} else if skipFieldType == typeMap.T_FLOAT {\n")
+	res += emitReadI32(depth + 6)
+	res += pad(depth) + fmt.Sprintf("				} else if skipFieldType == typeMap.T_LONG {\n")
+	res += emitReadU64(depth + 6)
+	res += pad(depth) + fmt.Sprintf("				} else if skipFieldType == typeMap.T_BOOLEAN {\n")
+	res += emitReadByte(depth + 6)
+	res += pad(depth) + fmt.Sprintf("				} else {\n")
+	res += pad(depth) + fmt.Sprintf("						return 0, fmt.Errorf(\"nested objects not implemented. \")\n")
+	res += pad(depth) + fmt.Sprintf("				}\n")
+	res += pad(depth) + fmt.Sprintf("			}\n")
+	res += pad(depth) + fmt.Sprintf("		}\n")
+	res += pad(depth) + fmt.Sprintf("	}\n")
+	res += pad(depth) + fmt.Sprintf("}\n")
+	return res
+}
+
+func fieldsHas(fs []def.Field, tString def.TypeID) bool {
+	for _, f := range fs {
+		if f.Type == tString {
+			return true
+		}
+	}
+	return false
+}
+
+func getUniqueFields(typ *def.Class) []def.Field {
+	res := make([]def.Field, 0, len(typ.Fields))
+	for j := range typ.Fields {
+		found := false
+		fieldCopy := typ.Fields[j]
+		fieldCopy.Name = ""
+		for i := 0; i < len(res); i++ {
+			if res[i].Equals(&fieldCopy) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			res = append(res, fieldCopy)
+		}
+	}
+	return res
+}
+
+func getUniqueCpoolFields(typ *def.Class) []def.Field {
+	fs := getUniqueFields(typ)
+	res := make([]def.Field, 0, len(fs))
+	for _, f := range fs {
+		if f.ConstantPool {
+			res = append(res, f)
+		}
+	}
+	return res
+}
+
+func generateBinding(typ *def.Class, opt options) string {
+	res := ""
+	res += fmt.Sprintf("type %s struct {\n", bindName(typ))
+	res += fmt.Sprintf("	Temp %s\n", name(typ))
+	res += fmt.Sprintf("	Fields []%s\n", bindFieldName(typ))
+	res += fmt.Sprintf("}\n\n")
+	res += fmt.Sprintf("\n")
+
+	res += fmt.Sprintf("type %s struct {\n", bindFieldName(typ))
+	res += fmt.Sprintf("	Field 	*def.Field\n")
+
+	uniqueFields := getUniqueFields(typ)
+	//written := map[string]bool{}
+	for _, id := range uniqueFields {
+		//if !written[goTypeName(id)] {
+		res += fmt.Sprintf("\t%s *%s\n", goTypeName(id), goTypeName(id))
+		//written[goTypeName(id)] = true
+		//}
+	}
+
+	res += fmt.Sprintf("}\n\n")
+	res += fmt.Sprintf("\n")
+
+	res += fmt.Sprintf("func New%s(typ *def.Class, typeMap *def.TypeMap) (*%s, error) {\n", bindName(typ), bindName(typ))
+	res += fmt.Sprintf("	res := new(%s)\n", bindName(typ))
+	res += fmt.Sprintf("	for i := 0; i < len(typ.Fields); i++ {\n")
+	res += fmt.Sprintf("		if typ.Fields[i].ConstantPool && typ.Fields[i].Array {\n")
+	res += fmt.Sprintf("			return nil, fmt.Errorf(\"unimplemented cp && array\")\n")
+	res += fmt.Sprintf("		}\n")
+	res += fmt.Sprintf("		switch typ.Fields[i].Name {\n")
+	for i := 0; i < len(typ.Fields); i++ {
+		res += fmt.Sprintf("		case \"%s\":\n", typ.Fields[i].Name)
+		res += fmt.Sprintf("			if typ.Fields[i].Equals(&def.Field{Name: \"%s\", Type: typeMap.%s, ConstantPool: %v, Array: %v}) {\n", typ.Fields[i].Name, def.TypeID2Sym(typ.Fields[i].Type), typ.Fields[i].ConstantPool, typ.Fields[i].Array)
+		res += fmt.Sprintf("				res.Fields = append(res.Fields, %s{Field: &typ.Fields[i], %s: &res.Temp.%s}) \n", bindFieldName(typ), goTypeName(typ.Fields[i]), capitalize(typ.Fields[i].Name))
+		res += fmt.Sprintf("			} else {\n")
+		res += fmt.Sprintf("				res.Fields = append(res.Fields, %s{Field: &typ.Fields[i]}) // skip\n", bindFieldName(typ))
+		res += fmt.Sprintf("			}\n")
+	}
+	res += fmt.Sprintf("		default:\n")
+	res += fmt.Sprintf("			res.Fields = append(res.Fields, %s{Field: &typ.Fields[i]}) // skip\n", bindFieldName(typ))
+	res += fmt.Sprintf("		}\n")
+	res += fmt.Sprintf("	}\n")
+	res += fmt.Sprintf("	return res, nil\n")
+	res += fmt.Sprintf("}\n")
 	return res
 }
 
@@ -512,6 +634,9 @@ func emitReadU64(depth int) string {
 
 func goTypeName(field def.Field) string {
 	if field.ConstantPool {
+		//if field.Array {
+		//	panic("TODO " + field.String())
+		//}
 		return name(TypeForCPoolID(field.Type)) + "Ref"
 	}
 	switch field.Type {
@@ -536,6 +661,20 @@ func name(typ *def.Class) string {
 	fs := strings.Split(typ.Name, ".")
 	s := fs[len(fs)-1]
 	return capitalize(s)
+}
+
+func bindName(typ *def.Class) string {
+	return "Bind" + name(typ)
+}
+func bindFieldName(typ *def.Class) string {
+	return "BindField" + name(typ)
+}
+func refName(typ *def.Class) string {
+	return name(typ) + "Ref"
+}
+
+func listName(typ *def.Class) string {
+	return name(typ) + "List"
 }
 
 func capitalize(s string) string {
