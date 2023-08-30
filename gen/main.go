@@ -273,7 +273,8 @@ func generateBindLoop(typ *def.Class, bindName string, depth int, nestedAllowed 
 	res += pad(depth) + fmt.Sprintf("	} else {\n")
 	res += pad(depth) + fmt.Sprintf("		%sFieldTypeID := %s.Fields[%sFieldIndex].Field.Type\n", bindName, bindName, bindName)
 
-	res += pad(depth) + fmt.Sprintf("		if %sFieldTypeID == typeMap.T_STRING {\n", bindName)
+	res += pad(depth) + fmt.Sprintf("		switch %sFieldTypeID {\n", bindName)
+	res += pad(depth) + fmt.Sprintf("		case  typeMap.T_STRING:\n")
 	res += emitString(depth + 3)
 	if fieldsHas(fs, T_STRING) {
 		res += pad(depth) + fmt.Sprintf("			if %s.Fields[%sFieldIndex].string != nil {\n", bindName, bindName)
@@ -283,7 +284,7 @@ func generateBindLoop(typ *def.Class, bindName string, depth int, nestedAllowed 
 		res += pad(depth) + fmt.Sprintf("			// skipping\n")
 	}
 
-	res += pad(depth) + fmt.Sprintf("		} else if %sFieldTypeID == typeMap.T_INT {\n", bindName)
+	res += pad(depth) + fmt.Sprintf("		case typeMap.T_INT:\n")
 	res += emitReadI32(depth + 3)
 	if fieldsHas(fs, T_INT) {
 		res += pad(depth) + fmt.Sprintf("			if %s.Fields[%sFieldIndex].uint32 != nil {\n", bindName, bindName)
@@ -292,7 +293,7 @@ func generateBindLoop(typ *def.Class, bindName string, depth int, nestedAllowed 
 	} else {
 		res += pad(depth) + fmt.Sprintf("			// skipping\n")
 	}
-	res += pad(depth) + fmt.Sprintf("		} else if %sFieldTypeID == typeMap.T_LONG {\n", bindName)
+	res += pad(depth) + fmt.Sprintf("		case typeMap.T_LONG:\n")
 	res += emitReadU64(depth + 3)
 	if fieldsHas(fs, T_LONG) {
 		res += pad(depth) + fmt.Sprintf("			if %s.Fields[%sFieldIndex].uint64 != nil {\n", bindName, bindName)
@@ -302,7 +303,7 @@ func generateBindLoop(typ *def.Class, bindName string, depth int, nestedAllowed 
 		res += pad(depth) + fmt.Sprintf("			// skipping\n")
 	}
 
-	res += pad(depth) + fmt.Sprintf("		} else if %sFieldTypeID == typeMap.T_BOOLEAN {\n", bindName)
+	res += pad(depth) + fmt.Sprintf("		case typeMap.T_BOOLEAN:\n")
 	res += emitReadByte(depth + 3)
 	if fieldsHas(fs, T_BOOLEAN) {
 		res += pad(depth) + fmt.Sprintf("			if %s.Fields[%sFieldIndex].bool != nil {\n", bindName, bindName)
@@ -311,7 +312,7 @@ func generateBindLoop(typ *def.Class, bindName string, depth int, nestedAllowed 
 	} else {
 		res += pad(depth) + fmt.Sprintf("			// skipping\n")
 	}
-	res += pad(depth) + fmt.Sprintf("		} else if %sFieldTypeID == typeMap.T_FLOAT {\n", bindName)
+	res += pad(depth) + fmt.Sprintf("		case typeMap.T_FLOAT:\n")
 	res += emitReadI32(depth + 3)
 	if fieldsHas(fs, T_FLOAT) {
 		res += pad(depth) + fmt.Sprintf("			if %s.Fields[%sFieldIndex].float32 != nil {\n", bindName, bindName)
@@ -323,7 +324,7 @@ func generateBindLoop(typ *def.Class, bindName string, depth int, nestedAllowed 
 	if nestedAllowed {
 		for _, field := range complexFields {
 			nestedType := TypeForCPoolID(field.Type)
-			res += pad(depth) + fmt.Sprintf("		} else if %sFieldTypeID == typeMap.%s {\n", bindName, TypeID2Sym(field.Type))
+			res += pad(depth) + fmt.Sprintf("		case typeMap.%s:\n", TypeID2Sym(field.Type))
 			res += generateBindLoop(nestedType, "bind"+name(nestedType), depth+3, false)
 			if field.Array {
 				res += pad(depth) + fmt.Sprintf("			if %s.Fields[%sFieldIndex].%s != nil {\n", bindName, bindName, name(nestedType))
@@ -334,7 +335,7 @@ func generateBindLoop(typ *def.Class, bindName string, depth int, nestedAllowed 
 			}
 		}
 	}
-	res += pad(depth) + fmt.Sprintf("		} else {\n")
+	res += pad(depth) + fmt.Sprintf("		default:\n")
 	//todo array
 	res += pad(depth) + fmt.Sprintf("			%sFieldType := typeMap.IDMap[%s.Fields[%sFieldIndex].Field.Type]\n", bindName, bindName, bindName)
 	res += pad(depth) + fmt.Sprintf("			if %sFieldType == nil || len(%sFieldType.Fields) == 0 {\n", bindName, bindName)

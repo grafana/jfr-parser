@@ -123,7 +123,8 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 				}
 			} else {
 				bindFieldTypeID := bind.Fields[bindFieldIndex].Field.Type
-				if bindFieldTypeID == typeMap.T_STRING {
+				switch bindFieldTypeID {
+				case typeMap.T_STRING:
 					s_ = ""
 					if pos >= l {
 						return 0, io.ErrUnexpectedEOF
@@ -160,7 +161,7 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 						return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 					}
 					// skipping
-				} else if bindFieldTypeID == typeMap.T_INT {
+				case typeMap.T_INT:
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
 						if shift >= 32 {
@@ -179,7 +180,7 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 					if bind.Fields[bindFieldIndex].uint32 != nil {
 						*bind.Fields[bindFieldIndex].uint32 = v32_
 					}
-				} else if bindFieldTypeID == typeMap.T_LONG {
+				case typeMap.T_LONG:
 					v64_ = 0
 					for shift = uint(0); shift <= 56; shift += 7 {
 						if pos >= l {
@@ -198,14 +199,14 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 						}
 					}
 					// skipping
-				} else if bindFieldTypeID == typeMap.T_BOOLEAN {
+				case typeMap.T_BOOLEAN:
 					if pos >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
 					b_ = data[pos]
 					pos++
 					// skipping
-				} else if bindFieldTypeID == typeMap.T_FLOAT {
+				case typeMap.T_FLOAT:
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
 						if shift >= 32 {
@@ -222,7 +223,7 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 						}
 					}
 					// skipping
-				} else {
+				default:
 					bindFieldType := typeMap.IDMap[bind.Fields[bindFieldIndex].Field.Type]
 					if bindFieldType == nil || len(bindFieldType.Fields) == 0 {
 						return 0, fmt.Errorf("unknown type %d", bind.Fields[bindFieldIndex].Field.Type)
