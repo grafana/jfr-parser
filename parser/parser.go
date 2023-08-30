@@ -215,6 +215,14 @@ func (p *Parser) GetStacktrace(stID types2.StackTraceRef) *types2.StackTrace {
 	return &p.Stacktrace.StackTrace[idx]
 }
 
+func (p *Parser) GetThreadState(ref types2.ThreadStateRef) *types2.ThreadState {
+	idx, ok := p.ThreadStates.IDMap[ref]
+	if !ok {
+		return nil
+	}
+	return &p.ThreadStates.ThreadState[idx]
+}
+
 func (p *Parser) GetMethod(mID types2.MethodRef) *types2.Method {
 	if mID == 0 {
 		return nil
