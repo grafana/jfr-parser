@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pyroscope-io/jfr-parser/parser/types/def"
+	"github.com/grafana/jfr-parser/parser/types/def"
 )
 
 func main() {
@@ -228,7 +228,7 @@ func generate(typ *def.Class, opt options) string {
 	imports := "package types\n"
 	imports += "\n"
 
-	imports += "import (\n\t\"fmt\"\n\t\"io\"\n\t\"unsafe\"\n\t\"github.com/pyroscope-io/jfr-parser/parser/types/def\"\n\n)"
+	imports += "import (\n\t\"fmt\"\n\t\"io\"\n\t\"unsafe\"\n\t\"github.com/grafana/jfr-parser/parser/types/def\"\n\n)"
 
 	imports += "\n"
 	res = imports + res
@@ -677,7 +677,7 @@ func pad(n int) string {
 }
 
 func generateGeneric() string {
-	res := "package types\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"unsafe\"\n\n\t\"github.com/pyroscope-io/jfr-parser/parser/types/def\"\n)\n\n"
+	res := "package types\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"unsafe\"\n\n\t\"github.com/grafana/jfr-parser/parser/types/def\"\n)\n\n"
 
 	res += "func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool bool) (pos int, err error) {\n"
 	res += "	var (\n"

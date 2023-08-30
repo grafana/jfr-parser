@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pyroscope-io/jfr-parser/parser/types/def"
+	"github.com/grafana/jfr-parser/parser/types/def"
 )
 
 var (

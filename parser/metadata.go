@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 
-	"github.com/pyroscope-io/jfr-parser/parser/types/def"
+	"github.com/grafana/jfr-parser/parser/types/def"
 )
 
 func (p *Parser) readMeta(pos int) error {

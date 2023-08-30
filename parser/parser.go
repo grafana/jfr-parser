@@ -5,8 +5,8 @@ import (
 	"io"
 	"unsafe"
 
-	types2 "github.com/pyroscope-io/jfr-parser/parser/types"
-	"github.com/pyroscope-io/jfr-parser/parser/types/def"
+	types2 "github.com/grafana/jfr-parser/parser/types"
+	"github.com/grafana/jfr-parser/parser/types/def"
 )
 
 const chunkHeaderSize = 68

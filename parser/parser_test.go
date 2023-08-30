@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pyroscope-io/jfr-parser/parser/types"
+	"github.com/grafana/jfr-parser/parser/types"
 )
 
 var testfiles = []string{

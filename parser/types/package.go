@@ -5,7 +5,7 @@ import (
 	"io"
 	"unsafe"
 
-	"github.com/pyroscope-io/jfr-parser/parser/types/def"
+	"github.com/grafana/jfr-parser/parser/types/def"
 )
 
 type BindPackage struct {
