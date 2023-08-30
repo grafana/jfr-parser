@@ -23,6 +23,7 @@ type BindFieldObjectAllocationInNewTLAB struct {
 
 func NewBindObjectAllocationInNewTLAB(typ *def.Class, typeMap *def.TypeMap) *BindObjectAllocationInNewTLAB {
 	res := new(BindObjectAllocationInNewTLAB)
+	res.Fields = make([]BindFieldObjectAllocationInNewTLAB, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "startTime":

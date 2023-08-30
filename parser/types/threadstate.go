@@ -20,6 +20,7 @@ type BindFieldThreadState struct {
 
 func NewBindThreadState(typ *def.Class, typeMap *def.TypeMap) *BindThreadState {
 	res := new(BindThreadState)
+	res.Fields = make([]BindFieldThreadState, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "name":

@@ -147,56 +147,34 @@ func TestParse(t *testing.T) {
 	}
 }
 
-//
-//func TestParseBaseTypeAndDrop(t *testing.T) {
-//	r := reader.NewReader([]byte{1}, false, false)
-//	err := parseFields(
-//		r,
-//		map[int]*ClassMetadata{}, map[int]*CPool{},
-//		&ClassMetadata{
-//			Fields: []FieldMetadata{
-//				{
-//					Name:                 "boolean",
-//					isBaseType:           true,
-//					parseBaseTypeAndDrop: parseBaseTypeAndDrops["boolean"],
-//				},
-//			},
-//		},
-//		nil, false,
-//		func(reader reader.Reader, s string, resolvable ParseResolvable) error {
-//			return nil
-//		})
-//	if err != nil || r.Offset() != 1 {
-//		t.Fatalf("failed to parse and drop base type: %s", err)
-//	}
-//}
+func BenchmarkParse(b *testing.B) {
+	for _, testfile := range testfiles {
+		b.Run(testfile, func(b *testing.B) {
+			jfr, err := readGzipFile("./testdata/" + testfile + ".jfr.gz")
+			if err != nil {
+				b.Fatalf("Unable to read JFR file: %s", err)
+			}
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				chunks, err := NewParser(jfr, Options{})
+				if err != nil {
+					b.Fatalf("Unable to parse JFR file: %s", err)
+				}
+				for {
+					_, err := chunks.ParseEvent()
+					if err != nil {
+						if errors.Is(err, io.EOF) {
+							break
+						}
+						b.Fatalf("Unable to parse JFR file: %s", err)
+					}
 
-//func BenchmarkParse(b *testing.B) {
-//	for _, testfile := range testfiles {
-//		b.Run(testfile, func(b *testing.B) {
-//			jfr, err := readGzipFile("./testdata/" + testfile + ".jfr.gz")
-//			if err != nil {
-//				b.Fatalf("Unable to read JFR file: %s", err)
-//			}
-//			b.ResetTimer()
-//			b.ReportAllocs()
-//			for i := 0; i < b.N; i++ {
-//				chunks, err := Parse(bytes.NewReader(jfr))
-//				if err != nil {
-//					b.Fatalf("Unable to parse JFR file: %s", err)
-//				}
-//				for _, chunk := range chunks {
-//					for chunk.Next() {
-//					}
-//					err = chunk.Err()
-//					if err != nil {
-//						b.Fatal(err)
-//					}
-//				}
-//			}
-//		})
-//	}
-//}
+				}
+			}
+		})
+	}
+}
 
 func readGzipFile(fname string) ([]byte, error) {
 	f, err := os.Open(fname)

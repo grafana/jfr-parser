@@ -23,6 +23,7 @@ type BindFieldMethod struct {
 
 func NewBindMethod(typ *def.Class, typeMap *def.TypeMap) *BindMethod {
 	res := new(BindMethod)
+	res.Fields = make([]BindFieldMethod, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "type":

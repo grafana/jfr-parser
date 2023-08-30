@@ -20,6 +20,7 @@ type BindFieldSymbol struct {
 
 func NewBindSymbol(typ *def.Class, typeMap *def.TypeMap) *BindSymbol {
 	res := new(BindSymbol)
+	res.Fields = make([]BindFieldSymbol, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "string":

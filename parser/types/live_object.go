@@ -23,6 +23,7 @@ type BindFieldLiveObject struct {
 
 func NewBindLiveObject(typ *def.Class, typeMap *def.TypeMap) *BindLiveObject {
 	res := new(BindLiveObject)
+	res.Fields = make([]BindFieldLiveObject, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "startTime":

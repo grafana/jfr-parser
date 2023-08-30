@@ -21,6 +21,7 @@ type BindFieldStackTrace struct {
 
 func NewBindStackTrace(typ *def.Class, typeMap *def.TypeMap) *BindStackTrace {
 	res := new(BindStackTrace)
+	res.Fields = make([]BindFieldStackTrace, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "truncated":

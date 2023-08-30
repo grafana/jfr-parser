@@ -20,6 +20,7 @@ type BindFieldFrameType struct {
 
 func NewBindFrameType(typ *def.Class, typeMap *def.TypeMap) *BindFrameType {
 	res := new(BindFrameType)
+	res.Fields = make([]BindFieldFrameType, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "description":

@@ -20,6 +20,7 @@ type BindFieldLogLevel struct {
 
 func NewBindLogLevel(typ *def.Class, typeMap *def.TypeMap) *BindLogLevel {
 	res := new(BindLogLevel)
+	res.Fields = make([]BindFieldLogLevel, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "name":

@@ -22,6 +22,7 @@ type BindFieldStackFrame struct {
 
 func NewBindStackFrame(typ *def.Class, typeMap *def.TypeMap) *BindStackFrame {
 	res := new(BindStackFrame)
+	res.Fields = make([]BindFieldStackFrame, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "method":

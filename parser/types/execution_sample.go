@@ -23,6 +23,7 @@ type BindFieldExecutionSample struct {
 
 func NewBindExecutionSample(typ *def.Class, typeMap *def.TypeMap) *BindExecutionSample {
 	res := new(BindExecutionSample)
+	res.Fields = make([]BindFieldExecutionSample, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "startTime":

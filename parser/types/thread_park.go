@@ -23,6 +23,7 @@ type BindFieldThreadPark struct {
 
 func NewBindThreadPark(typ *def.Class, typeMap *def.TypeMap) *BindThreadPark {
 	res := new(BindThreadPark)
+	res.Fields = make([]BindFieldThreadPark, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "startTime":

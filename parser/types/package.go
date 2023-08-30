@@ -20,6 +20,7 @@ type BindFieldPackage struct {
 
 func NewBindPackage(typ *def.Class, typeMap *def.TypeMap) *BindPackage {
 	res := new(BindPackage)
+	res.Fields = make([]BindFieldPackage, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "name":

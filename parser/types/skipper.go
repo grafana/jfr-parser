@@ -19,6 +19,7 @@ type BindFieldSkipConstantPool struct {
 
 func NewBindSkipConstantPool(typ *def.Class, typeMap *def.TypeMap) *BindSkipConstantPool {
 	res := new(BindSkipConstantPool)
+	res.Fields = make([]BindFieldSkipConstantPool, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		default:

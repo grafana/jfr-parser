@@ -21,6 +21,7 @@ type BindFieldThread struct {
 
 func NewBindThread(typ *def.Class, typeMap *def.TypeMap) *BindThread {
 	res := new(BindThread)
+	res.Fields = make([]BindFieldThread, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "osName":

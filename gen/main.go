@@ -456,6 +456,7 @@ func generateBinding(typ *def.Class, opt options) string {
 
 	res += fmt.Sprintf("func New%s(typ *def.Class, typeMap *def.TypeMap) *%s {\n", bindName(typ), bindName(typ))
 	res += fmt.Sprintf("	res := new(%s)\n", bindName(typ))
+	res += fmt.Sprintf("	res.Fields = make([]%s, 0, len(typ.Fields))\n", bindFieldName(typ))
 	res += fmt.Sprintf("	for i := 0; i < len(typ.Fields); i++ {\n")
 	res += fmt.Sprintf("		switch typ.Fields[i].Name {\n")
 	for i := 0; i < len(typ.Fields); i++ {

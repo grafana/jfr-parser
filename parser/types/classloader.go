@@ -21,6 +21,7 @@ type BindFieldClassLoader struct {
 
 func NewBindClassLoader(typ *def.Class, typeMap *def.TypeMap) *BindClassLoader {
 	res := new(BindClassLoader)
+	res.Fields = make([]BindFieldClassLoader, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "type":
