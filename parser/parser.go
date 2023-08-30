@@ -30,7 +30,7 @@ func (c *ChunkHeader) String() string {
 	return fmt.Sprintf("ChunkHeader{Magic: %x, Version: %x, Size: %d, OffsetConstantPool: %d, OffsetMeta: %d, StartNanos: %d, DurationNanos: %d, StartTicks: %d, TicksPerSecond: %d, Features: %d}", c.Magic, c.Version, c.Size, c.OffsetConstantPool, c.OffsetMeta, c.StartNanos, c.DurationNanos, c.StartTicks, c.TicksPerSecond, c.Features)
 }
 
-type SymbolProcessor func(ref *types2.Symbol)
+type SymbolProcessor func(ref *types2.SymbolList)
 
 type Options struct {
 	ChunkSizeLimit  int
@@ -271,9 +271,7 @@ func (p *Parser) readChunk(pos int) error {
 	}
 	pp := p.options.SymbolProcessor
 	if pp != nil {
-		for i := range p.Symbols.Symbol {
-			pp(&p.Symbols.Symbol[i])
-		}
+		pp(&p.Symbols)
 	}
 	p.pos = pos + chunkHeaderSize + int(p.metaSize)
 	return nil
