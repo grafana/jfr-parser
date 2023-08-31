@@ -159,17 +159,65 @@ func BenchmarkParse(b *testing.B) {
 			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
-				chunks, err := NewParser(jfr, Options{})
+				parser, err := NewParser(jfr, Options{})
+
+				stacktraceToFrames := func(stacktrace types.StackTraceRef) []string {
+					st := parser.GetStacktrace(stacktrace)
+					if st == nil {
+						b.Fatalf("stacktrace not found: %d\n", stacktrace)
+					}
+					//frames := make([]string, len(st.Frames))
+					for _, frame := range st.Frames {
+						m := parser.GetMethod(frame.Method)
+						if m == nil {
+							b.Fatalf("method not found: %d\n", frame.Method)
+						}
+						if m.Scratch == "" {
+							cls := parser.GetClass(m.Type)
+							if cls == nil {
+								b.Fatalf("class not found: %d\n", m.Type)
+							}
+							symbolString := parser.GetSymbolString(cls.Name)
+							getSymbolString := parser.GetSymbolString(m.Name)
+							_ = symbolString
+							_ = getSymbolString
+							//m.Scratch = symbolString + "." + getSymbolString
+							m.Scratch = "once"
+						}
+						//frames[i] = m.Scratch
+						//return ni
+					}
+					return nil
+				}
+
 				if err != nil {
 					b.Fatalf("Unable to parse JFR file: %s", err)
 				}
 				for {
-					_, err := chunks.ParseEvent()
+					typ, err := parser.ParseEvent()
 					if err != nil {
 						if errors.Is(err, io.EOF) {
 							break
 						}
 						b.Fatalf("Unable to parse JFR file: %s", err)
+					}
+
+					switch typ {
+					case parser.TypeMap.T_EXECUTION_SAMPLE:
+						_ = stacktraceToFrames(parser.ExecutionSample.StackTrace)
+					case parser.TypeMap.T_ALLOC_IN_NEW_TLAB:
+						_ = stacktraceToFrames(parser.ObjectAllocationInNewTLAB.StackTrace)
+					case parser.TypeMap.T_ALLOC_OUTSIDE_TLAB:
+						_ = stacktraceToFrames(parser.ObjectAllocationOutsideTLAB.StackTrace)
+					case parser.TypeMap.T_MONITOR_ENTER:
+						_ = stacktraceToFrames(parser.JavaMonitorEnter.StackTrace)
+					case parser.TypeMap.T_THREAD_PARK:
+						_ = stacktraceToFrames(parser.ThreadPark.StackTrace)
+					case parser.TypeMap.T_LIVE_OBJECT:
+						_ = stacktraceToFrames(parser.LiveObject.StackTrace)
+
+					case parser.TypeMap.T_ACTIVE_SETTING:
+
 					}
 
 				}
