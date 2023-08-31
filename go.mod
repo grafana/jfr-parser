@@ -1,3 +1,3 @@
-module github.com/pyroscope-io/jfr-parser
+module github.com/grafana/jfr-parser
 
-go 1.16
+go 1.18
