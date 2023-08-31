@@ -27,10 +27,10 @@ func NewBindSymbol(typ *def.Class, typeMap *def.TypeMap) *BindSymbol {
 			if typ.Fields[i].Equals(&def.Field{Name: "string", Type: typeMap.T_STRING, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldSymbol{Field: &typ.Fields[i], string: &res.Temp.String})
 			} else {
-				res.Fields = append(res.Fields, BindFieldSymbol{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldSymbol{Field: &typ.Fields[i]}) // skip changed field
 			}
 		default:
-			res.Fields = append(res.Fields, BindFieldSymbol{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldSymbol{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res

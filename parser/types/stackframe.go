@@ -29,38 +29,26 @@ func NewBindStackFrame(typ *def.Class, typeMap *def.TypeMap) *BindStackFrame {
 			if typ.Fields[i].Equals(&def.Field{Name: "method", Type: typeMap.T_METHOD, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i], MethodRef: &res.Temp.Method})
 			} else {
-				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "lineNumber":
-			if typ.Fields[i].Equals(&def.Field{Name: "lineNumber", Type: typeMap.T_INT, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i], uint32: &res.Temp.LineNumber})
-			} else {
-				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip to save mem
 		case "bytecodeIndex":
-			if typ.Fields[i].Equals(&def.Field{Name: "bytecodeIndex", Type: typeMap.T_INT, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i], uint32: &res.Temp.BytecodeIndex})
-			} else {
-				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip to save mem
 		case "type":
-			if typ.Fields[i].Equals(&def.Field{Name: "type", Type: typeMap.T_FRAME_TYPE, ConstantPool: true, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i], FrameTypeRef: &res.Temp.Type})
-			} else {
-				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip to save mem
 		default:
-			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res
 }
 
 type StackFrame struct {
-	Method        MethodRef
-	LineNumber    uint32
-	BytecodeIndex uint32
-	Type          FrameTypeRef
+	Method MethodRef
+	// skip lineNumber
+	// skip bytecodeIndex
+	// skip type
 }
 
 func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.TypeMap) (pos int, err error) {

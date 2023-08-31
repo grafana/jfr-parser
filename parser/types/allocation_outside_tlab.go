@@ -30,40 +30,40 @@ func NewBindObjectAllocationOutsideTLAB(typ *def.Class, typeMap *def.TypeMap) *B
 			if typ.Fields[i].Equals(&def.Field{Name: "startTime", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i], uint64: &res.Temp.StartTime})
 			} else {
-				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "eventThread":
 			if typ.Fields[i].Equals(&def.Field{Name: "eventThread", Type: typeMap.T_THREAD, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i], ThreadRef: &res.Temp.EventThread})
 			} else {
-				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "stackTrace":
 			if typ.Fields[i].Equals(&def.Field{Name: "stackTrace", Type: typeMap.T_STACK_TRACE, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i], StackTraceRef: &res.Temp.StackTrace})
 			} else {
-				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "objectClass":
 			if typ.Fields[i].Equals(&def.Field{Name: "objectClass", Type: typeMap.T_CLASS, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i], ClassRef: &res.Temp.ObjectClass})
 			} else {
-				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "allocationSize":
 			if typ.Fields[i].Equals(&def.Field{Name: "allocationSize", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i], uint64: &res.Temp.AllocationSize})
 			} else {
-				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "contextId":
 			if typ.Fields[i].Equals(&def.Field{Name: "contextId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i], uint64: &res.Temp.ContextId})
 			} else {
-				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
 			}
 		default:
-			res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res

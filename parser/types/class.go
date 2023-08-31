@@ -27,31 +27,19 @@ func NewBindClass(typ *def.Class, typeMap *def.TypeMap) *BindClass {
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		case "classLoader":
-			if typ.Fields[i].Equals(&def.Field{Name: "classLoader", Type: typeMap.T_CLASS_LOADER, ConstantPool: true, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], ClassLoaderRef: &res.Temp.ClassLoader})
-			} else {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip to save mem
 		case "name":
 			if typ.Fields[i].Equals(&def.Field{Name: "name", Type: typeMap.T_SYMBOL, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], SymbolRef: &res.Temp.Name})
 			} else {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "package":
-			if typ.Fields[i].Equals(&def.Field{Name: "package", Type: typeMap.T_PACKAGE, ConstantPool: true, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], PackageRef: &res.Temp.Package})
-			} else {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip to save mem
 		case "modifiers":
-			if typ.Fields[i].Equals(&def.Field{Name: "modifiers", Type: typeMap.T_INT, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], uint32: &res.Temp.Modifiers})
-			} else {
-				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip to save mem
 		default:
-			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res
@@ -64,10 +52,10 @@ type ClassList struct {
 }
 
 type Class struct {
-	ClassLoader ClassLoaderRef
-	Name        SymbolRef
-	Package     PackageRef
-	Modifiers   uint32
+	// skip classLoader
+	Name SymbolRef
+	// skip package
+	// skip modifiers
 }
 
 func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap) (pos int, err error) {

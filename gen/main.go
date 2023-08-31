@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/grafana/jfr-parser/parser/types/def"
@@ -14,6 +15,9 @@ func main() {
 		sortedIDs: false,
 	}))
 	write("types/stackframe.go", generate(&Type_jdk_types_StackFrame, options{
+		skipFields: []string{
+			"lineNumber", "bytecodeIndex", "type",
+		},
 		cpool: false,
 	}))
 	write("types/threadstate.go", generate(&Type_jdk_types_ThreadState, options{
@@ -23,6 +27,11 @@ func main() {
 		cpool: true,
 	}))
 	write("types/class.go", generate(&Type_java_lang_Class, options{
+		skipFields: []string{
+			"classLoader",
+			"package",
+			"modifiers",
+		},
 		cpool: true,
 	}))
 	write("types/classloader.go", generate(&Type_jdk_types_ClassLoader, options{
@@ -32,6 +41,11 @@ func main() {
 		cpool:     true,
 		sortedIDs: true,
 		Scratch:   true,
+		skipFields: []string{
+			"hidden",
+			"descriptor",
+			"modifiers",
+		},
 	}))
 	write("types/package.go", generate(&Type_jdk_types_Package, options{
 		cpool: true,
@@ -77,6 +91,7 @@ type options struct {
 	sortedIDs     bool
 	Scratch       bool
 	doNotKeepData bool
+	skipFields    []string //todo make skip fields runtime option, but still saving memory - explode struct to fields
 }
 
 func TypeForCPoolID(ID def.TypeID) *def.Class {
@@ -130,15 +145,14 @@ func generate(typ *def.Class, opt options) string {
 
 	res += fmt.Sprintf("type %s struct {\n", name(typ))
 	for _, field := range typ.Fields {
-
-		if field.Array {
-			if field.ConstantPool {
-				panic("cp array not implemented")
-			} else {
-				res += fmt.Sprintf("	%s []%s\n", capitalize(field.Name), goTypeName(field))
-			}
+		if slices.Contains(opt.skipFields, field.Name) {
+			res += fmt.Sprintf("	// skip %s\n", field.Name)
 		} else {
-			res += fmt.Sprintf("	%s %s\n", capitalize(field.Name), goTypeName(field))
+			if field.Array {
+				res += fmt.Sprintf("	%s []%s\n", capitalize(field.Name), goTypeName(field))
+			} else {
+				res += fmt.Sprintf("	%s %s\n", capitalize(field.Name), goTypeName(field))
+			}
 		}
 	}
 	if opt.Scratch {
@@ -462,80 +476,22 @@ func generateBinding(typ *def.Class, opt options) string {
 	for i := 0; i < len(typ.Fields); i++ {
 
 		res += fmt.Sprintf("		case \"%s\":\n", typ.Fields[i].Name)
-		res += fmt.Sprintf("			if typ.Fields[i].Equals(&def.Field{Name: \"%s\", Type: typeMap.%s, ConstantPool: %v, Array: %v}) {\n", typ.Fields[i].Name, TypeID2Sym(typ.Fields[i].Type), typ.Fields[i].ConstantPool, typ.Fields[i].Array)
-		res += fmt.Sprintf("				res.Fields = append(res.Fields, %s{Field: &typ.Fields[i], %s: &res.Temp.%s}) \n", bindFieldName(typ), goTypeName(typ.Fields[i]), capitalize(typ.Fields[i].Name))
-		res += fmt.Sprintf("			} else {\n")
-		res += fmt.Sprintf("				res.Fields = append(res.Fields, %s{Field: &typ.Fields[i]}) // skip\n", bindFieldName(typ))
-		res += fmt.Sprintf("			}\n")
+		if slices.Contains(opt.skipFields, typ.Fields[i].Name) {
+			res += fmt.Sprintf("			res.Fields = append(res.Fields, %s{Field: &typ.Fields[i]}) // skip to save mem\n", bindFieldName(typ))
+		} else {
+			res += fmt.Sprintf("			if typ.Fields[i].Equals(&def.Field{Name: \"%s\", Type: typeMap.%s, ConstantPool: %v, Array: %v}) {\n", typ.Fields[i].Name, TypeID2Sym(typ.Fields[i].Type), typ.Fields[i].ConstantPool, typ.Fields[i].Array)
+			res += fmt.Sprintf("				res.Fields = append(res.Fields, %s{Field: &typ.Fields[i], %s: &res.Temp.%s}) \n", bindFieldName(typ), goTypeName(typ.Fields[i]), capitalize(typ.Fields[i].Name))
+			res += fmt.Sprintf("			} else {\n")
+			res += fmt.Sprintf("				res.Fields = append(res.Fields, %s{Field: &typ.Fields[i]}) // skip changed field\n", bindFieldName(typ))
+			res += fmt.Sprintf("			}\n")
+		}
 	}
 	res += fmt.Sprintf("		default:\n")
-	res += fmt.Sprintf("			res.Fields = append(res.Fields, %s{Field: &typ.Fields[i]}) // skip\n", bindFieldName(typ))
+	res += fmt.Sprintf("			res.Fields = append(res.Fields, %s{Field: &typ.Fields[i]}) // skip unknown new field\n", bindFieldName(typ))
 	res += fmt.Sprintf("		}\n")
 	res += fmt.Sprintf("	}\n")
 	res += fmt.Sprintf("	return res\n")
 	res += fmt.Sprintf("}\n")
-	return res
-}
-
-func emitSkipFields(skipFieldsSliceName string, meta string, depth int) string {
-	res := pad(depth) + ""
-	res += pad(depth) + "\n\n"
-	res += pad(depth) + "// skipping added fields \n"
-	res += pad(depth) + fmt.Sprintf("for skipFI := range %s {\n", skipFieldsSliceName)
-	res += pad(depth) + "	nSkip := int(1)\n"
-	res += pad(depth) + fmt.Sprintf("	if %s[skipFI].Array {\n", skipFieldsSliceName)
-	res += emitReadI32(depth + 2)
-	res += pad(depth) + "		nSkip = int(v32_)\n"
-	res += pad(depth) + "	}\n"
-	res += pad(depth) + "	for iSkip := 0; iSkip < nSkip; iSkip++ {\n"
-	res += pad(depth) + fmt.Sprintf("		if %s[skipFI].ConstantPool {\n", skipFieldsSliceName)
-	res += emitReadI32(depth + 3)
-	res += pad(depth) + "		} else {\n"
-	res += pad(depth) + fmt.Sprintf("			switch %s[skipFI].Type {\n", skipFieldsSliceName)
-	res += pad(depth) + "			case T_STRING:\n"
-	res += emitString(depth + 4)
-	res += pad(depth) + "			case T_LONG:\n"
-	res += emitReadU64(depth + 4)
-	res += pad(depth) + "			case T_INT:\n"
-	res += emitReadI32(depth + 4)
-	res += pad(depth) + "			case T_FLOAT:\n"
-	res += emitReadI32(depth + 4)
-	res += pad(depth) + "			case T_BOOLEAN:\n"
-	res += emitReadByte(depth + 4)
-	res += pad(depth) + "			default:\n"
-	res += pad(depth) + fmt.Sprintf("				gt := %s[%s[skipFI].Type]\n", meta, skipFieldsSliceName)
-	res += pad(depth) + fmt.Sprintf("				if gt == nil {\n")
-	res += pad(depth) + fmt.Sprintf("					return 0, fmt.Errorf(\"unknown type %%d\", %s[skipFI].Type)\n", skipFieldsSliceName)
-	res += pad(depth) + fmt.Sprintf("				}\n")
-
-	res += pad(depth) + "				for gti := 0; gti < len(gt.Fields); gti++ {\n"
-	res += pad(depth) + "					if gt.Fields[gti].Array {\n"
-	res += pad(depth) + "						return 0, fmt.Errorf(\"two dimentional array not supported\")"
-	res += pad(depth) + "					}\n"
-	res += pad(depth) + "					if gt.Fields[gti].ConstantPool {\n"
-	res += emitReadI32(depth + 6)
-	res += pad(depth) + "					} else {\n"
-
-	res += pad(depth) + "						switch gt.Fields[gti].Type {\n"
-	res += pad(depth) + "						case T_STRING:\n"
-	res += emitString(depth + 7)
-	res += pad(depth) + "						case T_LONG:\n"
-	res += emitReadU64(depth + 7)
-	res += pad(depth) + "						case T_INT:\n"
-	res += emitReadI32(depth + 7)
-	res += pad(depth) + "						case T_FLOAT:\n"
-	res += emitReadI32(depth + 7)
-	res += pad(depth) + "						case T_BOOLEAN:\n"
-	res += emitReadByte(depth + 7)
-	res += pad(depth) + "						default:\n"
-	res += pad(depth) + "							return 0, fmt.Errorf(\"unknown type %d\", gt.Fields[gti].Type)\n"
-	res += pad(depth) + "						}\n"
-	res += pad(depth) + "					}\n"
-	res += pad(depth) + "				}\n"
-	res += pad(depth) + "			}\n"
-	res += pad(depth) + "		}\n"
-	res += pad(depth) + "	}\n"
-	res += pad(depth) + "}\n"
 	return res
 }
 
@@ -673,37 +629,5 @@ func pad(n int) string {
 	for i := 0; i < n; i++ {
 		res += "\t"
 	}
-	return res
-}
-
-func generateGeneric() string {
-	res := "package types\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"unsafe\"\n\n\t\"github.com/grafana/jfr-parser/parser/types/def\"\n)\n\n"
-
-	res += "func Skip(data []byte, typ *def.Class, typeMap map[def.TypeID]*def.Class, cpool bool) (pos int, err error) {\n"
-	res += "	var (\n"
-	res += "		v64_ uint64\n"
-	res += "		v32_ uint32\n"
-	res += "		s_   string\n"
-	res += "		b_   byte\n"
-	res += "		shift = uint(0)\n"
-	res += "		l = len(data)\n"
-	res += "	)\n"
-	res += "	_ = v64_\n"
-	res += "	_ = v32_\n"
-	res += "	_ = s_\n"
-	res += "	nObj := 1\n"
-	res += "	if cpool {\n"
-	res += emitReadI32(2)
-	res += "		nObj = int(v32_)\n"
-	res += "	}\n"
-	res += "	for i := 0; i < nObj; i++ {\n"
-	res += "		if cpool {\n"
-	res += emitReadI32(3) // id
-	res += "		}\n"
-
-	res += emitSkipFields("typ.Fields", "typeMap", 2)
-	res += "	}\n"
-	res += "	return pos, nil\n"
-	res += "}\n\n"
 	return res
 }

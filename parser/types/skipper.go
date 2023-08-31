@@ -23,7 +23,7 @@ func NewBindSkipConstantPool(typ *def.Class, typeMap *def.TypeMap) *BindSkipCons
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
 		default:
-			res.Fields = append(res.Fields, BindFieldSkipConstantPool{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldSkipConstantPool{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res

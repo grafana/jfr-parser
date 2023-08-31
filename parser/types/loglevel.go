@@ -27,10 +27,10 @@ func NewBindLogLevel(typ *def.Class, typeMap *def.TypeMap) *BindLogLevel {
 			if typ.Fields[i].Equals(&def.Field{Name: "name", Type: typeMap.T_STRING, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldLogLevel{Field: &typ.Fields[i], string: &res.Temp.Name})
 			} else {
-				res.Fields = append(res.Fields, BindFieldLogLevel{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldLogLevel{Field: &typ.Fields[i]}) // skip changed field
 			}
 		default:
-			res.Fields = append(res.Fields, BindFieldLogLevel{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldLogLevel{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res

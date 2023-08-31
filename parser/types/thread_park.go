@@ -30,58 +30,58 @@ func NewBindThreadPark(typ *def.Class, typeMap *def.TypeMap) *BindThreadPark {
 			if typ.Fields[i].Equals(&def.Field{Name: "startTime", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], uint64: &res.Temp.StartTime})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "duration":
 			if typ.Fields[i].Equals(&def.Field{Name: "duration", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], uint64: &res.Temp.Duration})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "eventThread":
 			if typ.Fields[i].Equals(&def.Field{Name: "eventThread", Type: typeMap.T_THREAD, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], ThreadRef: &res.Temp.EventThread})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "stackTrace":
 			if typ.Fields[i].Equals(&def.Field{Name: "stackTrace", Type: typeMap.T_STACK_TRACE, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], StackTraceRef: &res.Temp.StackTrace})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "parkedClass":
 			if typ.Fields[i].Equals(&def.Field{Name: "parkedClass", Type: typeMap.T_CLASS, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], ClassRef: &res.Temp.ParkedClass})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "timeout":
 			if typ.Fields[i].Equals(&def.Field{Name: "timeout", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], uint64: &res.Temp.Timeout})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "until":
 			if typ.Fields[i].Equals(&def.Field{Name: "until", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], uint64: &res.Temp.Until})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "address":
 			if typ.Fields[i].Equals(&def.Field{Name: "address", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], uint64: &res.Temp.Address})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "contextId":
 			if typ.Fields[i].Equals(&def.Field{Name: "contextId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], uint64: &res.Temp.ContextId})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
 		default:
-			res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res

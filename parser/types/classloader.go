@@ -28,16 +28,16 @@ func NewBindClassLoader(typ *def.Class, typeMap *def.TypeMap) *BindClassLoader {
 			if typ.Fields[i].Equals(&def.Field{Name: "type", Type: typeMap.T_CLASS, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i], ClassRef: &res.Temp.Type})
 			} else {
-				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "name":
 			if typ.Fields[i].Equals(&def.Field{Name: "name", Type: typeMap.T_SYMBOL, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i], SymbolRef: &res.Temp.Name})
 			} else {
-				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip changed field
 			}
 		default:
-			res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldClassLoader{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res

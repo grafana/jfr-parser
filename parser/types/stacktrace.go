@@ -28,16 +28,16 @@ func NewBindStackTrace(typ *def.Class, typeMap *def.TypeMap) *BindStackTrace {
 			if typ.Fields[i].Equals(&def.Field{Name: "truncated", Type: typeMap.T_BOOLEAN, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i], bool: &res.Temp.Truncated})
 			} else {
-				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "frames":
 			if typ.Fields[i].Equals(&def.Field{Name: "frames", Type: typeMap.T_STACK_FRAME, ConstantPool: false, Array: true}) {
 				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i], StackFrame: &res.Temp.Frames})
 			} else {
-				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip changed field
 			}
 		default:
-			res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldStackTrace{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res

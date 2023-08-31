@@ -77,7 +77,9 @@ func TestParse(t *testing.T) {
 						if cls == nil {
 							t.Fatalf("class not found: %d\n", m.Type)
 						}
-						m.Scratch = parser.GetSymbolString(cls.Name) + "." + parser.GetSymbolString(m.Name)
+						symbolString := parser.GetSymbolString(cls.Name)
+						getSymbolString := parser.GetSymbolString(m.Name)
+						m.Scratch = symbolString + "." + getSymbolString
 					}
 					frames[i] = m.Scratch
 				}

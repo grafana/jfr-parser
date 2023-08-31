@@ -30,34 +30,22 @@ func NewBindMethod(typ *def.Class, typeMap *def.TypeMap) *BindMethod {
 			if typ.Fields[i].Equals(&def.Field{Name: "type", Type: typeMap.T_CLASS, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i], ClassRef: &res.Temp.Type})
 			} else {
-				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "name":
 			if typ.Fields[i].Equals(&def.Field{Name: "name", Type: typeMap.T_SYMBOL, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i], SymbolRef: &res.Temp.Name})
 			} else {
-				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "descriptor":
-			if typ.Fields[i].Equals(&def.Field{Name: "descriptor", Type: typeMap.T_SYMBOL, ConstantPool: true, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i], SymbolRef: &res.Temp.Descriptor})
-			} else {
-				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip to save mem
 		case "modifiers":
-			if typ.Fields[i].Equals(&def.Field{Name: "modifiers", Type: typeMap.T_INT, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i], uint32: &res.Temp.Modifiers})
-			} else {
-				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip to save mem
 		case "hidden":
-			if typ.Fields[i].Equals(&def.Field{Name: "hidden", Type: typeMap.T_BOOLEAN, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i], bool: &res.Temp.Hidden})
-			} else {
-				res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip
-			}
+			res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip to save mem
 		default:
-			res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldMethod{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res
@@ -70,12 +58,12 @@ type MethodList struct {
 }
 
 type Method struct {
-	Type       ClassRef
-	Name       SymbolRef
-	Descriptor SymbolRef
-	Modifiers  uint32
-	Hidden     bool
-	Scratch    string
+	Type ClassRef
+	Name SymbolRef
+	// skip descriptor
+	// skip modifiers
+	// skip hidden
+	Scratch string
 }
 
 func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMap) (pos int, err error) {

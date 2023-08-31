@@ -28,28 +28,28 @@ func NewBindThread(typ *def.Class, typeMap *def.TypeMap) *BindThread {
 			if typ.Fields[i].Equals(&def.Field{Name: "osName", Type: typeMap.T_STRING, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i], string: &res.Temp.OsName})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "osThreadId":
 			if typ.Fields[i].Equals(&def.Field{Name: "osThreadId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i], uint64: &res.Temp.OsThreadId})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "javaName":
 			if typ.Fields[i].Equals(&def.Field{Name: "javaName", Type: typeMap.T_STRING, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i], string: &res.Temp.JavaName})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "javaThreadId":
 			if typ.Fields[i].Equals(&def.Field{Name: "javaThreadId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i], uint64: &res.Temp.JavaThreadId})
 			} else {
-				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip
+				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip changed field
 			}
 		default:
-			res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip
+			res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip unknown new field
 		}
 	}
 	return res

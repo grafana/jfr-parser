@@ -91,9 +91,6 @@ func NewParser(buf []byte, options Options) (res *Parser, err error) {
 		options: options,
 		buf:     buf,
 	}
-	if err := p.readChunk(0); err != nil {
-		return nil, err
-	}
 	return p, nil
 }
 
