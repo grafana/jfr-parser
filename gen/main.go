@@ -156,7 +156,7 @@ func generate(typ *def.Class, opt options) string {
 		}
 	}
 	if opt.Scratch {
-		res += fmt.Sprintf("	Scratch string\n")
+		res += fmt.Sprintf("	Scratch []byte\n")
 	}
 	res += fmt.Sprintf("}\n\n")
 	res += fmt.Sprintf("\n")

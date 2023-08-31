@@ -68,16 +68,16 @@ func TestParse(t *testing.T) {
 					if m == nil {
 						t.Fatalf("method not found: %d\n", frame.Method)
 					}
-					if m.Scratch == "" {
+					if m.Scratch == nil {
 						cls := parser.GetClass(m.Type)
 						if cls == nil {
 							t.Fatalf("class not found: %d\n", m.Type)
 						}
 						symbolString := parser.GetSymbolString(cls.Name)
 						getSymbolString := parser.GetSymbolString(m.Name)
-						m.Scratch = symbolString + "." + getSymbolString
+						m.Scratch = []byte(symbolString + "." + getSymbolString)
 					}
-					frames[i] = m.Scratch
+					frames[i] = string(m.Scratch)
 				}
 				return frames
 			}
@@ -146,6 +146,7 @@ func TestParse(t *testing.T) {
 }
 
 func BenchmarkParse(b *testing.B) {
+	marker := []byte("marker")
 	for _, testfile := range testfiles {
 		b.Run(testfile, func(b *testing.B) {
 			jfr, err := readGzipFile("./testdata/" + testfile + ".jfr.gz")
@@ -168,7 +169,7 @@ func BenchmarkParse(b *testing.B) {
 						if m == nil {
 							b.Fatalf("method not found: %d\n", frame.Method)
 						}
-						if m.Scratch == "" {
+						if m.Scratch == nil {
 							cls := parser.GetClass(m.Type)
 							if cls == nil {
 								b.Fatalf("class not found: %d\n", m.Type)
@@ -178,7 +179,7 @@ func BenchmarkParse(b *testing.B) {
 							_ = symbolString
 							_ = getSymbolString
 							//m.Scratch = symbolString + "." + getSymbolString
-							m.Scratch = "once"
+							m.Scratch = marker
 						}
 						//frames[i] = m.Scratch
 						//return ni
