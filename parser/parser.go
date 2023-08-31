@@ -318,22 +318,24 @@ func (p *Parser) varInt() (uint32, error) {
 }
 
 func (p *Parser) varLong() (uint64, error) {
-	var v uint64
-	for shift := uint(0); ; shift += 7 {
-		if shift >= 64 {
-			return 0, def.ErrIntOverflow
-		}
+	v64_ := uint64(0)
+	for shift := uint(0); shift <= 56; shift += 7 {
 		if p.pos >= len(p.buf) {
 			return 0, io.ErrUnexpectedEOF
 		}
-		b := p.buf[p.pos]
+		b_ := p.buf[p.pos]
 		p.pos++
-		v |= uint64(b&0x7F) << shift
-		if b < 0x80 {
+		if shift == 56 {
+			v64_ |= uint64(b_&0xFF) << shift
 			break
+		} else {
+			v64_ |= uint64(b_&0x7F) << shift
+			if b_ < 0x80 {
+				break
+			}
 		}
 	}
-	return v, nil
+	return v64_, nil
 }
 
 func (p *Parser) string() (string, error) {
