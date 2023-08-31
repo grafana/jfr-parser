@@ -54,11 +54,7 @@ func TestParse(t *testing.T) {
 				t.Fatalf("Unable to read example_parsd.json")
 			}
 			t1 := time.Now()
-			parser, err := NewParser(jfr, Options{})
-			if err != nil {
-				t.Fatalf("Failed to parse JFR: %s", err)
-				return
-			}
+			parser := NewParser(jfr, Options{})
 
 			e := new(Expected)
 			stacktraceToFrames := func(stacktrace types.StackTraceRef) []string {
@@ -159,7 +155,7 @@ func BenchmarkParse(b *testing.B) {
 			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
-				parser, err := NewParser(jfr, Options{})
+				parser := NewParser(jfr, Options{})
 
 				stacktraceToFrames := func(stacktrace types.StackTraceRef) []string {
 					st := parser.GetStacktrace(stacktrace)
@@ -190,9 +186,6 @@ func BenchmarkParse(b *testing.B) {
 					return nil
 				}
 
-				if err != nil {
-					b.Fatalf("Unable to parse JFR file: %s", err)
-				}
 				for {
 					typ, err := parser.ParseEvent()
 					if err != nil {

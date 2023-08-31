@@ -86,12 +86,12 @@ type Parser struct {
 	bindActiveSetting    *types2.BindActiveSetting
 }
 
-func NewParser(buf []byte, options Options) (res *Parser, err error) {
+func NewParser(buf []byte, options Options) *Parser {
 	p := &Parser{
 		options: options,
 		buf:     buf,
 	}
-	return p, nil
+	return p
 }
 
 func (p *Parser) ParseEvent() (def.TypeID, error) {
