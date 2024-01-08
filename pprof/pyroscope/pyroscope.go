@@ -57,10 +57,6 @@ func Labels(seriesLabels map[string]string, jfrEvent, metricName, appName, spyNa
 			Value: "false",
 		},
 		&v1.LabelPair{
-			Name:  serviceNameLabelName,
-			Value: appName,
-		},
-		&v1.LabelPair{
 			Name:  LabelNameJfrEvent,
 			Value: jfrEvent,
 		},
@@ -69,5 +65,11 @@ func Labels(seriesLabels map[string]string, jfrEvent, metricName, appName, spyNa
 			Value: metricName,
 		},
 	)
+	if appName != "" {
+		ls = append(ls, &v1.LabelPair{
+			Name:  serviceNameLabelName,
+			Value: appName,
+		})
+	}
 	return ls
 }
