@@ -38,7 +38,7 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 		switch typ {
 		case parser.TypeMap.T_EXECUTION_SAMPLE:
 			ts := parser.GetThreadState(parser.ExecutionSample.State)
-			if ts != nil && ts.Name == "STATE_RUNNABLE" {
+			if ts != nil && ts.Name != "STATE_SLEEPING" {
 				builders.addStacktrace(sampleTypeCPU, parser.ExecutionSample.ContextId, parser.ExecutionSample.StackTrace, values[:1])
 			}
 			if event == "wall" {
