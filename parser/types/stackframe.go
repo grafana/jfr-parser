@@ -33,7 +33,11 @@ func NewBindStackFrame(typ *def.Class, typeMap *def.TypeMap) *BindStackFrame {
 				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "lineNumber":
-			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip to save mem
+			if typ.Fields[i].Equals(&def.Field{Name: "lineNumber", Type: typeMap.T_INT, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i], uint32: &res.Temp.LineNumber})
+			} else {
+				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip changed field
+			}
 		case "bytecodeIndex":
 			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip to save mem
 		case "type":
@@ -46,8 +50,8 @@ func NewBindStackFrame(typ *def.Class, typeMap *def.TypeMap) *BindStackFrame {
 }
 
 type StackFrame struct {
-	Method MethodRef
-	// skip lineNumber
+	Method     MethodRef
+	LineNumber uint32
 	// skip bytecodeIndex
 	// skip type
 }
@@ -69,9 +73,6 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 		if bind.Fields[bindFieldIndex].Field.Array {
 			v32_ = uint32(0)
 			for shift = uint(0); ; shift += 7 {
-				if shift >= 32 {
-					return 0, def.ErrIntOverflow
-				}
 				if pos >= l {
 					return 0, io.ErrUnexpectedEOF
 				}
@@ -88,9 +89,6 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 			if bind.Fields[bindFieldIndex].Field.ConstantPool {
 				v32_ = uint32(0)
 				for shift = uint(0); ; shift += 7 {
-					if shift >= 32 {
-						return 0, def.ErrIntOverflow
-					}
 					if pos >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
@@ -123,14 +121,12 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 					pos++
 					switch b_ {
 					case 0:
+						break
 					case 1:
 						break
 					case 3:
 						v32_ = uint32(0)
 						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
 							if pos >= l {
 								return 0, io.ErrUnexpectedEOF
 							}
@@ -154,9 +150,6 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 				case typeMap.T_INT:
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
@@ -199,9 +192,6 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 				case typeMap.T_FLOAT:
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
@@ -222,9 +212,6 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 					if bind.Fields[bindFieldIndex].Field.Array {
 						v32_ = uint32(0)
 						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
 							if pos >= l {
 								return 0, io.ErrUnexpectedEOF
 							}
@@ -243,9 +230,6 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 							if bindFieldType.Fields[bindskipFieldIndex].ConstantPool {
 								v32_ = uint32(0)
 								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}
@@ -265,14 +249,12 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 								pos++
 								switch b_ {
 								case 0:
+									break
 								case 1:
 									break
 								case 3:
 									v32_ = uint32(0)
 									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
 										if pos >= l {
 											return 0, io.ErrUnexpectedEOF
 										}
@@ -295,9 +277,6 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 							} else if bindSkipFieldType == typeMap.T_INT {
 								v32_ = uint32(0)
 								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}
@@ -311,9 +290,6 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 							} else if bindSkipFieldType == typeMap.T_FLOAT {
 								v32_ = uint32(0)
 								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}

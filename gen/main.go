@@ -18,7 +18,7 @@ func main() {
 	}))
 	write("types/stackframe.go", generate(&Type_jdk_types_StackFrame, options{
 		skipFields: []string{
-			"lineNumber", "bytecodeIndex", "type",
+			"bytecodeIndex", "type",
 		},
 		cpool: false,
 	}))
@@ -502,6 +502,7 @@ func emitString(depth int) string {
 	res += pad(depth) + "pos++\n"
 	res += pad(depth) + "switch b_ {\n"
 	res += pad(depth) + "case 0:\n"
+	res += pad(depth) + "	break\n"
 	res += pad(depth) + "case 1:\n"
 	res += pad(depth) + "	break\n"
 	res += pad(depth) + "case 3:\n"
@@ -534,9 +535,6 @@ func emitReadI32(depth int) string {
 	code := ""
 	code += pad(depth) + "v32_ = uint32(0)\n"
 	code += pad(depth) + "for shift = uint(0); ; shift += 7 {\n"
-	code += pad(depth) + "	if shift >= 32 {\n"
-	code += pad(depth) + "		return 0, def.ErrIntOverflow\n"
-	code += pad(depth) + "	}\n"
 	code += pad(depth) + "	if pos >= l {\n"
 	code += pad(depth) + "		return 0, io.ErrUnexpectedEOF\n"
 	code += pad(depth) + "	}\n"

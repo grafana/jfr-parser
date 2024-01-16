@@ -103,9 +103,6 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 		if bind.Fields[bindFieldIndex].Field.Array {
 			v32_ = uint32(0)
 			for shift = uint(0); ; shift += 7 {
-				if shift >= 32 {
-					return 0, def.ErrIntOverflow
-				}
 				if pos >= l {
 					return 0, io.ErrUnexpectedEOF
 				}
@@ -122,9 +119,6 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 			if bind.Fields[bindFieldIndex].Field.ConstantPool {
 				v32_ = uint32(0)
 				for shift = uint(0); ; shift += 7 {
-					if shift >= 32 {
-						return 0, def.ErrIntOverflow
-					}
 					if pos >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
@@ -161,14 +155,12 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 					pos++
 					switch b_ {
 					case 0:
+						break
 					case 1:
 						break
 					case 3:
 						v32_ = uint32(0)
 						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
 							if pos >= l {
 								return 0, io.ErrUnexpectedEOF
 							}
@@ -192,9 +184,6 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 				case typeMap.T_INT:
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
@@ -237,9 +226,6 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 				case typeMap.T_FLOAT:
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
@@ -260,9 +246,6 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 					if bind.Fields[bindFieldIndex].Field.Array {
 						v32_ = uint32(0)
 						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
 							if pos >= l {
 								return 0, io.ErrUnexpectedEOF
 							}
@@ -281,9 +264,6 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 							if bindFieldType.Fields[bindskipFieldIndex].ConstantPool {
 								v32_ = uint32(0)
 								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}
@@ -303,14 +283,12 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 								pos++
 								switch b_ {
 								case 0:
+									break
 								case 1:
 									break
 								case 3:
 									v32_ = uint32(0)
 									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
 										if pos >= l {
 											return 0, io.ErrUnexpectedEOF
 										}
@@ -333,9 +311,6 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 							} else if bindSkipFieldType == typeMap.T_INT {
 								v32_ = uint32(0)
 								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}
@@ -349,9 +324,6 @@ func (this *ObjectAllocationInNewTLAB) Parse(data []byte, bind *BindObjectAlloca
 							} else if bindSkipFieldType == typeMap.T_FLOAT {
 								v32_ = uint32(0)
 								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}
