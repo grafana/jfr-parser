@@ -12,11 +12,11 @@ func (p *Parser) readConstantPool(pos int) error {
 		if err := p.seek(pos); err != nil {
 			return err
 		}
-		sz, err := p.varInt()
+		sz, err := p.varLong()
 		if err != nil {
 			return err
 		}
-		typ, err := p.varInt()
+		typ, err := p.varLong()
 		if err != nil {
 			return err
 		}
@@ -32,7 +32,7 @@ func (p *Parser) readConstantPool(pos int) error {
 		if err != nil {
 			return err
 		}
-		typeMask, err := p.varInt()
+		typeMask, err := p.varInt() // boolean flush
 		if err != nil {
 			return err
 		}
@@ -45,11 +45,12 @@ func (p *Parser) readConstantPool(pos int) error {
 		_ = delta
 		_ = sz
 		_ = typeMask
+		_ = typ
 
 		id := int(int64(delta))
 
 		for i := 0; i < int(n); i++ {
-			typ, err = p.varInt()
+			typ, err := p.varLong()
 			if err != nil {
 				return err
 			}

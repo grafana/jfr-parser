@@ -105,14 +105,14 @@ func (p *Parser) ParseEvent() (def.TypeID, error) {
 			}
 		}
 		pp := p.pos
-		size, err := p.varInt()
+		size, err := p.varLong()
 		if err != nil {
 			return 0, err
 		}
 		if size == 0 {
 			return 0, def.ErrIntOverflow
 		}
-		typ, err := p.varInt()
+		typ, err := p.varLong()
 		if err != nil {
 			return 0, err
 		}
@@ -301,6 +301,9 @@ func (p *Parser) byte() (byte, error) {
 func (p *Parser) varInt() (uint32, error) {
 	v := uint32(0)
 	for shift := uint(0); ; shift += 7 {
+		if shift >= 32 {
+			return 0, def.ErrIntOverflow
+		}
 		if p.pos >= len(p.buf) {
 			return 0, io.ErrUnexpectedEOF
 		}

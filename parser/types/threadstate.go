@@ -61,6 +61,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 	_ = s_
 	v32_ = uint32(0)
 	for shift = uint(0); ; shift += 7 {
+		if shift >= 32 {
+			return 0, def.ErrIntOverflow
+		}
 		if pos >= l {
 			return 0, io.ErrUnexpectedEOF
 		}
@@ -77,6 +80,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 	for i := 0; i < n; i++ {
 		v32_ = uint32(0)
 		for shift = uint(0); ; shift += 7 {
+			if shift >= 32 {
+				return 0, def.ErrIntOverflow
+			}
 			if pos >= l {
 				return 0, io.ErrUnexpectedEOF
 			}
@@ -93,6 +99,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 			if bind.Fields[bindFieldIndex].Field.Array {
 				v32_ = uint32(0)
 				for shift = uint(0); ; shift += 7 {
+					if shift >= 32 {
+						return 0, def.ErrIntOverflow
+					}
 					if pos >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
@@ -109,6 +118,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 				if bind.Fields[bindFieldIndex].Field.ConstantPool {
 					v32_ = uint32(0)
 					for shift = uint(0); ; shift += 7 {
+						if shift >= 32 {
+							return 0, def.ErrIntOverflow
+						}
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
@@ -137,6 +149,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 						case 3:
 							v32_ = uint32(0)
 							for shift = uint(0); ; shift += 7 {
+								if shift >= 32 {
+									return 0, def.ErrIntOverflow
+								}
 								if pos >= l {
 									return 0, io.ErrUnexpectedEOF
 								}
@@ -162,6 +177,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 					case typeMap.T_INT:
 						v32_ = uint32(0)
 						for shift = uint(0); ; shift += 7 {
+							if shift >= 32 {
+								return 0, def.ErrIntOverflow
+							}
 							if pos >= l {
 								return 0, io.ErrUnexpectedEOF
 							}
@@ -202,6 +220,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 					case typeMap.T_FLOAT:
 						v32_ = uint32(0)
 						for shift = uint(0); ; shift += 7 {
+							if shift >= 32 {
+								return 0, def.ErrIntOverflow
+							}
 							if pos >= l {
 								return 0, io.ErrUnexpectedEOF
 							}
@@ -222,6 +243,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 						if bind.Fields[bindFieldIndex].Field.Array {
 							v32_ = uint32(0)
 							for shift = uint(0); ; shift += 7 {
+								if shift >= 32 {
+									return 0, def.ErrIntOverflow
+								}
 								if pos >= l {
 									return 0, io.ErrUnexpectedEOF
 								}
@@ -240,6 +264,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 								if bindFieldType.Fields[bindskipFieldIndex].ConstantPool {
 									v32_ = uint32(0)
 									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
 										if pos >= l {
 											return 0, io.ErrUnexpectedEOF
 										}
@@ -265,6 +292,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 									case 3:
 										v32_ = uint32(0)
 										for shift = uint(0); ; shift += 7 {
+											if shift >= 32 {
+												return 0, def.ErrIntOverflow
+											}
 											if pos >= l {
 												return 0, io.ErrUnexpectedEOF
 											}
@@ -287,6 +317,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 								} else if bindSkipFieldType == typeMap.T_INT {
 									v32_ = uint32(0)
 									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
 										if pos >= l {
 											return 0, io.ErrUnexpectedEOF
 										}
@@ -300,6 +333,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 								} else if bindSkipFieldType == typeMap.T_FLOAT {
 									v32_ = uint32(0)
 									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
 										if pos >= l {
 											return 0, io.ErrUnexpectedEOF
 										}
