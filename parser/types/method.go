@@ -64,7 +64,6 @@ type Method struct {
 	// skip descriptor
 	// skip modifiers
 	// skip hidden
-	Scratch []byte
 }
 
 func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMap) (pos int, err error) {

@@ -42,7 +42,6 @@ func main() {
 	write("types/method.go", generate(&Type_jdk_types_Method, options{
 		cpool:     true,
 		sortedIDs: true,
-		Scratch:   true,
 		skipFields: []string{
 			"hidden",
 			"descriptor",
@@ -91,7 +90,6 @@ func write(dst, s string) {
 type options struct {
 	cpool         bool
 	sortedIDs     bool
-	Scratch       bool
 	doNotKeepData bool
 	skipFields    []string //todo make skip fields runtime option, but still saving memory - explode struct to fields
 }
@@ -157,9 +155,7 @@ func generate(typ *def.Class, opt options) string {
 			}
 		}
 	}
-	if opt.Scratch {
-		res += fmt.Sprintf("	Scratch []byte\n")
-	}
+
 	res += fmt.Sprintf("}\n\n")
 	res += fmt.Sprintf("\n")
 
