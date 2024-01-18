@@ -29,7 +29,7 @@ var testfiles = []testdata{
 	{"async-profiler", "", 3}, // -e cpu -i 10ms --alloc 512k --wall 200ms --lock 10ms -d 60 (async-profiler 2.10)
 	{"goland", "", 5},
 	{"goland-multichunk", "", 5},
-	//{"FastSlow_2024_01_16_180855", "", 0},// from IJ Ultimate, multichunk, chunked CP
+	{"FastSlow_2024_01_16_180855", "", 2}, // from IJ Ultimate, multichunk, chunked CP
 	{"cortex-dev-01__kafka-0__cpu__0", "", 1},
 	{"cortex-dev-01__kafka-0__cpu__1", "", 1},
 	{"cortex-dev-01__kafka-0__cpu__2", "", 1},
@@ -80,7 +80,7 @@ func TestParse(t *testing.T) {
 
 			for i, profile := range gprofiles {
 				actual := profile.profile.String()
-				actualCollapsed := stackCollapseProto(profile.proto, false)
+				actualCollapsed := stackCollapseProto(profile.proto, true)
 				expectedFile := fmt.Sprintf("%s%s_%d_%s_expected.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
 				expectedCollapsedFile := fmt.Sprintf("%s%s_%d_%s_expected_collapsed.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
 				assert.NotEmpty(t, actual)
