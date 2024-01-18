@@ -107,14 +107,14 @@ func (m *ProfileBuilder) AddExternalLocation(id ExternalLocationID, pprofFunctio
 }
 
 func (m *ProfileBuilder) AddExternalSample(locs []uint64, values []int64, externalSampleID uint32) {
-	m.AddExternalSampleWithLabels(locs, values, nil, uint64(externalSampleID), 0)
+	m.AddExternalSampleWithLabels(locs, values, nil, nil, uint64(externalSampleID), 0)
 }
 
 func (m *ProfileBuilder) FindExternalSample(externalSampleID uint32) *profilev1.Sample {
 	return m.FindExternalSampleWithLabels(uint64(externalSampleID), 0)
 }
 
-func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int64, labels Labels, locationsID, labelsID uint64) {
+func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int64, labelsCtx *Context, labelsSnapshot *LabelsSnapshot, locationsID, labelsID uint64) {
 	sample := &profilev1.Sample{
 		LocationId: locs,
 		Value:      values,
@@ -124,12 +124,12 @@ func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int
 	}
 	m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, labelsID: labelsID}] = uint32(len(m.Profile.Sample))
 	m.Profile.Sample = append(m.Profile.Sample, sample)
-	if len(labels) > 0 {
-		sample.Label = make([]*profilev1.Label, 0, len(labels))
-		for _, label := range labels {
+	if labelsCtx != nil && labelsSnapshot != nil {
+		sample.Label = make([]*profilev1.Label, 0, len(labelsCtx.Labels))
+		for k, v := range labelsCtx.Labels { //todo iterating over map is not deterministic, this can break tests and maybe even affect performance
 			sample.Label = append(sample.Label, &profilev1.Label{
-				Key: m.addString(label.Name),
-				Str: m.addString(label.Value),
+				Key: m.addString(labelsSnapshot.Strings[k]),
+				Str: m.addString(labelsSnapshot.Strings[v]),
 			})
 		}
 	}

@@ -3,7 +3,6 @@ package pprof
 import (
 	"github.com/grafana/jfr-parser/parser"
 	"github.com/grafana/jfr-parser/parser/types"
-	v1 "github.com/grafana/pyroscope/api/gen/proto/go/types/v1"
 )
 
 const (
@@ -105,7 +104,7 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, contextID uint64, ref
 	}
 	vs := make([]int64, len(values))
 	addValues(vs)
-	p.AddExternalSampleWithLabels(locations, vs, contextLabels(contextID, b.jfrLabels), uint64(ref), contextID)
+	p.AddExternalSampleWithLabels(locations, vs, b.contextLabels(contextID), b.jfrLabels, uint64(ref), contextID)
 }
 
 func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *ProfileBuilder {
@@ -154,22 +153,11 @@ func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *Profil
 	return builder
 }
 
-func contextLabels(contextID uint64, jfrLabels *LabelsSnapshot) Labels {
-	if jfrLabels == nil {
+func (b *jfrPprofBuilders) contextLabels(contextID uint64) *Context {
+	if b.jfrLabels == nil {
 		return nil
 	}
-	ctx, ok := jfrLabels.Contexts[int64(contextID)]
-	if !ok {
-		return nil
-	}
-	labels := make(Labels, 0, len(ctx.Labels))
-	for k, v := range ctx.Labels {
-		labels = append(labels, &v1.LabelPair{
-			Name:  jfrLabels.Strings[k],
-			Value: jfrLabels.Strings[v],
-		})
-	}
-	return labels
+	return b.jfrLabels.Contexts[int64(contextID)]
 }
 
 func (b *jfrPprofBuilders) build(jfrEvent string) *Profiles {
