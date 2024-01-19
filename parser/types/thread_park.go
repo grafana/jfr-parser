@@ -175,6 +175,7 @@ func (this *ThreadPark) Parse(data []byte, bind *BindThreadPark, typeMap *def.Ty
 					pos++
 					switch b_ {
 					case 0:
+						break
 					case 1:
 						break
 					case 3:
@@ -317,6 +318,7 @@ func (this *ThreadPark) Parse(data []byte, bind *BindThreadPark, typeMap *def.Ty
 								pos++
 								switch b_ {
 								case 0:
+									break
 								case 1:
 									break
 								case 3:

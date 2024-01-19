@@ -147,6 +147,7 @@ func (this *ExecutionSample) Parse(data []byte, bind *BindExecutionSample, typeM
 					pos++
 					switch b_ {
 					case 0:
+						break
 					case 1:
 						break
 					case 3:
@@ -289,6 +290,7 @@ func (this *ExecutionSample) Parse(data []byte, bind *BindExecutionSample, typeM
 								pos++
 								switch b_ {
 								case 0:
+									break
 								case 1:
 									break
 								case 3:

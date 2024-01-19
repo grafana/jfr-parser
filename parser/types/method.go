@@ -64,7 +64,6 @@ type Method struct {
 	// skip descriptor
 	// skip modifiers
 	// skip hidden
-	Scratch []byte
 }
 
 func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMap) (pos int, err error) {
@@ -173,6 +172,7 @@ func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMa
 						pos++
 						switch b_ {
 						case 0:
+							break
 						case 1:
 							break
 						case 3:
@@ -317,6 +317,7 @@ func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMa
 									pos++
 									switch b_ {
 									case 0:
+										break
 									case 1:
 										break
 									case 3:

@@ -38,12 +38,7 @@ func (p *Parser) readChunkHeader(pos int) error {
 	if p.options.ChunkSizeLimit > 0 && h.Size > p.options.ChunkSizeLimit {
 		return fmt.Errorf("chunk size %d exceeds limit %d", h.Size, p.options.ChunkSizeLimit)
 	}
-	if h.Features != 1 {
-		return fmt.Errorf("unsupported features %d", h.Features)
-	}
 	p.header = h
 	p.chunkEnd = pos + h.Size
-	//fmt.Printf("Chunk header: %s\n", h.String())
-
 	return nil
 }

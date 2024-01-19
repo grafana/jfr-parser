@@ -143,6 +143,7 @@ func (this *SymbolList) Parse(data []byte, bind *BindSymbol, typeMap *def.TypeMa
 						pos++
 						switch b_ {
 						case 0:
+							break
 						case 1:
 							break
 						case 3:
@@ -285,6 +286,7 @@ func (this *SymbolList) Parse(data []byte, bind *BindSymbol, typeMap *def.TypeMa
 									pos++
 									switch b_ {
 									case 0:
+										break
 									case 1:
 										break
 									case 3:

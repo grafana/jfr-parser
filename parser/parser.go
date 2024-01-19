@@ -105,14 +105,14 @@ func (p *Parser) ParseEvent() (def.TypeID, error) {
 			}
 		}
 		pp := p.pos
-		size, err := p.varInt()
+		size, err := p.varLong()
 		if err != nil {
 			return 0, err
 		}
 		if size == 0 {
 			return 0, def.ErrIntOverflow
 		}
-		typ, err := p.varInt()
+		typ, err := p.varLong()
 		if err != nil {
 			return 0, err
 		}
@@ -272,13 +272,13 @@ func (p *Parser) readChunk(pos int) error {
 		return fmt.Errorf("error reading metadata: %w", err)
 	}
 	if err := p.readConstantPool(pos + p.header.OffsetConstantPool); err != nil {
-		return fmt.Errorf("error reading CP: %w", err)
+		return fmt.Errorf("error reading CP: %w @ %d", err, pos+p.header.OffsetConstantPool)
 	}
 	pp := p.options.SymbolProcessor
 	if pp != nil {
 		pp(&p.Symbols)
 	}
-	p.pos = pos + chunkHeaderSize + int(p.metaSize)
+	p.pos = pos + chunkHeaderSize
 	return nil
 }
 
@@ -344,7 +344,7 @@ func (p *Parser) string() (string, error) {
 	}
 	b := p.buf[p.pos]
 	p.pos++
-	switch b {
+	switch b { //todo implement 2
 	case 0:
 		return "", nil //todo this should be nil
 	case 1:
@@ -356,10 +356,33 @@ func (p *Parser) string() (string, error) {
 		}
 		str := *(*string)(unsafe.Pointer(&bs))
 		return str, nil
+	case 4:
+		return p.charArrayString()
 	default:
 		return "", fmt.Errorf("unknown string type %d", b)
 	}
 
+}
+
+func (p *Parser) charArrayString() (string, error) {
+	l, err := p.varInt()
+	if err != nil {
+		return "", err
+	}
+	if l < 0 {
+		return "", def.ErrIntOverflow
+	}
+	buf := make([]rune, int(l))
+	for i := 0; i < int(l); i++ {
+		c, err := p.varInt()
+		if err != nil {
+			return "", err
+		}
+		buf[i] = rune(c)
+	}
+
+	res := string(buf)
+	return res, nil
 }
 
 func (p *Parser) bytes() ([]byte, error) {
@@ -439,9 +462,6 @@ func (p *Parser) checkTypes() error {
 	if typeCPSymbol == nil {
 		return fmt.Errorf("missing \"jdk.types.Symbol\"")
 	}
-	if typeCPLogLevel == nil {
-		return fmt.Errorf("missing \"profiler.types.LogLevel\"")
-	}
 	if typeCPStackTrace == nil {
 		return fmt.Errorf("missing \"jdk.types.StackTrace\"")
 	}
@@ -455,7 +475,11 @@ func (p *Parser) checkTypes() error {
 	p.TypeMap.T_METHOD = typeCPMethod.ID
 	p.TypeMap.T_PACKAGE = typeCPPackage.ID
 	p.TypeMap.T_SYMBOL = typeCPSymbol.ID
-	p.TypeMap.T_LOG_LEVEL = typeCPLogLevel.ID
+	if typeCPLogLevel != nil {
+		p.TypeMap.T_LOG_LEVEL = typeCPLogLevel.ID
+	} else {
+		p.TypeMap.T_LOG_LEVEL = 0
+	}
 	p.TypeMap.T_STACK_TRACE = typeCPStackTrace.ID
 	p.TypeMap.T_CLASS_LOADER = typeCPClassLoader.ID
 
@@ -473,7 +497,11 @@ func (p *Parser) checkTypes() error {
 	p.bindMethod = types2.NewBindMethod(typeCPMethod, &p.TypeMap)
 	p.bindPackage = types2.NewBindPackage(typeCPPackage, &p.TypeMap)
 	p.bindSymbol = types2.NewBindSymbol(typeCPSymbol, &p.TypeMap)
-	p.bindLogLevel = types2.NewBindLogLevel(typeCPLogLevel, &p.TypeMap)
+	if typeCPLogLevel != nil {
+		p.bindLogLevel = types2.NewBindLogLevel(typeCPLogLevel, &p.TypeMap)
+	} else {
+		p.bindLogLevel = nil
+	}
 	p.bindStackTrace = types2.NewBindStackTrace(typeCPStackTrace, &p.TypeMap)
 	p.bindStackFrame = types2.NewBindStackFrame(typeStackFrame, &p.TypeMap)
 

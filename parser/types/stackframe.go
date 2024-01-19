@@ -33,7 +33,11 @@ func NewBindStackFrame(typ *def.Class, typeMap *def.TypeMap) *BindStackFrame {
 				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip changed field
 			}
 		case "lineNumber":
-			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip to save mem
+			if typ.Fields[i].Equals(&def.Field{Name: "lineNumber", Type: typeMap.T_INT, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i], uint32: &res.Temp.LineNumber})
+			} else {
+				res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip changed field
+			}
 		case "bytecodeIndex":
 			res.Fields = append(res.Fields, BindFieldStackFrame{Field: &typ.Fields[i]}) // skip to save mem
 		case "type":
@@ -46,8 +50,8 @@ func NewBindStackFrame(typ *def.Class, typeMap *def.TypeMap) *BindStackFrame {
 }
 
 type StackFrame struct {
-	Method MethodRef
-	// skip lineNumber
+	Method     MethodRef
+	LineNumber uint32
 	// skip bytecodeIndex
 	// skip type
 }
@@ -123,6 +127,7 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 					pos++
 					switch b_ {
 					case 0:
+						break
 					case 1:
 						break
 					case 3:
@@ -265,6 +270,7 @@ func (this *StackFrame) Parse(data []byte, bind *BindStackFrame, typeMap *def.Ty
 								pos++
 								switch b_ {
 								case 0:
+									break
 								case 1:
 									break
 								case 3:

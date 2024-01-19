@@ -3,7 +3,6 @@ package pprof
 import (
 	"github.com/grafana/jfr-parser/parser"
 	"github.com/grafana/jfr-parser/parser/types"
-	v1 "github.com/grafana/pyroscope/api/gen/proto/go/types/v1"
 )
 
 const (
@@ -72,28 +71,40 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, contextID uint64, ref
 	locations := make([]uint64, 0, len(st.Frames))
 	for i := 0; i < len(st.Frames); i++ {
 		f := st.Frames[i]
-		loc, found := p.FindLocationByExternalID(uint32(f.Method))
+		extLocID := ExternalLocationID{
+			ExternalFunctionID: ExternalFunctionID(f.Method),
+			Line:               f.LineNumber,
+		}
+		loc, found := p.FindLocationByExternalID(extLocID)
 		if found {
-			locations = append(locations, loc)
+			locations = append(locations, uint64(loc))
 			continue
 		}
 		m := b.parser.GetMethod(f.Method)
 		if m != nil {
 
-			cls := b.parser.GetClass(m.Type)
-			if cls != nil {
+			pprofFuncID, found := p.FindFunctionByExternalID(extLocID.ExternalFunctionID)
+			if found {
+				// add new location with old function
+			} else {
+				cls := b.parser.GetClass(m.Type)
+				if cls == nil {
+					continue
+				}
 				clsName := b.parser.GetSymbolString(cls.Name)
 				methodName := b.parser.GetSymbolString(m.Name)
 				frame := clsName + "." + methodName
-				loc = p.AddExternalFunction(frame, uint32(f.Method))
-				locations = append(locations, loc)
+				pprofFuncID = p.AddExternalFunction(frame, extLocID.ExternalFunctionID)
 			}
+			loc = p.AddExternalLocation(extLocID, pprofFuncID)
+			locations = append(locations, uint64(loc))
+
 			//todo remove Scratch field from the Method
 		}
 	}
 	vs := make([]int64, len(values))
 	addValues(vs)
-	p.AddExternalSampleWithLabels(locations, vs, contextLabels(contextID, b.jfrLabels), uint64(ref), contextID)
+	p.AddExternalSampleWithLabels(locations, vs, b.contextLabels(contextID), b.jfrLabels, uint64(ref), contextID)
 }
 
 func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *ProfileBuilder {
@@ -142,22 +153,11 @@ func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *Profil
 	return builder
 }
 
-func contextLabels(contextID uint64, jfrLabels *LabelsSnapshot) Labels {
-	if jfrLabels == nil {
+func (b *jfrPprofBuilders) contextLabels(contextID uint64) *Context {
+	if b.jfrLabels == nil {
 		return nil
 	}
-	ctx, ok := jfrLabels.Contexts[int64(contextID)]
-	if !ok {
-		return nil
-	}
-	labels := make(Labels, 0, len(ctx.Labels))
-	for k, v := range ctx.Labels {
-		labels = append(labels, &v1.LabelPair{
-			Name:  jfrLabels.Strings[k],
-			Value: jfrLabels.Strings[v],
-		})
-	}
-	return labels
+	return b.jfrLabels.Contexts[int64(contextID)]
 }
 
 func (b *jfrPprofBuilders) build(jfrEvent string) *Profiles {

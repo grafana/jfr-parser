@@ -143,6 +143,7 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 						pos++
 						switch b_ {
 						case 0:
+							break
 						case 1:
 							break
 						case 3:
@@ -285,6 +286,7 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 									pos++
 									switch b_ {
 									case 0:
+										break
 									case 1:
 										break
 									case 3:

@@ -161,6 +161,7 @@ func (this *ClassLoaderList) Parse(data []byte, bind *BindClassLoader, typeMap *
 						pos++
 						switch b_ {
 						case 0:
+							break
 						case 1:
 							break
 						case 3:
@@ -301,6 +302,7 @@ func (this *ClassLoaderList) Parse(data []byte, bind *BindClassLoader, typeMap *
 									pos++
 									switch b_ {
 									case 0:
+										break
 									case 1:
 										break
 									case 3:

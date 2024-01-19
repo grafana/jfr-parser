@@ -8,61 +8,68 @@ import (
 )
 
 func (p *Parser) readConstantPool(pos int) error {
-	if err := p.seek(pos); err != nil {
-		return err
-	}
-	sz, err := p.varInt()
-	if err != nil {
-		return err
-	}
-	typ, err := p.varInt()
-	if err != nil {
-		return err
-	}
-	startTimeTicks, err := p.varLong()
-	if err != nil {
-		return err
-	}
-	duration, err := p.varInt()
-	if err != nil {
-		return err
-	}
-	delta, err := p.varInt()
-	if err != nil {
-		return err
-	}
-	typeMask, err := p.varInt()
-	if err != nil {
-		return err
-	}
-	n, err := p.varInt()
-	if err != nil {
-		return err
-	}
-	//fmt.Printf("ConstantPool: size %d type %d startTimeTicks %d duration %d delta %d typeMask %d n %d\n", sz, typ, startTimeTicks, duration, delta, typeMask, n)
-	_ = startTimeTicks
-	_ = duration
-	_ = delta
-	_ = sz
-
-	if typeMask != 1 {
-		return fmt.Errorf("expected ConstantPool typeMask 1, got %d", typeMask)
-	}
-	//if n != 9 {
-	//	return fmt.Errorf("expected ConstantPool n 9, got %d", n)
-	//}
-	for i := 0; i < int(n); i++ {
-		typ, err = p.varInt()
+	for {
+		if err := p.seek(pos); err != nil {
+			return err
+		}
+		sz, err := p.varLong()
 		if err != nil {
 			return err
 		}
-		c := p.TypeMap.IDMap[def.TypeID(typ)]
-		if c == nil {
-			return fmt.Errorf("unknown type %d", def.TypeID(typ))
-		}
-		err = p.readConstants(c)
+		typ, err := p.varLong()
 		if err != nil {
-			return fmt.Errorf("error reading %+v %w", c, err)
+			return err
+		}
+		startTimeTicks, err := p.varLong()
+		if err != nil {
+			return err
+		}
+		duration, err := p.varLong()
+		if err != nil {
+			return err
+		}
+		delta, err := p.varLong()
+		if err != nil {
+			return err
+		}
+		typeMask, err := p.varInt() // boolean flush
+		if err != nil {
+			return err
+		}
+		n, err := p.varInt()
+		if err != nil {
+			return err
+		}
+		_ = startTimeTicks
+		_ = duration
+		_ = delta
+		_ = sz
+		_ = typeMask
+		_ = typ
+
+		id := int(int64(delta))
+
+		for i := 0; i < int(n); i++ {
+			typ, err := p.varLong()
+			if err != nil {
+				return err
+			}
+			c := p.TypeMap.IDMap[def.TypeID(typ)]
+			if c == nil {
+				return fmt.Errorf("unknown type %d", def.TypeID(typ))
+			}
+			err = p.readConstants(c)
+			if err != nil {
+				return fmt.Errorf("error reading %+v %w", c, err)
+			}
+		}
+		if delta == 0 {
+			break
+		} else {
+			pos += id
+			if pos <= 0 {
+				break
+			}
 		}
 	}
 	return nil
@@ -70,6 +77,9 @@ func (p *Parser) readConstantPool(pos int) error {
 
 func (p *Parser) readConstants(c *def.Class) error {
 	switch c.Name {
+	case "jdk.types.ChunkHeader":
+		p.pos += chunkHeaderSize
+		return nil
 	case "jdk.types.FrameType":
 		o, err := p.FrameTypes.Parse(p.buf[p.pos:], p.bindFrameType, &p.TypeMap)
 		p.pos += o
@@ -99,6 +109,9 @@ func (p *Parser) readConstants(c *def.Class) error {
 		p.pos += o
 		return err
 	case "profiler.types.LogLevel":
+		if p.bindLogLevel == nil {
+			return fmt.Errorf("no \"profiler.types.LogLevel\"")
+		}
 		o, err := p.LogLevels.Parse(p.buf[p.pos:], p.bindLogLevel, &p.TypeMap)
 		p.pos += o
 		return err

@@ -154,6 +154,7 @@ func (this *LiveObject) Parse(data []byte, bind *BindLiveObject, typeMap *def.Ty
 					pos++
 					switch b_ {
 					case 0:
+						break
 					case 1:
 						break
 					case 3:
@@ -296,6 +297,7 @@ func (this *LiveObject) Parse(data []byte, bind *BindLiveObject, typeMap *def.Ty
 								pos++
 								switch b_ {
 								case 0:
+									break
 								case 1:
 									break
 								case 3:

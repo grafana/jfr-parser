@@ -130,6 +130,7 @@ func (this *SkipConstantPoolList) Parse(data []byte, bind *BindSkipConstantPool,
 						pos++
 						switch b_ {
 						case 0:
+							break
 						case 1:
 							break
 						case 3:
@@ -270,6 +271,7 @@ func (this *SkipConstantPoolList) Parse(data []byte, bind *BindSkipConstantPool,
 									pos++
 									switch b_ {
 									case 0:
+										break
 									case 1:
 										break
 									case 3:
