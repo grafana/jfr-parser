@@ -20,6 +20,10 @@ func TestMergeJVMGeneratedClasses(t *testing.T) {
 			"org/example/rideshare/EnclosingClass$$Lambda$_",
 		},
 		{
+			"Fib$$Lambda.0x00007ffa600c4da0",
+			"Fib$$Lambda_",
+		},
+		{
 			"java/util/concurrent/Executors$RunnableAdapter",
 			"java/util/concurrent/Executors$RunnableAdapter",
 		},
