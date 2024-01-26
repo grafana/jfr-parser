@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	gpprof "github.com/google/pprof/profile"
 	profilev1 "github.com/grafana/pyroscope/api/gen/proto/go/google/v1"
@@ -54,6 +56,8 @@ func TestDoDump(t *testing.T) {
 }
 
 var parseInput = &ParseInput{
+	StartTime:  time.Unix(1706241880, 0),
+	EndTime:    time.Unix(1706241890, 0),
 	SampleRate: 100,
 }
 
@@ -79,7 +83,7 @@ func TestParse(t *testing.T) {
 			assert.Equal(t, testfile.expectedCount, len(gprofiles))
 
 			for i, profile := range gprofiles {
-				actual := profile.profile.String()
+				actual := profileToString(t, profile)
 				actualCollapsed := stackCollapseProto(profile.proto, true)
 				expectedFile := fmt.Sprintf("%s%s_%d_%s_expected.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
 				expectedCollapsedFile := fmt.Sprintf("%s%s_%d_%s_expected_collapsed.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
@@ -110,6 +114,17 @@ func TestParse(t *testing.T) {
 			}
 		})
 	}
+}
+
+func profileToString(t *testing.T, profile gprofile) string {
+	res := profile.profile.String()
+	re := regexp.MustCompile("\nTime: ([^\n]+)\n")
+	matches := re.FindAllStringSubmatch(res, -1)
+	require.Equal(t, 1, len(matches))
+	t2, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", matches[0][1])
+	assert.NoError(t, err)
+	res = re.ReplaceAllString(res, fmt.Sprintf("\nTime: %d\n", t2.UnixNano()))
+	return res
 }
 
 func readLabels(t testing.TB, td testdata) *LabelsSnapshot {
