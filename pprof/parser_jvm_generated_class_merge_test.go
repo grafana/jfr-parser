@@ -13,11 +13,11 @@ func TestMergeJVMGeneratedClasses(t *testing.T) {
 	}{
 		{
 			"org/example/rideshare/EnclosingClass$$Lambda$4/1283928880",
-			"org/example/rideshare/EnclosingClass$$Lambda$_",
+			"org/example/rideshare/EnclosingClass$$Lambda_",
 		},
 		{
 			"org/example/rideshare/EnclosingClass$$Lambda$8/0x0000000800c01220",
-			"org/example/rideshare/EnclosingClass$$Lambda$_",
+			"org/example/rideshare/EnclosingClass$$Lambda_",
 		},
 		{
 			"Fib$$Lambda.0x00007ffa600c4da0",
