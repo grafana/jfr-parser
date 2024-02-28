@@ -20,7 +20,7 @@ type sampleID struct {
 
 // NewProfileBuilderWithLabels creates a new ProfileBuilder with the given nanoseconds timestamp and labels.
 func NewProfileBuilderWithLabels(ts int64) *ProfileBuilder {
-	profile := profilev1.ProfileFromVTPool()
+	profile := new(profilev1.Profile)
 	profile.TimeNanos = ts
 	profile.Mapping = append(profile.Mapping, &profilev1.Mapping{
 		Id: 1, HasFunctions: true,
