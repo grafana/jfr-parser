@@ -3,6 +3,7 @@ package format
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,12 +12,6 @@ import (
 	"github.com/grafana/jfr-parser/parser"
 	"github.com/stretchr/testify/assert"
 )
-
-type test struct {
-	name     string
-	pathJfr  string
-	pathJson string
-}
 
 func loadTestDataGzip(t *testing.T, filename string) []byte {
 	f, err := os.Open(filename)
@@ -31,11 +26,18 @@ func loadTestDataGzip(t *testing.T, filename string) []byte {
 }
 
 func TestFormatterJson(t *testing.T) {
+	testDataDir := filepath.Join("..", "..", "..", "parser", "testdata")
+	fnamePrefix := "cortex-dev-01__kafka-0__cpu__0"
+
 	fmtr := NewFormatterJson()
-	tests := []test{{
+	tests := []struct {
+		name     string
+		pathJfr  string
+		pathJson string
+	}{{
 		"example",
-		filepath.Join("..", "..", "..", "parser", "testdata", "cortex-dev-01__kafka-0__cpu__0.jfr.gz"),
-		filepath.Join("testdata", "cortex-dev-01__kafka-0__cpu__0.json.gz"),
+		filepath.Join(testDataDir, fmt.Sprintf("%s.jfr.gz", fnamePrefix)),
+		filepath.Join(testDataDir, fmt.Sprintf("%s.json.gz", fnamePrefix)),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
