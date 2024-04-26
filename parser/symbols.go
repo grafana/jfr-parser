@@ -1,4 +1,4 @@
-package pprof
+package parser
 
 import (
 	"regexp"
@@ -36,7 +36,7 @@ func mergeJVMGeneratedClasses(frame string) string {
 	return frame
 }
 
-func processSymbols(ref *types.SymbolList) {
+func ProcessSymbols(ref *types.SymbolList) {
 	for i := range ref.Symbol { //todo regex replace inplace
 		ref.Symbol[i].String = mergeJVMGeneratedClasses(ref.Symbol[i].String)
 	}
