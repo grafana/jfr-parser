@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/grafana/jfr-parser/cmd/jfrparser/format"
 )
@@ -18,13 +19,17 @@ type command struct {
 }
 
 func parseCommand(c *command) {
-	format := flag.String("format", "Json", "output format. Supported formats: Json, Pprof")
+	format := flag.String("format", "json", "output format. Supported formats: json, pprof")
 	flag.Parse()
-	c.format = *format
+	c.format = strings.ToLower(*format)
 
 	args := flag.Args()
 	c.src = args[0]
-	c.dest = args[1]
+	if len(args) < 2 {
+		c.dest = fmt.Sprintf("%s.%s", c.src, c.format)
+	} else {
+		c.dest = args[1]
+	}
 }
 
 type formatter interface {
@@ -44,9 +49,9 @@ func main() {
 
 	var fmtr formatter = nil
 	switch c.format {
-	case "Json", "json", "JSON":
+	case "json":
 		fmtr = format.NewFormatterJson()
-	case "Pprof", "pprof", "PPROF":
+	case "pprof":
 		fmtr = format.NewFormatterPprof()
 	default:
 		panic("unsupported format")
