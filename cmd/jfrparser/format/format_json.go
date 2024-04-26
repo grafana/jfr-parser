@@ -29,7 +29,7 @@ type chunk struct {
 	Recordings   []any
 }
 
-func (f *formatterJson) initChunk(c *chunk, p *parser.Parser) {
+func initChunk(c *chunk, p *parser.Parser) {
 	c.Header = p.ChunkHeader()
 	c.FrameTypes = p.FrameTypes
 	c.ThreadStates = p.ThreadStates
@@ -60,7 +60,7 @@ func (f *formatterJson) Format(buf []byte, dest string) ([]string, [][]byte, err
 		}
 
 		if newChunk {
-			f.initChunk(&ir[chunkIdx], p)
+			initChunk(&ir[chunkIdx], p)
 			newChunk = false
 		}
 
