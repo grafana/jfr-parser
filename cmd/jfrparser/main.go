@@ -2,14 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/grafana/jfr-parser/cmd/jfrparser/format"
-	"github.com/grafana/jfr-parser/parser"
 )
 
 const (
-	formatJson = "Json"
+	formatJson  = "Json"
+	formatPprof = "Pprof"
 )
 
 type command struct {
@@ -17,8 +18,8 @@ type command struct {
 	format string
 
 	// Args
-	src    string
-	target string
+	src  string
+	dest string
 }
 
 func parseCommand(c *command) {
@@ -28,15 +29,13 @@ func parseCommand(c *command) {
 
 	args := flag.Args()
 	c.src = args[0]
-	c.target = args[1]
+	c.dest = args[1]
 }
 
 type formatter interface {
 	// Formats the given JFR
-	Format(*parser.Parser) ([]byte, error)
+	Format(buf []byte, dest string) ([]string, [][]byte, error)
 }
-
-// TODO: mov jfr2pprof here
 
 // Usage: ./jfrparser -format=Json /path/to/jfr /path/to/json
 func main() {
@@ -47,23 +46,30 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	p := parser.NewParser(buf, parser.Options{})
 
 	var fmtr formatter = nil
 	switch c.format {
 	case formatJson:
 		fmtr = format.NewFormatterJson()
+	case formatPprof:
+		fmtr = format.NewFormatterPprof()
 	default:
 		panic("unsupported format")
 	}
 
-	out, err := fmtr.Format(p)
+	dests, data, err := fmtr.Format(buf, c.dest)
 	if err != nil {
 		panic(err)
 	}
 
-	err = os.WriteFile(c.target, out, 0644)
-	if err != nil {
-		panic(err)
+	if len(dests) != len(data) {
+		panic(fmt.Errorf("logic error"))
+	}
+
+	for i := 0; i < len(dests); i++ {
+		err = os.WriteFile(dests[i], data[i], 0644)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

@@ -75,7 +75,8 @@ func (f *formatterJson) appendInit(p *parser.Parser) error {
 }
 
 // TODO: support multi-chunk JFR, by exposing new chunk indicator on the parser (a counter), and printing an array of chunks
-func (f *formatterJson) Format(p *parser.Parser) ([]byte, error) {
+func (f *formatterJson) Format(buf []byte, dest string) ([]string, [][]byte, error) {
+	p := parser.NewParser(buf, parser.Options{})
 	first := true
 	for {
 		typ, err := p.ParseEvent()
@@ -83,12 +84,12 @@ func (f *formatterJson) Format(p *parser.Parser) ([]byte, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, fmt.Errorf("parser.ParseEvent error: %w", err)
+			return nil, nil, fmt.Errorf("parser.ParseEvent error: %w", err)
 		}
 
 		if first {
 			if err = f.appendInit(p); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			first = false
 		}
@@ -96,31 +97,31 @@ func (f *formatterJson) Format(p *parser.Parser) ([]byte, error) {
 		switch typ {
 		case p.TypeMap.T_EXECUTION_SAMPLE:
 			if err = f.append(p.ExecutionSample); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case p.TypeMap.T_ALLOC_IN_NEW_TLAB:
 			if err = f.append(p.ObjectAllocationInNewTLAB); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case p.TypeMap.T_ALLOC_OUTSIDE_TLAB:
 			if err = f.append(p.ObjectAllocationOutsideTLAB); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case p.TypeMap.T_MONITOR_ENTER:
 			if err = f.append(p.JavaMonitorEnter); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case p.TypeMap.T_THREAD_PARK:
 			if err = f.append(p.ThreadPark); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case p.TypeMap.T_LIVE_OBJECT:
 			if err = f.append(p.LiveObject); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case p.TypeMap.T_ACTIVE_SETTING:
 			if err = f.append(p.ActiveSetting); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 		f.outBuf = append(f.outBuf, []byte(",")...)
@@ -128,5 +129,5 @@ func (f *formatterJson) Format(p *parser.Parser) ([]byte, error) {
 
 	f.outBuf = f.outBuf[:len(f.outBuf)-1]
 	f.outBuf = append(f.outBuf, []byte("]}]\n")...)
-	return f.outBuf, nil
+	return []string{dest}, [][]byte{f.outBuf}, nil
 }

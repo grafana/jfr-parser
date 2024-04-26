@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/grafana/jfr-parser/parser"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,6 +27,7 @@ func loadTestDataGzip(t *testing.T, filename string) []byte {
 func TestFormatterJson(t *testing.T) {
 	testDataDir := filepath.Join("..", "..", "..", "parser", "testdata")
 	fnamePrefix := "cortex-dev-01__kafka-0__cpu__0"
+	dest := "example"
 
 	fmtr := NewFormatterJson()
 	tests := []struct {
@@ -43,9 +43,12 @@ func TestFormatterJson(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			in := loadTestDataGzip(t, tt.pathJfr)
 			expected := loadTestDataGzip(t, tt.pathJson)
-			actual, err := fmtr.Format(parser.NewParser(in, parser.Options{}))
+			dests, data, err := fmtr.Format(in, dest)
 			assert.NoError(t, err)
-			assert.Equal(t, 0, bytes.Compare(expected, actual))
+			assert.Equal(t, 1, len(dests))
+			assert.True(t, dest == dests[0])
+			assert.Equal(t, 1, len(data))
+			assert.Equal(t, 0, bytes.Compare(expected, data[0]))
 		})
 	}
 }
