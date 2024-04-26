@@ -8,11 +8,6 @@ import (
 	"github.com/grafana/jfr-parser/cmd/jfrparser/format"
 )
 
-const (
-	formatJson  = "Json"
-	formatPprof = "Pprof"
-)
-
 type command struct {
 	// Opts
 	format string
@@ -23,7 +18,7 @@ type command struct {
 }
 
 func parseCommand(c *command) {
-	format := flag.String("format", formatJson, "output format. Supported formats: Json, Pprof")
+	format := flag.String("format", "Json", "output format. Supported formats: Json, Pprof")
 	flag.Parse()
 	c.format = *format
 
@@ -49,9 +44,9 @@ func main() {
 
 	var fmtr formatter = nil
 	switch c.format {
-	case formatJson:
+	case "Json", "json", "JSON":
 		fmtr = format.NewFormatterJson()
-	case formatPprof:
+	case "Pprof", "pprof", "PPROF":
 		fmtr = format.NewFormatterPprof()
 	default:
 		panic("unsupported format")
