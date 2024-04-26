@@ -45,7 +45,7 @@ func (f *formatterJson) initChunk(c *chunk, p *parser.Parser) {
 
 // TODO: support multi-chunk JFR, by exposing new chunk indicator on the parser (a counter), and printing an array of chunks
 func (f *formatterJson) Format(buf []byte, dest string) ([]string, [][]byte, error) {
-	p := parser.NewParser(buf, parser.Options{})
+	p := parser.NewParser(buf, parser.Options{SymbolProcessor: parser.ProcessSymbols})
 
 	ir := make([]chunk, 1)
 	chunkIdx := 0
