@@ -23,7 +23,7 @@ type command struct {
 }
 
 func parseCommand(c *command) {
-	format := flag.String("format", formatJson, "output format")
+	format := flag.String("format", formatJson, "output format. Supported formats: Json, Pprof")
 	flag.Parse()
 	c.format = *format
 
@@ -37,7 +37,7 @@ type formatter interface {
 	Format(buf []byte, dest string) ([]string, [][]byte, error)
 }
 
-// Usage: ./jfrparser -format=Json /path/to/jfr /path/to/json
+// Usage: ./jfrparser [options] /path/to/jfr [/path/to/dest]
 func main() {
 	c := new(command)
 	parseCommand(c)
