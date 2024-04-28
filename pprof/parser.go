@@ -14,7 +14,7 @@ func ParseJFR(body []byte, pi *ParseInput, jfrLabels *LabelsSnapshot) (res *Prof
 		}
 	}()
 	p := parser.NewParser(body, parser.Options{
-		SymbolProcessor: processSymbols,
+		SymbolProcessor: parser.ProcessSymbols,
 	})
 	return parse(p, pi, jfrLabels)
 }

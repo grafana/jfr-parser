@@ -204,6 +204,11 @@ func (p *Parser) ParseEvent() (def.TypeID, error) {
 		}
 	}
 }
+
+func (p *Parser) ChunkHeader() ChunkHeader {
+	return p.header
+}
+
 func (p *Parser) GetStacktrace(stID types2.StackTraceRef) *types2.StackTrace {
 	idx, ok := p.Stacktrace.IDMap[stID]
 	if !ok {
