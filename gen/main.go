@@ -180,18 +180,6 @@ func generate(typ *def.Class, opt options) string {
 	}
 	_ = receiver
 
-	res += "	var (\n"
-	res += "		v64_ uint64\n"
-	res += "		v32_ uint32\n"
-	res += "		s_   string\n"
-	res += "		b_   byte\n"
-	res += "		shift = uint(0)\n"
-	res += "		l = len(data)\n"
-	res += "	)\n"
-	res += "	_ = v64_\n"
-	res += "	_ = v32_\n"
-	res += "	_ = s_\n"
-
 	if opt.cpool {
 		res += emitReadI32()
 		res += "n := int(v32_)\n"
@@ -239,12 +227,16 @@ func generate(typ *def.Class, opt options) string {
 	res += "	return pos, nil\n"
 	res += fmt.Sprintf("}\n")
 
-	imports := "package types\n"
-	imports += "\n"
+	imports := `
+package types
 
-	imports += "import (\n\t\"fmt\"\n\t\"io\"\n\t\"unsafe\"\n\t\"github.com/grafana/jfr-parser/parser/types/def\"\n\n)"
-
-	imports += "\n"
+import (
+	"fmt"
+	
+	"github.com/grafana/jfr-parser/parser/types/def"
+	"github.com/grafana/jfr-parser/util"
+)
+`
 	res = header + imports + res
 
 	fmt.Println("types2.ExpectedMeta" + name(typ) + ",")
@@ -496,85 +488,50 @@ func generateBinding(typ *def.Class, opt options) string {
 }
 
 func emitString() string {
-	res := "s_ = \"\"\n"
-	res += "if pos >= l {\n"
-	res += "	return 0, io.ErrUnexpectedEOF\n"
-	res += "}\n"
-	res += "b_ = data[pos]\n"
-	res += "pos++\n"
-	res += "switch b_ {\n"
-	res += "case 0:\n"
-	res += "	break\n"
-	res += "case 1:\n"
-	res += "	break\n"
-	res += "case 3:\n"
-	res += emitReadI32()
-	res += "	if pos+int(v32_) > l {\n"
-	res += "		return 0, io.ErrUnexpectedEOF\n"
-	res += "	}\n"
+	code := `
+	s_, err := util.ParseString(data, &pos)
+	if err != nil {
+		return 0, err
+	}
+	_ = s_
 
-	res += "	bs := data[pos : pos+int(v32_)]\n"
-	res += fmt.Sprintf("	s_ = *(*string)(unsafe.Pointer(&bs))\n")
-
-	res += "	pos += int(v32_)\n"
-	res += "default:\n"
-	res += "	return 0, fmt.Errorf(\"unknown string type %d at %d\", b_, pos)\n"
-	res += "}\n"
-	return res
+`
+	return code
 }
 
 func emitReadByte() string {
-	code := ""
-	code += "if pos >= l {\n"
-	code += "	return 0, io.ErrUnexpectedEOF\n"
-	code += "}\n"
-	code += "b_ = data[pos]\n"
-	code += "pos++\n"
+	code := `
+	b_, err := util.ParseByte(data, &pos)
+	if err != nil {
+		return 0, err
+	}
+	_ = b_
+
+`
 	return code
 
 }
 func emitReadI32() string {
-	code := ""
-	code += "v32_ = uint32(0)\n"
-	code += "for shift = uint(0); ; shift += 7 {\n"
-	code += "	if shift >= 32 {\n"
-	code += "		return 0, def.ErrIntOverflow\n"
-	code += "	}\n"
-	code += "	if pos >= l {\n"
-	code += "		return 0, io.ErrUnexpectedEOF\n"
-	code += "	}\n"
-	code += "	b_ = data[pos]\n"
-	code += "	pos++\n"
-	code += "	v32_ |= uint32(b_&0x7F) << shift\n"
-	code += "	if b_ < 0x80 {\n"
-	code += "		break\n"
-	code += "	}\n"
-	code += "}\n"
+	code := `
+	v32_, err := util.ParseVarInt(data, &pos)
+	if err != nil {
+		return 0, err
+	}
+	_ = v32_
 
+`
 	return code
 }
 
 func emitReadU64() string {
-	code := ""
+	code := `
+	v64_, err := util.ParseVarLong(data, &pos)
+	if err != nil {
+		return 0, err
+	}
+	_ = v64_
 
-	code += "v64_ = 0 \n"
-	code += "for shift = uint(0); shift <= 56 ; shift += 7 {\n"
-	code += "	if pos >= l {\n"
-	code += "		return 0, io.ErrUnexpectedEOF\n"
-	code += "	}\n"
-	code += "	b_ = data[pos]\n"
-	code += "	pos++\n"
-	code += "	if shift == 56{\n"
-	code += "		v64_ |= uint64(b_&0xFF) << shift\n"
-	code += "		break\n"
-	code += "	} else {\n"
-	code += "		v64_ |= uint64(b_&0x7F) << shift\n"
-	code += "		if b_ < 0x80 {\n"
-	code += "			break\n"
-	code += "		}\n"
-	code += "	}\n"
-	code += "}\n"
-
+`
 	return code
 }
 

@@ -3,10 +3,10 @@ package parser
 import (
 	"fmt"
 	"io"
-	"unsafe"
 
 	types2 "github.com/grafana/jfr-parser/parser/types"
 	"github.com/grafana/jfr-parser/parser/types/def"
+	"github.com/grafana/jfr-parser/util"
 )
 
 const chunkHeaderSize = 68
@@ -296,114 +296,27 @@ func (p *Parser) seek(pos int) error {
 }
 
 func (p *Parser) byte() (byte, error) {
-	if p.pos >= len(p.buf) {
-		return 0, io.ErrUnexpectedEOF
-	}
-	b := p.buf[p.pos]
-	p.pos++
-	return b, nil
+	return util.ParseByte(p.buf, &p.pos)
 }
+
 func (p *Parser) varInt() (uint32, error) {
-	v := uint32(0)
-	for shift := uint(0); ; shift += 7 {
-		if shift >= 32 {
-			return 0, def.ErrIntOverflow
-		}
-		if p.pos >= len(p.buf) {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b := p.buf[p.pos]
-		p.pos++
-		v |= uint32(b&0x7F) << shift
-		if b < 0x80 {
-			break
-		}
-	}
-	return v, nil
+	return util.ParseVarInt(p.buf, &p.pos)
 }
 
 func (p *Parser) varLong() (uint64, error) {
-	v64_ := uint64(0)
-	for shift := uint(0); shift <= 56; shift += 7 {
-		if p.pos >= len(p.buf) {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ := p.buf[p.pos]
-		p.pos++
-		if shift == 56 {
-			v64_ |= uint64(b_&0xFF) << shift
-			break
-		} else {
-			v64_ |= uint64(b_&0x7F) << shift
-			if b_ < 0x80 {
-				break
-			}
-		}
-	}
-	return v64_, nil
+	return util.ParseVarLong(p.buf, &p.pos)
 }
 
 func (p *Parser) string() (string, error) {
-	if p.pos >= len(p.buf) {
-		return "", io.ErrUnexpectedEOF
-	}
-	b := p.buf[p.pos]
-	p.pos++
-	switch b { //todo implement 2
-	case 0:
-		return "", nil //todo this should be nil
-	case 1:
-		return "", nil
-	case 3:
-		bs, err := p.bytes()
-		if err != nil {
-			return "", err
-		}
-		str := *(*string)(unsafe.Pointer(&bs))
-		return str, nil
-	case 4:
-		return p.charArrayString()
-	default:
-		return "", fmt.Errorf("unknown string type %d", b)
-	}
-
+	return util.ParseString(p.buf, &p.pos)
 }
 
 func (p *Parser) charArrayString() (string, error) {
-	l, err := p.varInt()
-	if err != nil {
-		return "", err
-	}
-	if l < 0 {
-		return "", def.ErrIntOverflow
-	}
-	buf := make([]rune, int(l))
-	for i := 0; i < int(l); i++ {
-		c, err := p.varInt()
-		if err != nil {
-			return "", err
-		}
-		buf[i] = rune(c)
-	}
-
-	res := string(buf)
-	return res, nil
+	return util.ParseCharArrayString(p.buf, &p.pos)
 }
 
 func (p *Parser) bytes() ([]byte, error) {
-	l, err := p.varInt()
-	if err != nil {
-		return nil, err
-	}
-	if l < 0 {
-		return nil, def.ErrIntOverflow
-	}
-	if p.pos+int(l) > len(p.buf) {
-		return nil, io.ErrUnexpectedEOF
-	}
-	bs := p.buf[p.pos : p.pos+int(l)]
-	p.pos += int(l)
-	return bs, nil
+	return util.ParseBytes(p.buf, &p.pos)
 }
 
 func (p *Parser) checkTypes() error {
