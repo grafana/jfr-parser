@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go/format"
 	"os"
 	"slices"
 	"strings"
@@ -81,7 +82,11 @@ func main() {
 }
 
 func write(dst, s string) {
-	err := os.WriteFile("parser/"+dst, []byte(s), 0666)
+	formattedSource, err := format.Source([]byte(s))
+	if err != nil {
+		panic(err)
+	}
+	err = os.WriteFile("parser/"+dst, formattedSource, 0666)
 	if err != nil {
 		panic(err)
 	}
