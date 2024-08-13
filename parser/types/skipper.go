@@ -4,9 +4,9 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/grafana/jfr-parser/parser/types/def"
-	"io"
-	"unsafe"
+	"github.com/grafana/jfr-parser/util"
 )
 
 type BindSkipConstantPool struct {
@@ -38,186 +38,90 @@ type SkipConstantPool struct {
 }
 
 func (this *SkipConstantPoolList) Parse(data []byte, bind *BindSkipConstantPool, typeMap *def.TypeMap) (pos int, err error) {
-	var (
-		v64_  uint64
-		v32_  uint32
-		s_    string
-		b_    byte
-		shift = uint(0)
-		l     = len(data)
-	)
-	_ = v64_
-	_ = v32_
-	_ = s_
-	v32_ = uint32(0)
-	for shift = uint(0); ; shift += 7 {
-		if shift >= 32 {
-			return 0, def.ErrIntOverflow
-		}
-		if pos >= l {
-			return 0, io.ErrUnexpectedEOF
-		}
-		b_ = data[pos]
-		pos++
-		v32_ |= uint32(b_&0x7F) << shift
-		if b_ < 0x80 {
-			break
-		}
+
+	v32_, err := util.ParseVarInt(data, &pos)
+	if err != nil {
+		return 0, err
 	}
+	_ = v32_
+
 	n := int(v32_)
 	for i := 0; i < n; i++ {
-		v32_ = uint32(0)
-		for shift = uint(0); ; shift += 7 {
-			if shift >= 32 {
-				return 0, def.ErrIntOverflow
-			}
-			if pos >= l {
-				return 0, io.ErrUnexpectedEOF
-			}
-			b_ = data[pos]
-			pos++
-			v32_ |= uint32(b_&0x7F) << shift
-			if b_ < 0x80 {
-				break
-			}
+
+		v32_, err := util.ParseVarInt(data, &pos)
+		if err != nil {
+			return 0, err
 		}
+		_ = v32_
+
 		for bindFieldIndex := 0; bindFieldIndex < len(bind.Fields); bindFieldIndex++ {
 			bindArraySize := 1
 			if bind.Fields[bindFieldIndex].Field.Array {
-				v32_ = uint32(0)
-				for shift = uint(0); ; shift += 7 {
-					if shift >= 32 {
-						return 0, def.ErrIntOverflow
-					}
-					if pos >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b_ = data[pos]
-					pos++
-					v32_ |= uint32(b_&0x7F) << shift
-					if b_ < 0x80 {
-						break
-					}
+
+				v32_, err := util.ParseVarInt(data, &pos)
+				if err != nil {
+					return 0, err
 				}
+				_ = v32_
+
 				bindArraySize = int(v32_)
 			}
 			for bindArrayIndex := 0; bindArrayIndex < bindArraySize; bindArrayIndex++ {
 				if bind.Fields[bindFieldIndex].Field.ConstantPool {
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
-						}
-						b_ = data[pos]
-						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
-							break
-						}
+
+					v32_, err := util.ParseVarInt(data, &pos)
+					if err != nil {
+						return 0, err
 					}
+					_ = v32_
+
 				} else {
 					bindFieldTypeID := bind.Fields[bindFieldIndex].Field.Type
 					switch bindFieldTypeID {
 					case typeMap.T_STRING:
-						s_ = ""
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
+
+						s_, err := util.ParseString(data, &pos)
+						if err != nil {
+							return 0, err
 						}
-						b_ = data[pos]
-						pos++
-						switch b_ {
-						case 0:
-							break
-						case 1:
-							break
-						case 3:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-							if pos+int(v32_) > l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							bs := data[pos : pos+int(v32_)]
-							s_ = *(*string)(unsafe.Pointer(&bs))
-							pos += int(v32_)
-						default:
-							return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-						}
+						_ = s_
+
 						// skipping
 					case typeMap.T_INT:
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
+
+						v32_, err := util.ParseVarInt(data, &pos)
+						if err != nil {
+							return 0, err
 						}
+						_ = v32_
+
 						// skipping
 					case typeMap.T_LONG:
-						v64_ = 0
-						for shift = uint(0); shift <= 56; shift += 7 {
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							if shift == 56 {
-								v64_ |= uint64(b_&0xFF) << shift
-								break
-							} else {
-								v64_ |= uint64(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
+
+						v64_, err := util.ParseVarLong(data, &pos)
+						if err != nil {
+							return 0, err
 						}
+						_ = v64_
+
 						// skipping
 					case typeMap.T_BOOLEAN:
-						if pos >= l {
-							return 0, io.ErrUnexpectedEOF
+
+						b_, err := util.ParseByte(data, &pos)
+						if err != nil {
+							return 0, err
 						}
-						b_ = data[pos]
-						pos++
+						_ = b_
+
 						// skipping
 					case typeMap.T_FLOAT:
-						v32_ = uint32(0)
-						for shift = uint(0); ; shift += 7 {
-							if shift >= 32 {
-								return 0, def.ErrIntOverflow
-							}
-							if pos >= l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							b_ = data[pos]
-							pos++
-							v32_ |= uint32(b_&0x7F) << shift
-							if b_ < 0x80 {
-								break
-							}
+
+						v32_, err := util.ParseVarInt(data, &pos)
+						if err != nil {
+							return 0, err
 						}
+						_ = v32_
+
 						// skipping
 					default:
 						bindFieldType := typeMap.IDMap[bind.Fields[bindFieldIndex].Field.Type]
@@ -226,135 +130,66 @@ func (this *SkipConstantPoolList) Parse(data []byte, bind *BindSkipConstantPool,
 						}
 						bindSkipObjects := 1
 						if bind.Fields[bindFieldIndex].Field.Array {
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
+
+							v32_, err := util.ParseVarInt(data, &pos)
+							if err != nil {
+								return 0, err
 							}
+							_ = v32_
+
 							bindSkipObjects = int(v32_)
 						}
 						for bindSkipObjectIndex := 0; bindSkipObjectIndex < bindSkipObjects; bindSkipObjectIndex++ {
 							for bindskipFieldIndex := 0; bindskipFieldIndex < len(bindFieldType.Fields); bindskipFieldIndex++ {
 								bindSkipFieldType := bindFieldType.Fields[bindskipFieldIndex].Type
 								if bindFieldType.Fields[bindskipFieldIndex].ConstantPool {
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
+
+									v32_, err := util.ParseVarInt(data, &pos)
+									if err != nil {
+										return 0, err
 									}
+									_ = v32_
+
 								} else if bindSkipFieldType == typeMap.T_STRING {
-									s_ = ""
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
+
+									s_, err := util.ParseString(data, &pos)
+									if err != nil {
+										return 0, err
 									}
-									b_ = data[pos]
-									pos++
-									switch b_ {
-									case 0:
-										break
-									case 1:
-										break
-									case 3:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-										if pos+int(v32_) > l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										bs := data[pos : pos+int(v32_)]
-										s_ = *(*string)(unsafe.Pointer(&bs))
-										pos += int(v32_)
-									default:
-										return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-									}
+									_ = s_
+
 								} else if bindSkipFieldType == typeMap.T_INT {
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
+
+									v32_, err := util.ParseVarInt(data, &pos)
+									if err != nil {
+										return 0, err
 									}
+									_ = v32_
+
 								} else if bindSkipFieldType == typeMap.T_FLOAT {
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
-											break
-										}
+
+									v32_, err := util.ParseVarInt(data, &pos)
+									if err != nil {
+										return 0, err
 									}
+									_ = v32_
+
 								} else if bindSkipFieldType == typeMap.T_LONG {
-									v64_ = 0
-									for shift = uint(0); shift <= 56; shift += 7 {
-										if pos >= l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										b_ = data[pos]
-										pos++
-										if shift == 56 {
-											v64_ |= uint64(b_&0xFF) << shift
-											break
-										} else {
-											v64_ |= uint64(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
+
+									v64_, err := util.ParseVarLong(data, &pos)
+									if err != nil {
+										return 0, err
 									}
+									_ = v64_
+
 								} else if bindSkipFieldType == typeMap.T_BOOLEAN {
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
+
+									b_, err := util.ParseByte(data, &pos)
+									if err != nil {
+										return 0, err
 									}
-									b_ = data[pos]
-									pos++
+									_ = b_
+
 								} else {
 									return 0, fmt.Errorf("nested objects not implemented. ")
 								}
