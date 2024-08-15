@@ -82,6 +82,7 @@ func main() {
 }
 
 func write(dst, s string) {
+
 	formattedSource, err := format.Source([]byte(s))
 	if err != nil {
 		panic(err)
@@ -514,9 +515,17 @@ func emitString() string {
 	res += "	}\n"
 
 	res += "	bs := data[pos : pos+int(v32_)]\n"
-	res += fmt.Sprintf("	s_ = *(*string)(unsafe.Pointer(&bs))\n")
-
+	res += "	s_ = *(*string)(unsafe.Pointer(&bs))\n"
 	res += "	pos += int(v32_)\n"
+	res += "case 4:\n"
+	res += emitReadI32()
+	res += "	bl := int(v32_)\n"
+	res += "	buf := make([]rune,bl)\n"
+	res += "	for i := 0; i < bl; i++ {\n"
+	res += emitReadI32()
+	res += "		buf[i] = rune(v32_)\n"
+	res += "	}\n"
+	res += "	s_ = string(buf)\n"
 	res += "default:\n"
 	res += "	return 0, fmt.Errorf(\"unknown string type %d at %d\", b_, pos)\n"
 	res += "}\n"

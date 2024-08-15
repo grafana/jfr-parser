@@ -174,6 +174,43 @@ func (this *PackageList) Parse(data []byte, bind *BindPackage, typeMap *def.Type
 							bs := data[pos : pos+int(v32_)]
 							s_ = *(*string)(unsafe.Pointer(&bs))
 							pos += int(v32_)
+						case 4:
+							v32_ = uint32(0)
+							for shift = uint(0); ; shift += 7 {
+								if shift >= 32 {
+									return 0, def.ErrIntOverflow
+								}
+								if pos >= l {
+									return 0, io.ErrUnexpectedEOF
+								}
+								b_ = data[pos]
+								pos++
+								v32_ |= uint32(b_&0x7F) << shift
+								if b_ < 0x80 {
+									break
+								}
+							}
+							bl := int(v32_)
+							buf := make([]rune, bl)
+							for i := 0; i < bl; i++ {
+								v32_ = uint32(0)
+								for shift = uint(0); ; shift += 7 {
+									if shift >= 32 {
+										return 0, def.ErrIntOverflow
+									}
+									if pos >= l {
+										return 0, io.ErrUnexpectedEOF
+									}
+									b_ = data[pos]
+									pos++
+									v32_ |= uint32(b_&0x7F) << shift
+									if b_ < 0x80 {
+										break
+									}
+								}
+								buf[i] = rune(v32_)
+							}
+							s_ = string(buf)
 						default:
 							return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 						}
@@ -315,6 +352,43 @@ func (this *PackageList) Parse(data []byte, bind *BindPackage, typeMap *def.Type
 										bs := data[pos : pos+int(v32_)]
 										s_ = *(*string)(unsafe.Pointer(&bs))
 										pos += int(v32_)
+									case 4:
+										v32_ = uint32(0)
+										for shift = uint(0); ; shift += 7 {
+											if shift >= 32 {
+												return 0, def.ErrIntOverflow
+											}
+											if pos >= l {
+												return 0, io.ErrUnexpectedEOF
+											}
+											b_ = data[pos]
+											pos++
+											v32_ |= uint32(b_&0x7F) << shift
+											if b_ < 0x80 {
+												break
+											}
+										}
+										bl := int(v32_)
+										buf := make([]rune, bl)
+										for i := 0; i < bl; i++ {
+											v32_ = uint32(0)
+											for shift = uint(0); ; shift += 7 {
+												if shift >= 32 {
+													return 0, def.ErrIntOverflow
+												}
+												if pos >= l {
+													return 0, io.ErrUnexpectedEOF
+												}
+												b_ = data[pos]
+												pos++
+												v32_ |= uint32(b_&0x7F) << shift
+												if b_ < 0x80 {
+													break
+												}
+											}
+											buf[i] = rune(v32_)
+										}
+										s_ = string(buf)
 									default:
 										return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 									}
