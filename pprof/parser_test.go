@@ -3,7 +3,7 @@ package pprof
 import (
 	"compress/gzip"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"regexp"
 	"slices"
@@ -187,7 +187,7 @@ func readGzipFile(t testing.TB, fname string) []byte {
 	r, err := gzip.NewReader(f)
 	require.NoError(t, err)
 	defer r.Close()
-	bs, err := ioutil.ReadAll(r)
+	bs, err := io.ReadAll(r)
 	require.NoError(t, err)
 	return bs
 }
