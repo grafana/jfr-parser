@@ -5,6 +5,8 @@ github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 h1:FKHo8hFI3A+7w0aUQu
 github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8/go.mod h1:K1liHPHnj73Fdn/EKuT8nrFqBihUSKXoLYU0BuatOYo=
 github.com/grafana/jfr-parser v0.8.0 h1:/uo2wZNXrxw7tKLFwP2omJ3EQGMkD9wzhPsRogVofc0=
 github.com/grafana/jfr-parser v0.8.0/go.mod h1:M5u1ux34Qo47ZBWksbMYVk40s7dvU3WMVYpxweEu4R0=
+github.com/grafana/jfr-parser v0.8.1-0.20240821021831-cfd6e79a1afc h1:gjwnHqqbXqeCxuWI5kaR/4By/7qwoCprMzvpC1Oe/EQ=
+github.com/grafana/jfr-parser v0.8.1-0.20240821021831-cfd6e79a1afc/go.mod h1:M5u1ux34Qo47ZBWksbMYVk40s7dvU3WMVYpxweEu4R0=
 github.com/grafana/pyroscope/api v0.4.0 h1:J86DxoNeLOvtJhB1Cn65JMZkXe682D+RqeoIUiYc/eo=
 github.com/grafana/pyroscope/api v0.4.0/go.mod h1:MFnZNeUM4RDsDOnbgKW3GWoLSBpLzMMT9nkvhHHo81o=
 github.com/k0kubun/pp/v3 v3.2.0 h1:h33hNTZ9nVFNP3u2Fsgz8JXiF5JINoZfFq4SvKJwNcs=
