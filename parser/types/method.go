@@ -52,7 +52,7 @@ func NewBindMethod(typ *def.Class, typeMap *def.TypeMap) *BindMethod {
 	return res
 }
 
-type MethodRef uint32
+type MethodRef uint64
 type MethodList struct {
 	IDMap  IDMap[MethodRef]
 	Method []Method

@@ -37,7 +37,7 @@ func NewBindPackage(typ *def.Class, typeMap *def.TypeMap) *BindPackage {
 	return res
 }
 
-type PackageRef uint32
+type PackageRef uint64
 type PackageList struct {
 	IDMap   map[PackageRef]uint32
 	Package []Package

@@ -46,7 +46,7 @@ func NewBindClass(typ *def.Class, typeMap *def.TypeMap) *BindClass {
 	return res
 }
 
-type ClassRef uint32
+type ClassRef uint64
 type ClassList struct {
 	IDMap map[ClassRef]uint32
 	Class []Class

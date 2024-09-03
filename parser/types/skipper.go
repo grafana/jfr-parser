@@ -30,7 +30,7 @@ func NewBindSkipConstantPool(typ *def.Class, typeMap *def.TypeMap) *BindSkipCons
 	return res
 }
 
-type SkipConstantPoolRef uint32
+type SkipConstantPoolRef uint64
 type SkipConstantPoolList struct {
 }
 

@@ -37,7 +37,7 @@ func NewBindLogLevel(typ *def.Class, typeMap *def.TypeMap) *BindLogLevel {
 	return res
 }
 
-type LogLevelRef uint32
+type LogLevelRef uint64
 type LogLevelList struct {
 	IDMap    map[LogLevelRef]uint32
 	LogLevel []LogLevel

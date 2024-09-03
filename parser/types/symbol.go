@@ -37,7 +37,7 @@ func NewBindSymbol(typ *def.Class, typeMap *def.TypeMap) *BindSymbol {
 	return res
 }
 
-type SymbolRef uint32
+type SymbolRef uint64
 type SymbolList struct {
 	IDMap  map[SymbolRef]uint32
 	Symbol []Symbol

@@ -44,7 +44,7 @@ func NewBindStackTrace(typ *def.Class, typeMap *def.TypeMap) *BindStackTrace {
 	return res
 }
 
-type StackTraceRef uint32
+type StackTraceRef uint64
 type StackTraceList struct {
 	IDMap      map[StackTraceRef]uint32
 	StackTrace []StackTrace
