@@ -210,11 +210,11 @@ func generate(typ *def.Class, opt options) string {
 	}
 
 	if opt.cpool {
-		res += emitReadI32()
+		res += emitReadU64()
 		if opt.doNotKeepData {
 
 		} else {
-			res += fmt.Sprintf("id := %s(v32_)\n", refName(typ))
+			res += fmt.Sprintf("id := %s(v64_)\n", refName(typ))
 		}
 	}
 
