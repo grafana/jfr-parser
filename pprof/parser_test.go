@@ -44,6 +44,7 @@ var testfiles = []testdata{
 	{"dump1", "dump1.labels.pb.gz", 1},
 	{"dump2", "dump2.labels.pb.gz", 4},
 	{"dd-trace-java", "", 4},
+	{"cpool-uint64-constant-index", "", 4},
 }
 
 type gprofile struct {
