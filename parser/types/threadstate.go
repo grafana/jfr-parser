@@ -37,7 +37,7 @@ func NewBindThreadState(typ *def.Class, typeMap *def.TypeMap) *BindThreadState {
 	return res
 }
 
-type ThreadStateRef uint32
+type ThreadStateRef uint64
 type ThreadStateList struct {
 	IDMap       map[ThreadStateRef]uint32
 	ThreadState []ThreadState

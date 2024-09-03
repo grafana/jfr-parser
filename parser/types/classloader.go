@@ -44,7 +44,7 @@ func NewBindClassLoader(typ *def.Class, typeMap *def.TypeMap) *BindClassLoader {
 	return res
 }
 
-type ClassLoaderRef uint32
+type ClassLoaderRef uint64
 type ClassLoaderList struct {
 	IDMap       map[ClassLoaderRef]uint32
 	ClassLoader []ClassLoader

@@ -134,7 +134,7 @@ func generate(typ *def.Class, opt options) string {
 	res += generateBinding(typ, opt)
 
 	if opt.cpool {
-		res += fmt.Sprintf("type %s uint32\n", refName(typ))
+		res += fmt.Sprintf("type %s uint64\n", refName(typ))
 		res += fmt.Sprintf("type %s struct {\n", listName(typ))
 		if opt.doNotKeepData {
 

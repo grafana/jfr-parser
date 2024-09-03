@@ -37,7 +37,7 @@ func NewBindFrameType(typ *def.Class, typeMap *def.TypeMap) *BindFrameType {
 	return res
 }
 
-type FrameTypeRef uint32
+type FrameTypeRef uint64
 type FrameTypeList struct {
 	IDMap     map[FrameTypeRef]uint32
 	FrameType []FrameType
