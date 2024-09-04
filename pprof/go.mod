@@ -3,8 +3,8 @@ module github.com/grafana/jfr-parser/pprof
 go 1.18
 
 require (
-	github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8
-	github.com/grafana/jfr-parser v0.8.1
+	github.com/google/pprof v0.0.0-20240903155634-a8630aee4ab9
+	github.com/grafana/jfr-parser v0.9.0
 	github.com/grafana/pyroscope/api v0.4.0
 	github.com/k0kubun/pp/v3 v3.2.0
 	github.com/stretchr/testify v1.9.0
