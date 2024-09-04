@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/grafana/jfr-parser/cmd/jfrparser/format"
+	"github.com/grafana/jfr-parser/pprof/cmd/jfrparser/format"
 )
 
 type command struct {
