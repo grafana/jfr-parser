@@ -25,7 +25,7 @@ func loadTestDataGzip(t *testing.T, filename string) []byte {
 }
 
 func TestFormatterJson(t *testing.T) {
-	testDataDir := filepath.Join("..", "..", "..", "parser", "testdata")
+	testDataDir := filepath.Join("..", "..", "..", "..", "parser", "testdata")
 	fnamePrefix := "cortex-dev-01__kafka-0__cpu__0"
 	dest := "example"
 
