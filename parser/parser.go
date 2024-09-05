@@ -483,7 +483,7 @@ func (p *Parser) checkTypes() error {
 	if typeCPLogLevel != nil {
 		p.TypeMap.T_LOG_LEVEL = typeCPLogLevel.ID
 	} else {
-		p.TypeMap.T_LOG_LEVEL = 0
+		p.TypeMap.T_LOG_LEVEL = -1
 	}
 	p.TypeMap.T_STACK_TRACE = typeCPStackTrace.ID
 	p.TypeMap.T_CLASS_LOADER = typeCPClassLoader.ID
@@ -521,30 +521,57 @@ func (p *Parser) checkTypes() error {
 	if typeExecutionSample != nil {
 		p.TypeMap.T_EXECUTION_SAMPLE = typeExecutionSample.ID
 		p.bindExecutionSample = types2.NewBindExecutionSample(typeExecutionSample, &p.TypeMap)
+	} else {
+		p.TypeMap.T_EXECUTION_SAMPLE = -1
+		p.bindExecutionSample = nil
 	}
+
 	if typeAllocInNewTLAB != nil {
 		p.TypeMap.T_ALLOC_IN_NEW_TLAB = typeAllocInNewTLAB.ID
 		p.bindAllocInNewTLAB = types2.NewBindObjectAllocationInNewTLAB(typeAllocInNewTLAB, &p.TypeMap)
+	} else {
+		p.TypeMap.T_ALLOC_IN_NEW_TLAB = -1
+		p.bindAllocInNewTLAB = nil
 	}
+
 	if typeALlocOutsideTLAB != nil {
 		p.TypeMap.T_ALLOC_OUTSIDE_TLAB = typeALlocOutsideTLAB.ID
 		p.bindAllocOutsideTLAB = types2.NewBindObjectAllocationOutsideTLAB(typeALlocOutsideTLAB, &p.TypeMap)
+	} else {
+		p.TypeMap.T_ALLOC_OUTSIDE_TLAB = -1
+		p.bindAllocOutsideTLAB = nil
 	}
+
 	if typeMonitorEnter != nil {
 		p.TypeMap.T_MONITOR_ENTER = typeMonitorEnter.ID
 		p.bindMonitorEnter = types2.NewBindJavaMonitorEnter(typeMonitorEnter, &p.TypeMap)
+	} else {
+		p.TypeMap.T_MONITOR_ENTER = -1
+		p.bindMonitorEnter = nil
 	}
+
 	if typeThreadPark != nil {
 		p.TypeMap.T_THREAD_PARK = typeThreadPark.ID
 		p.bindThreadPark = types2.NewBindThreadPark(typeThreadPark, &p.TypeMap)
+	} else {
+		p.TypeMap.T_THREAD_PARK = -1
+		p.bindThreadPark = nil
 	}
+
 	if typeLiveObject != nil {
 		p.TypeMap.T_LIVE_OBJECT = typeLiveObject.ID
 		p.bindLiveObject = types2.NewBindLiveObject(typeLiveObject, &p.TypeMap)
+	} else {
+		p.TypeMap.T_LIVE_OBJECT = -1
+		p.bindLiveObject = nil
 	}
+
 	if typeActiveSetting != nil {
 		p.TypeMap.T_ACTIVE_SETTING = typeActiveSetting.ID
 		p.bindActiveSetting = types2.NewBindActiveSetting(typeActiveSetting, &p.TypeMap)
+	} else {
+		p.TypeMap.T_ACTIVE_SETTING = -1
+		p.bindActiveSetting = nil
 	}
 
 	p.FrameTypes.IDMap = nil

@@ -1,6 +1,6 @@
 package def
 
-type TypeID uint64
+type TypeID int64
 
 type TypeMap struct {
 	IDMap   map[TypeID]*Class
