@@ -45,6 +45,7 @@ var testfiles = []testdata{
 	{"dump2", "dump2.labels.pb.gz", 4},
 	{"dd-trace-java", "", 4},
 	{"cpool-uint64-constant-index", "", 4},
+	{"event-with-type-zero", "", 4},
 }
 
 type gprofile struct {
