@@ -56,7 +56,7 @@ func NewBindThread(typ *def.Class, typeMap *def.TypeMap) *BindThread {
 	return res
 }
 
-type ThreadRef uint32
+type ThreadRef uint64
 type ThreadList struct {
 	IDMap  map[ThreadRef]uint32
 	Thread []Thread

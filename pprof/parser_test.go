@@ -31,7 +31,7 @@ var testfiles = []testdata{
 	{"async-profiler", "", 3}, // -e cpu -i 10ms --alloc 512k --wall 200ms --lock 10ms -d 60 (async-profiler 2.10)
 	{"goland", "", 5},
 	{"goland-multichunk", "", 5},
-	{"FastSlow_2024_01_16_180855", "", 2}, // from IJ Ultimate, multichunk, chunked CP
+	{"FastSlow_2024_01_16_180855", "", 3}, // from IJ Ultimate, multichunk, chunked CP
 	{"cortex-dev-01__kafka-0__cpu__0", "", 1},
 	{"cortex-dev-01__kafka-0__cpu__1", "", 1},
 	{"cortex-dev-01__kafka-0__cpu__2", "", 1},
@@ -44,8 +44,9 @@ var testfiles = []testdata{
 	{"dump1", "dump1.labels.pb.gz", 1},
 	{"dump2", "dump2.labels.pb.gz", 4},
 	{"dd-trace-java", "", 4},
-	{"cpool-uint64-constant-index", "", 4},
-	{"event-with-type-zero", "", 4},
+	{"cpool-uint64-constant-index", "", 5},
+	{"event-with-type-zero", "", 5},
+	{"object-allocation-sample", "", 3},
 }
 
 type gprofile struct {

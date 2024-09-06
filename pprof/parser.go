@@ -50,6 +50,9 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 		case parser.TypeMap.T_ALLOC_OUTSIDE_TLAB:
 			values[1] = int64(parser.ObjectAllocationOutsideTLAB.AllocationSize)
 			builders.addStacktrace(sampleTypeOutTLAB, parser.ObjectAllocationOutsideTLAB.ContextId, parser.ObjectAllocationOutsideTLAB.StackTrace, values[:2])
+		case parser.TypeMap.T_ALLOC_SAMPLE:
+			values[1] = int64(parser.ObjectAllocationSample.Weight)
+			builders.addStacktrace(sampleTypeAllocSample, parser.ObjectAllocationSample.ContextId, parser.ObjectAllocationSample.StackTrace, values[:2])
 		case parser.TypeMap.T_MONITOR_ENTER:
 			values[1] = int64(parser.JavaMonitorEnter.Duration)
 			builders.addStacktrace(sampleTypeLock, parser.JavaMonitorEnter.ContextId, parser.JavaMonitorEnter.StackTrace, values[:2])

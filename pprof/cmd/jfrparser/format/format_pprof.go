@@ -30,7 +30,7 @@ func (f *formatterPprof) Format(buf []byte, dest string) ([]string, [][]byte, er
 	destDir := filepath.Dir(dest)
 	destBase := filepath.Base(dest)
 	for i := 0; i < len(profiles.Profiles); i++ {
-		filename := fmt.Sprintf("%s.%s", profiles.Profiles[i].Metric, destBase)
+		filename := fmt.Sprintf("%s.%d.%s", profiles.Profiles[i].Metric, i, destBase)
 		dests = append(dests, filepath.Join(destDir, filename))
 
 		bs, err := profiles.Profiles[i].Profile.MarshalVT()

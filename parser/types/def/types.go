@@ -28,6 +28,7 @@ type TypeMap struct {
 	T_EXECUTION_SAMPLE   TypeID
 	T_ALLOC_IN_NEW_TLAB  TypeID
 	T_ALLOC_OUTSIDE_TLAB TypeID
+	T_ALLOC_SAMPLE       TypeID
 	T_LIVE_OBJECT        TypeID
 	T_MONITOR_ENTER      TypeID
 	T_THREAD_PARK        TypeID

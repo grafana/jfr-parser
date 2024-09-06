@@ -54,6 +54,7 @@ var (
 	T_MEMORY_ADDRESS          = def.TypeID(206)
 	T_UNSIGNED                = def.TypeID(207)
 	T_PERCENTAGE              = def.TypeID(208)
+	T_ALLOC_SAMPLE            = def.TypeID(209)
 )
 
 func TypeID2Sym(id def.TypeID) string {
@@ -110,6 +111,8 @@ func TypeID2Sym(id def.TypeID) string {
 		return "T_ALLOC_IN_NEW_TLAB"
 	case T_ALLOC_OUTSIDE_TLAB:
 		return "T_ALLOC_OUTSIDE_TLAB"
+	case T_ALLOC_SAMPLE:
+		return "T_ALLOC_SAMPLE"
 	case T_MONITOR_ENTER:
 		return "T_MONITOR_ENTER"
 	case T_THREAD_PARK:
@@ -327,6 +330,18 @@ var Type_jdk_ObjectAllocationOutsideTLAB = def.Class{
 		{Name: "stackTrace", Type: T_STACK_TRACE, ConstantPool: true},
 		{Name: "objectClass", Type: T_CLASS, ConstantPool: true},
 		{Name: "allocationSize", Type: T_LONG, ConstantPool: false},
+		{Name: "contextId", Type: T_LONG, ConstantPool: false},
+	},
+}
+var Type_jdk_ObjectAllocationSample = def.Class{
+	Name: "jdk.ObjectAllocationSample",
+	ID:   T_ALLOC_SAMPLE,
+	Fields: []def.Field{
+		{Name: "startTime", Type: T_LONG, ConstantPool: false},
+		{Name: "eventThread", Type: T_THREAD, ConstantPool: true},
+		{Name: "stackTrace", Type: T_STACK_TRACE, ConstantPool: true},
+		{Name: "objectClass", Type: T_CLASS, ConstantPool: true},
+		{Name: "weight", Type: T_LONG, ConstantPool: false},
 		{Name: "contextId", Type: T_LONG, ConstantPool: false},
 	},
 }
