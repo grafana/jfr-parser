@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	sampleTypeCPU        = 0
-	sampleTypeWall       = 1
-	sampleTypeInTLAB     = 2
-	sampleTypeOutTLAB    = 3
-	sampleTypeLock       = 4
-	sampleTypeThreadPark = 5
-	sampleTypeLiveObject = 6
+	sampleTypeCPU         = 0
+	sampleTypeWall        = 1
+	sampleTypeInTLAB      = 2
+	sampleTypeOutTLAB     = 3
+	sampleTypeLock        = 4
+	sampleTypeThreadPark  = 5
+	sampleTypeLiveObject  = 6
+	sampleTypeAllocSample = 7
 )
 
 func newJfrPprofBuilders(p *parser.Parser, jfrLabels *LabelsSnapshot, piOriginal *ParseInput) *jfrPprofBuilders {
@@ -146,6 +147,11 @@ func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *Profil
 	case sampleTypeLiveObject:
 		builder.AddSampleType("live", "count")
 		builder.PeriodType("objects", "count")
+		metric = "memory"
+	case sampleTypeAllocSample:
+		builder.AddSampleType("alloc_sample_objects", "count")
+		builder.AddSampleType("alloc_sample_bytes", "bytes")
+		builder.PeriodType("space", "bytes")
 		metric = "memory"
 	}
 	builder.MetricName(metric)

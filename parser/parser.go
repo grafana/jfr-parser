@@ -51,6 +51,7 @@ type Parser struct {
 	ExecutionSample             types2.ExecutionSample
 	ObjectAllocationInNewTLAB   types2.ObjectAllocationInNewTLAB
 	ObjectAllocationOutsideTLAB types2.ObjectAllocationOutsideTLAB
+	ObjectAllocationSample      types2.ObjectAllocationSample
 	JavaMonitorEnter            types2.JavaMonitorEnter
 	ThreadPark                  types2.ThreadPark
 	LiveObject                  types2.LiveObject
@@ -80,6 +81,7 @@ type Parser struct {
 
 	bindAllocInNewTLAB   *types2.BindObjectAllocationInNewTLAB
 	bindAllocOutsideTLAB *types2.BindObjectAllocationOutsideTLAB
+	bindAllocSample      *types2.BindObjectAllocationSample
 	bindMonitorEnter     *types2.BindJavaMonitorEnter
 	bindThreadPark       *types2.BindThreadPark
 	bindLiveObject       *types2.BindLiveObject
@@ -148,6 +150,16 @@ func (p *Parser) ParseEvent() (def.TypeID, error) {
 				continue
 			}
 			_, err := p.ObjectAllocationOutsideTLAB.Parse(p.buf[p.pos:], p.bindAllocOutsideTLAB, &p.TypeMap)
+			if err != nil {
+				return 0, err
+			}
+			p.pos = pp + int(size)
+			return ttyp, nil
+		case p.TypeMap.T_ALLOC_SAMPLE:
+			if p.bindAllocSample == nil {
+				p.pos = pp + int(size) // skip
+			}
+			_, err := p.ObjectAllocationSample.Parse(p.buf[p.pos:], p.bindAllocSample, &p.TypeMap)
 			if err != nil {
 				return 0, err
 			}
@@ -513,6 +525,7 @@ func (p *Parser) checkTypes() error {
 	typeExecutionSample := p.TypeMap.NameMap["jdk.ExecutionSample"]
 	typeAllocInNewTLAB := p.TypeMap.NameMap["jdk.ObjectAllocationInNewTLAB"]
 	typeALlocOutsideTLAB := p.TypeMap.NameMap["jdk.ObjectAllocationOutsideTLAB"]
+	typeAllocSample := p.TypeMap.NameMap["jdk.ObjectAllocationSample"]
 	typeMonitorEnter := p.TypeMap.NameMap["jdk.JavaMonitorEnter"]
 	typeThreadPark := p.TypeMap.NameMap["jdk.ThreadPark"]
 	typeLiveObject := p.TypeMap.NameMap["profiler.LiveObject"]
@@ -541,7 +554,13 @@ func (p *Parser) checkTypes() error {
 		p.TypeMap.T_ALLOC_OUTSIDE_TLAB = -1
 		p.bindAllocOutsideTLAB = nil
 	}
-
+	if typeAllocSample != nil {
+		p.TypeMap.T_ALLOC_SAMPLE = typeAllocSample.ID
+		p.bindAllocSample = types2.NewBindObjectAllocationSample(typeAllocSample, &p.TypeMap)
+	} else {
+		p.TypeMap.T_ALLOC_SAMPLE = -1
+		p.bindAllocSample = nil
+	}
 	if typeMonitorEnter != nil {
 		p.TypeMap.T_MONITOR_ENTER = typeMonitorEnter.ID
 		p.bindMonitorEnter = types2.NewBindJavaMonitorEnter(typeMonitorEnter, &p.TypeMap)

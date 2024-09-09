@@ -67,6 +67,7 @@ func main() {
 	write("types/execution_sample.go", generate(&Type_jdk_ExecutionSample, options{}))
 	write("types/allocation_in_new_tlab.go", generate(&Type_jdk_ObjectAllocationInNewTLAB, options{}))
 	write("types/allocation_outside_tlab.go", generate(&Type_jdk_ObjectAllocationOutsideTLAB, options{}))
+	write("types/allocation_sample.go", generate(&Type_jdk_ObjectAllocationSample, options{}))
 	write("types/monitor_enter.go", generate(&Type_jdk_JavaMonitorEnter, options{}))
 	write("types/thread_park.go", generate(&Type_jdk_ThreadPark, options{}))
 	write("types/live_object.go", generate(&Type_profiler_LiveObject, options{}))

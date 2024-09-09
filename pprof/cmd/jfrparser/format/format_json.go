@@ -71,6 +71,8 @@ func (f *formatterJson) Format(buf []byte, dest string) ([]string, [][]byte, err
 			ir[chunkIdx].Recordings = append(ir[chunkIdx].Recordings, p.ObjectAllocationInNewTLAB)
 		case p.TypeMap.T_ALLOC_OUTSIDE_TLAB:
 			ir[chunkIdx].Recordings = append(ir[chunkIdx].Recordings, p.ObjectAllocationOutsideTLAB)
+		case p.TypeMap.T_ALLOC_SAMPLE:
+			ir[chunkIdx].Recordings = append(ir[chunkIdx].Recordings, p.ObjectAllocationSample)
 		case p.TypeMap.T_MONITOR_ENTER:
 			ir[chunkIdx].Recordings = append(ir[chunkIdx].Recordings, p.JavaMonitorEnter)
 		case p.TypeMap.T_THREAD_PARK:
