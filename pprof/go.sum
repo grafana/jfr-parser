@@ -3,8 +3,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 h1:FKHo8hFI3A+7w0aUQuYXQ+6EN5stWmeY/AZqtM8xk9k=
 github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8/go.mod h1:K1liHPHnj73Fdn/EKuT8nrFqBihUSKXoLYU0BuatOYo=
-github.com/grafana/jfr-parser v0.9.0 h1:PGV5CNeH1kbfJ6NUq+i2foE1chJrJhUi7ZsfMDEXDao=
-github.com/grafana/jfr-parser v0.9.0/go.mod h1:KYbwbvXtBoOsYw9b9w8R01dbM5oVfopljq3hA1WDJMQ=
+github.com/grafana/jfr-parser v0.9.1 h1:AjV1s9/2SS1jGmNyJ0+w+nl8tPr0KWM55ClBfQTcKjQ=
+github.com/grafana/jfr-parser v0.9.1/go.mod h1:KYbwbvXtBoOsYw9b9w8R01dbM5oVfopljq3hA1WDJMQ=
 github.com/grafana/pyroscope/api v0.4.0 h1:J86DxoNeLOvtJhB1Cn65JMZkXe682D+RqeoIUiYc/eo=
 github.com/grafana/pyroscope/api v0.4.0/go.mod h1:MFnZNeUM4RDsDOnbgKW3GWoLSBpLzMMT9nkvhHHo81o=
 github.com/k0kubun/pp/v3 v3.2.0 h1:h33hNTZ9nVFNP3u2Fsgz8JXiF5JINoZfFq4SvKJwNcs=
