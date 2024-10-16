@@ -275,13 +275,13 @@ func generateBindLoop(typ *def.Class, bindName string, nestedAllowed bool) strin
 	res += fmt.Sprintf("	}\n")
 	res += fmt.Sprintf("	for %sArrayIndex := 0; %sArrayIndex < %sArraySize; %sArrayIndex++ {\n", bindName, bindName, bindName, bindName)
 	res += fmt.Sprintf("	if %s.Fields[%sFieldIndex].Field.ConstantPool {\n", bindName, bindName)
-	res += emitReadI32()
+	res += emitReadU64()
 	if len(cpoolFields) > 0 {
 		res += fmt.Sprintf("		switch %s.Fields[%sFieldIndex].Field.Type {\n", bindName, bindName)
 		for _, field := range cpoolFields {
 			res += fmt.Sprintf("		case typeMap.%s:\n", TypeID2Sym(field.Type))
 			res += fmt.Sprintf("			if %s.Fields[%sFieldIndex].%s != nil {\n", bindName, bindName, goTypeName(field))
-			res += fmt.Sprintf("				*%s.Fields[%sFieldIndex].%s = %s(v32_)\n", bindName, bindName, goTypeName(field), goTypeName(field))
+			res += fmt.Sprintf("				*%s.Fields[%sFieldIndex].%s = %s(v64_)\n", bindName, bindName, goTypeName(field), goTypeName(field))
 			res += fmt.Sprintf("			}\n")
 		}
 		res += fmt.Sprintf("		}\n")

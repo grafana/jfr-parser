@@ -47,6 +47,7 @@ var testfiles = []testdata{
 	{"cpool-uint64-constant-index", "", 5},
 	{"event-with-type-zero", "", 5},
 	{"object-allocation-sample", "", 3},
+	{"uint64-ref-id", "", 5},
 }
 
 type gprofile struct {

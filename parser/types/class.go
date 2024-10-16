@@ -130,33 +130,35 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 			}
 			for bindArrayIndex := 0; bindArrayIndex < bindArraySize; bindArrayIndex++ {
 				if bind.Fields[bindFieldIndex].Field.ConstantPool {
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
+					v64_ = 0
+					for shift = uint(0); shift <= 56; shift += 7 {
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
 						b_ = data[pos]
 						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
+						if shift == 56 {
+							v64_ |= uint64(b_&0xFF) << shift
 							break
+						} else {
+							v64_ |= uint64(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
 						}
 					}
 					switch bind.Fields[bindFieldIndex].Field.Type {
 					case typeMap.T_CLASS_LOADER:
 						if bind.Fields[bindFieldIndex].ClassLoaderRef != nil {
-							*bind.Fields[bindFieldIndex].ClassLoaderRef = ClassLoaderRef(v32_)
+							*bind.Fields[bindFieldIndex].ClassLoaderRef = ClassLoaderRef(v64_)
 						}
 					case typeMap.T_SYMBOL:
 						if bind.Fields[bindFieldIndex].SymbolRef != nil {
-							*bind.Fields[bindFieldIndex].SymbolRef = SymbolRef(v32_)
+							*bind.Fields[bindFieldIndex].SymbolRef = SymbolRef(v64_)
 						}
 					case typeMap.T_PACKAGE:
 						if bind.Fields[bindFieldIndex].PackageRef != nil {
-							*bind.Fields[bindFieldIndex].PackageRef = PackageRef(v32_)
+							*bind.Fields[bindFieldIndex].PackageRef = PackageRef(v64_)
 						}
 					}
 				} else {
