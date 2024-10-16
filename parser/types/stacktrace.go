@@ -129,19 +129,21 @@ func (this *StackTraceList) Parse(data []byte, bind *BindStackTrace, bindStackFr
 			}
 			for bindArrayIndex := 0; bindArrayIndex < bindArraySize; bindArrayIndex++ {
 				if bind.Fields[bindFieldIndex].Field.ConstantPool {
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
+					v64_ = 0
+					for shift = uint(0); shift <= 56; shift += 7 {
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
 						b_ = data[pos]
 						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
+						if shift == 56 {
+							v64_ |= uint64(b_&0xFF) << shift
 							break
+						} else {
+							v64_ |= uint64(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
 						}
 					}
 				} else {
@@ -307,29 +309,31 @@ func (this *StackTraceList) Parse(data []byte, bind *BindStackTrace, bindStackFr
 							}
 							for bindStackFrameArrayIndex := 0; bindStackFrameArrayIndex < bindStackFrameArraySize; bindStackFrameArrayIndex++ {
 								if bindStackFrame.Fields[bindStackFrameFieldIndex].Field.ConstantPool {
-									v32_ = uint32(0)
-									for shift = uint(0); ; shift += 7 {
-										if shift >= 32 {
-											return 0, def.ErrIntOverflow
-										}
+									v64_ = 0
+									for shift = uint(0); shift <= 56; shift += 7 {
 										if pos >= l {
 											return 0, io.ErrUnexpectedEOF
 										}
 										b_ = data[pos]
 										pos++
-										v32_ |= uint32(b_&0x7F) << shift
-										if b_ < 0x80 {
+										if shift == 56 {
+											v64_ |= uint64(b_&0xFF) << shift
 											break
+										} else {
+											v64_ |= uint64(b_&0x7F) << shift
+											if b_ < 0x80 {
+												break
+											}
 										}
 									}
 									switch bindStackFrame.Fields[bindStackFrameFieldIndex].Field.Type {
 									case typeMap.T_METHOD:
 										if bindStackFrame.Fields[bindStackFrameFieldIndex].MethodRef != nil {
-											*bindStackFrame.Fields[bindStackFrameFieldIndex].MethodRef = MethodRef(v32_)
+											*bindStackFrame.Fields[bindStackFrameFieldIndex].MethodRef = MethodRef(v64_)
 										}
 									case typeMap.T_FRAME_TYPE:
 										if bindStackFrame.Fields[bindStackFrameFieldIndex].FrameTypeRef != nil {
-											*bindStackFrame.Fields[bindStackFrameFieldIndex].FrameTypeRef = FrameTypeRef(v32_)
+											*bindStackFrame.Fields[bindStackFrameFieldIndex].FrameTypeRef = FrameTypeRef(v64_)
 										}
 									}
 								} else {

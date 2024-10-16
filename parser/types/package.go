@@ -118,25 +118,27 @@ func (this *PackageList) Parse(data []byte, bind *BindPackage, typeMap *def.Type
 			}
 			for bindArrayIndex := 0; bindArrayIndex < bindArraySize; bindArrayIndex++ {
 				if bind.Fields[bindFieldIndex].Field.ConstantPool {
-					v32_ = uint32(0)
-					for shift = uint(0); ; shift += 7 {
-						if shift >= 32 {
-							return 0, def.ErrIntOverflow
-						}
+					v64_ = 0
+					for shift = uint(0); shift <= 56; shift += 7 {
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
 						b_ = data[pos]
 						pos++
-						v32_ |= uint32(b_&0x7F) << shift
-						if b_ < 0x80 {
+						if shift == 56 {
+							v64_ |= uint64(b_&0xFF) << shift
 							break
+						} else {
+							v64_ |= uint64(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
 						}
 					}
 					switch bind.Fields[bindFieldIndex].Field.Type {
 					case typeMap.T_SYMBOL:
 						if bind.Fields[bindFieldIndex].SymbolRef != nil {
-							*bind.Fields[bindFieldIndex].SymbolRef = SymbolRef(v32_)
+							*bind.Fields[bindFieldIndex].SymbolRef = SymbolRef(v64_)
 						}
 					}
 				} else {
