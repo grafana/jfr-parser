@@ -19,3 +19,7 @@ jobs:
       - name: Run tests
         run: |
           make test
+      - name: Check that ./pprof's dependcies do work, at main
+        run: |
+          make test-dependency
+        if: ${{ github.ref == 'refs/heads/main' }}
