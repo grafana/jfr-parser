@@ -4,11 +4,13 @@ import (
 	"fmt"
 
 	"github.com/grafana/jfr-parser/parser/types/def"
+	"golang.org/x/text/encoding/charmap"
 )
 
 func (p *Parser) readMeta(pos int) error {
 	p.TypeMap.IDMap = make(map[def.TypeID]*def.Class, 43+5)
 	p.TypeMap.NameMap = make(map[string]*def.Class, 43+5)
+	p.TypeMap.ISO8859_1Decoder = charmap.ISO8859_1.NewDecoder()
 
 	if err := p.seek(pos); err != nil {
 		return err
