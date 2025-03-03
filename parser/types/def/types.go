@@ -36,6 +36,8 @@ type TypeMap struct {
 	T_MONITOR_ENTER      TypeID
 	T_THREAD_PARK        TypeID
 	T_ACTIVE_SETTING     TypeID
+	T_MALLOC             TypeID
+	T_FREE               TypeID
 
 	ISO8859_1Decoder *encoding.Decoder
 }

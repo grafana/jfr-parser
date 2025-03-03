@@ -46,6 +46,8 @@ var (
 	T_LOG                     = def.TypeID(114)
 	T_LIVE_OBJECT             = def.TypeID(115)
 	T_WALL_CLOCK_SAMPLE       = def.TypeID(118)
+	T_MALLOC                  = def.TypeID(119)
+	T_FREE                    = def.TypeID(120)
 	T_ANNOTATION              = def.TypeID(200)
 	T_LABEL                   = def.TypeID(201)
 	T_CATEGORY                = def.TypeID(202)
@@ -551,4 +553,27 @@ var Type_jdk_jfr_Percentage = def.Class{
 	Name:   "jdk.jfr.Percentage",
 	ID:     T_PERCENTAGE,
 	Fields: []def.Field{},
+}
+
+var Type_profiler_Malloc = def.Class{
+	Name: "profiler.Malloc",
+	ID:   T_MALLOC,
+	Fields: []def.Field{
+		{Name: "startTime", Type: T_LONG, ConstantPool: false},
+		{Name: "eventThread", Type: T_THREAD, ConstantPool: true},
+		{Name: "stackTrace", Type: T_STACK_TRACE, ConstantPool: true},
+		{Name: "address", Type: T_LONG, ConstantPool: false},
+		{Name: "size", Type: T_LONG, ConstantPool: false},
+	},
+}
+
+var Type_profiler_Free = def.Class{
+	Name: "profiler.Free",
+	ID:   T_FREE,
+	Fields: []def.Field{
+		{Name: "startTime", Type: T_LONG, ConstantPool: false},
+		{Name: "eventThread", Type: T_THREAD, ConstantPool: true},
+		{Name: "stackTrace", Type: T_STACK_TRACE, ConstantPool: true},
+		{Name: "address", Type: T_LONG, ConstantPool: false},
+	},
 }

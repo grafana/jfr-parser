@@ -51,6 +51,8 @@ type Parser struct {
 
 	ExecutionSample             types2.ExecutionSample
 	WallClockSample             types2.WallClockSample
+	Malloc                      types2.Malloc
+	Free                        types2.Free
 	ObjectAllocationInNewTLAB   types2.ObjectAllocationInNewTLAB
 	ObjectAllocationOutsideTLAB types2.ObjectAllocationOutsideTLAB
 	ObjectAllocationSample      types2.ObjectAllocationSample
@@ -90,6 +92,8 @@ type Parser struct {
 	bindLiveObject       *types2.BindLiveObject
 	bindActiveSetting    *types2.BindActiveSetting
 	bindWallClockSample  *types2.BindWallClockSample
+	bindMalloc           *types2.BindMalloc
+	bindFree             *types2.BindFree
 }
 
 func NewParser(buf []byte, options Options) *Parser {
@@ -143,6 +147,28 @@ func (p *Parser) ParseEvent() (def.TypeID, error) {
 				continue
 			}
 			_, err := p.WallClockSample.Parse(p.buf[p.pos:], p.bindWallClockSample, &p.TypeMap)
+			if err != nil {
+				return 0, err
+			}
+			p.pos = pp + int(size)
+			return ttyp, nil
+		case p.TypeMap.T_MALLOC:
+			if p.bindMalloc == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.Malloc.Parse(p.buf[p.pos:], p.bindMalloc, &p.TypeMap)
+			if err != nil {
+				return 0, err
+			}
+			p.pos = pp + int(size)
+			return ttyp, nil
+		case p.TypeMap.T_FREE:
+			if p.bindFree == nil {
+				p.pos = pp + int(size) // skip
+				continue
+			}
+			_, err := p.Free.Parse(p.buf[p.pos:], p.bindFree, &p.TypeMap)
 			if err != nil {
 				return 0, err
 			}
@@ -548,6 +574,9 @@ func (p *Parser) checkTypes() error {
 	typeLiveObject := p.TypeMap.NameMap["profiler.LiveObject"]
 	typeActiveSetting := p.TypeMap.NameMap["jdk.ActiveSetting"]
 
+	typeMalloc := p.TypeMap.NameMap["profiler.Malloc"]
+	typeFree := p.TypeMap.NameMap["profiler.Free"]
+
 	if typeExecutionSample != nil {
 		p.TypeMap.T_EXECUTION_SAMPLE = typeExecutionSample.ID
 		p.bindExecutionSample = types2.NewBindExecutionSample(typeExecutionSample, &p.TypeMap)
@@ -561,6 +590,21 @@ func (p *Parser) checkTypes() error {
 	} else {
 		p.TypeMap.T_WALL_CLOCK_SAMPLE = -1
 		p.bindWallClockSample = nil
+	}
+	if typeMalloc != nil {
+		p.TypeMap.T_MALLOC = typeMalloc.ID
+		p.bindMalloc = types2.NewBindMalloc(typeMalloc, &p.TypeMap)
+	} else {
+		p.TypeMap.T_MALLOC = -1
+		p.bindMalloc = nil
+	}
+
+	if typeFree != nil {
+		p.TypeMap.T_FREE = typeFree.ID
+		p.bindFree = types2.NewBindFree(typeFree, &p.TypeMap)
+	} else {
+		p.TypeMap.T_FREE = -1
+		p.bindFree = nil
 	}
 
 	if typeAllocInNewTLAB != nil {

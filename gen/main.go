@@ -69,6 +69,8 @@ func main() {
 
 	write("types/execution_sample.go", generate(&Type_jdk_ExecutionSample, options{}))
 	write("types/wall_clock_sample.go", generate(&Type_profiler_WallClockSample, options{}))
+	write("types/malloc.go", generate(&Type_profiler_Malloc, options{}))
+	write("types/free.go", generate(&Type_profiler_Free, options{}))
 	write("types/allocation_in_new_tlab.go", generate(&Type_jdk_ObjectAllocationInNewTLAB, options{}))
 	write("types/allocation_outside_tlab.go", generate(&Type_jdk_ObjectAllocationOutsideTLAB, options{}))
 	write("types/allocation_sample.go", generate(&Type_jdk_ObjectAllocationSample, options{}))
