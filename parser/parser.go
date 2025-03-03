@@ -47,6 +47,7 @@ type Parser struct {
 	Symbols      types2.SymbolList
 	LogLevels    types2.LogLevelList
 	Stacktrace   types2.StackTraceList
+	Strings      types2.StringList
 
 	ExecutionSample             types2.ExecutionSample
 	ObjectAllocationInNewTLAB   types2.ObjectAllocationInNewTLAB
@@ -76,6 +77,7 @@ type Parser struct {
 	bindLogLevel    *types2.BindLogLevel
 	bindStackFrame  *types2.BindStackFrame
 	bindStackTrace  *types2.BindStackTrace
+	bindString      *types2.BindString
 
 	bindExecutionSample *types2.BindExecutionSample
 
@@ -521,6 +523,7 @@ func (p *Parser) checkTypes() error {
 	}
 	p.bindStackTrace = types2.NewBindStackTrace(typeCPStackTrace, &p.TypeMap)
 	p.bindStackFrame = types2.NewBindStackFrame(typeStackFrame, &p.TypeMap)
+	p.bindString = types2.NewBindString(tstring, &p.TypeMap)
 
 	typeExecutionSample := p.TypeMap.NameMap["jdk.ExecutionSample"]
 	typeAllocInNewTLAB := p.TypeMap.NameMap["jdk.ObjectAllocationInNewTLAB"]
@@ -602,5 +605,6 @@ func (p *Parser) checkTypes() error {
 	p.Symbols.IDMap = nil
 	p.LogLevels.IDMap = nil
 	p.Stacktrace.IDMap = nil
+	p.Strings.IDMap = nil
 	return nil
 }

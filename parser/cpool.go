@@ -119,6 +119,10 @@ func (p *Parser) readConstants(c *def.Class) error {
 		o, err := p.Stacktrace.Parse(p.buf[p.pos:], p.bindStackTrace, p.bindStackFrame, &p.TypeMap)
 		p.pos += o
 		return err
+	case "java.lang.String":
+		o, err := p.Strings.Parse(p.buf[p.pos:], p.bindString, &p.TypeMap)
+		p.pos += o
+		return err
 	default:
 		b := types.NewBindSkipConstantPool(c, &p.TypeMap)
 		skipper := types.SkipConstantPoolList{}

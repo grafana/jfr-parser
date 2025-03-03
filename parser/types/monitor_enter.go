@@ -195,6 +195,29 @@ func (this *JavaMonitorEnter) Parse(data []byte, bind *BindJavaMonitorEnter, typ
 						bs := data[pos : pos+int(v32_)]
 						s_ = *(*string)(unsafe.Pointer(&bs))
 						pos += int(v32_)
+					case 5:
+						v32_ = uint32(0)
+						for shift = uint(0); ; shift += 7 {
+							if shift >= 32 {
+								return 0, def.ErrIntOverflow
+							}
+							if pos >= l {
+								return 0, io.ErrUnexpectedEOF
+							}
+							b_ = data[pos]
+							pos++
+							v32_ |= uint32(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
+						}
+						if pos+int(v32_) > l {
+							return 0, io.ErrUnexpectedEOF
+						}
+						bs := data[pos : pos+int(v32_)]
+						bs, _ = typeMap.ISO8859_1Decoder.Bytes(bs)
+						s_ = *(*string)(unsafe.Pointer(&bs))
+						pos += int(v32_)
 					case 4:
 						v32_ = uint32(0)
 						for shift = uint(0); ; shift += 7 {
@@ -373,6 +396,29 @@ func (this *JavaMonitorEnter) Parse(data []byte, bind *BindJavaMonitorEnter, typ
 										return 0, io.ErrUnexpectedEOF
 									}
 									bs := data[pos : pos+int(v32_)]
+									s_ = *(*string)(unsafe.Pointer(&bs))
+									pos += int(v32_)
+								case 5:
+									v32_ = uint32(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 32 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v32_ |= uint32(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
+									if pos+int(v32_) > l {
+										return 0, io.ErrUnexpectedEOF
+									}
+									bs := data[pos : pos+int(v32_)]
+									bs, _ = typeMap.ISO8859_1Decoder.Bytes(bs)
 									s_ = *(*string)(unsafe.Pointer(&bs))
 									pos += int(v32_)
 								case 4:

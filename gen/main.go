@@ -55,6 +55,9 @@ func main() {
 	write("types/symbol.go", generate(&Type_jdk_types_Symbol, options{
 		cpool: true,
 	}))
+	write("types/string.go", generate(&Type_java_lang_String, options{
+		cpool: true,
+	}))
 	write("types/loglevel.go", generate(&Type_profiler_types_LogLevel, options{
 		cpool: true,
 	}))
@@ -162,6 +165,9 @@ func generate(typ *def.Class, opt options) string {
 			}
 		}
 	}
+	if typ.Name == "java.lang.String" {
+		res += fmt.Sprintf("	String string\n")
+	}
 
 	res += fmt.Sprintf("}\n\n")
 	res += fmt.Sprintf("\n")
@@ -218,8 +224,12 @@ func generate(typ *def.Class, opt options) string {
 			res += fmt.Sprintf("id := %s(v64_)\n", refName(typ))
 		}
 	}
-
-	res += generateBindLoop(typ, "bind", true)
+	if typ.Name == "java.lang.String" {
+		res += emitString()
+		res += "		bind.Temp.String = s_\n"
+	} else {
+		res += generateBindLoop(typ, "bind", true)
+	}
 
 	if opt.cpool {
 		if opt.doNotKeepData {
@@ -507,17 +517,29 @@ func emitString() string {
 	res += "switch b_ {\n"
 	res += "case 0:\n"
 	res += "	break\n"
+
 	res += "case 1:\n"
 	res += "	break\n"
+
 	res += "case 3:\n"
 	res += emitReadI32()
 	res += "	if pos+int(v32_) > l {\n"
 	res += "		return 0, io.ErrUnexpectedEOF\n"
 	res += "	}\n"
-
 	res += "	bs := data[pos : pos+int(v32_)]\n"
 	res += "	s_ = *(*string)(unsafe.Pointer(&bs))\n"
 	res += "	pos += int(v32_)\n"
+
+	res += "case 5:\n"
+	res += emitReadI32()
+	res += "	if pos+int(v32_) > l {\n"
+	res += "		return 0, io.ErrUnexpectedEOF\n"
+	res += "	}\n"
+	res += "	bs := data[pos : pos+int(v32_)]\n"
+	res += "	bs, _ = typeMap.ISO8859_1Decoder.Bytes(bs)\n"
+	res += "	s_ = *(*string)(unsafe.Pointer(&bs))\n"
+	res += "	pos += int(v32_)\n"
+
 	res += "case 4:\n"
 	res += emitReadI32()
 	res += "	bl := int(v32_)\n"
