@@ -49,6 +49,8 @@ var testfiles = []testdata{
 	{"object-allocation-sample", "", 3},
 	{"uint64-ref-id", "", 5},
 	{"parse_failure_repro1", "", 1},
+	{"wall_tick_sample", "", 1},
+	{"nativemem", "", 1},
 }
 
 type gprofile struct {

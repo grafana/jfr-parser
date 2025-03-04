@@ -14,6 +14,7 @@ const (
 	sampleTypeThreadPark  = 5
 	sampleTypeLiveObject  = 6
 	sampleTypeAllocSample = 7
+	sampleTypeMalloc      = 8
 )
 
 func newJfrPprofBuilders(p *parser.Parser, jfrLabels *LabelsSnapshot, piOriginal *ParseInput) *jfrPprofBuilders {
@@ -152,6 +153,10 @@ func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *Profil
 		builder.AddSampleType("alloc_sample_objects", "count")
 		builder.AddSampleType("alloc_sample_bytes", "bytes")
 		builder.PeriodType("space", "bytes")
+		metric = "memory"
+	case sampleTypeMalloc:
+		builder.AddSampleType("malloc_objects", "count")
+		builder.AddSampleType("malloc_bytes", "bytes")
 		metric = "memory"
 	}
 	builder.MetricName(metric)

@@ -28,6 +28,7 @@ type TypeMap struct {
 	T_CLASS_LOADER TypeID
 
 	T_EXECUTION_SAMPLE   TypeID
+	T_WALL_CLOCK_SAMPLE  TypeID
 	T_ALLOC_IN_NEW_TLAB  TypeID
 	T_ALLOC_OUTSIDE_TLAB TypeID
 	T_ALLOC_SAMPLE       TypeID
@@ -35,6 +36,8 @@ type TypeMap struct {
 	T_MONITOR_ENTER      TypeID
 	T_THREAD_PARK        TypeID
 	T_ACTIVE_SETTING     TypeID
+	T_MALLOC             TypeID
+	T_FREE               TypeID
 
 	ISO8859_1Decoder *encoding.Decoder
 }

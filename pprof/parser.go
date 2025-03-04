@@ -44,6 +44,9 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 			if event == "wall" {
 				builders.addStacktrace(sampleTypeWall, parser.ExecutionSample.ContextId, parser.ExecutionSample.StackTrace, values[:1])
 			}
+		case parser.TypeMap.T_WALL_CLOCK_SAMPLE:
+			values[0] = int64(parser.WallClockSample.Samples)
+			builders.addStacktrace(sampleTypeWall, parser.WallClockSample.ContextId, parser.WallClockSample.StackTrace, values[:1])
 		case parser.TypeMap.T_ALLOC_IN_NEW_TLAB:
 			values[1] = int64(parser.ObjectAllocationInNewTLAB.TlabSize)
 			builders.addStacktrace(sampleTypeInTLAB, parser.ObjectAllocationInNewTLAB.ContextId, parser.ObjectAllocationInNewTLAB.StackTrace, values[:2])
@@ -61,6 +64,9 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 			builders.addStacktrace(sampleTypeThreadPark, parser.ThreadPark.ContextId, parser.ThreadPark.StackTrace, values[:2])
 		case parser.TypeMap.T_LIVE_OBJECT:
 			builders.addStacktrace(sampleTypeLiveObject, 0, parser.LiveObject.StackTrace, values[:1])
+		case parser.TypeMap.T_MALLOC:
+			values[1] = int64(parser.Malloc.Size)
+			builders.addStacktrace(sampleTypeMalloc, 0, parser.Malloc.StackTrace, values[:2])
 		case parser.TypeMap.T_ACTIVE_SETTING:
 			if parser.ActiveSetting.Name == "event" {
 				event = parser.ActiveSetting.Value
