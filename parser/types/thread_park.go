@@ -75,12 +75,6 @@ func NewBindThreadPark(typ *def.Class, typeMap *def.TypeMap) *BindThreadPark {
 			} else {
 				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
 			}
-		case "contextId":
-			if typ.Fields[i].Equals(&def.Field{Name: "contextId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i], uint64: &res.Temp.ContextId})
-			} else {
-				res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip changed field
-			}
 		default:
 			res.Fields = append(res.Fields, BindFieldThreadPark{Field: &typ.Fields[i]}) // skip unknown new field
 		}
@@ -97,7 +91,6 @@ type ThreadPark struct {
 	Timeout     uint64
 	Until       uint64
 	Address     uint64
-	ContextId   uint64
 }
 
 func (this *ThreadPark) Parse(data []byte, bind *BindThreadPark, typeMap *def.TypeMap) (pos int, err error) {

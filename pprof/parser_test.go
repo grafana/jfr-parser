@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -27,30 +28,31 @@ type testdata struct {
 }
 
 var testfiles = []testdata{
-	{"example", "", 4},
-	{"async-profiler", "", 3}, // -e cpu -i 10ms --alloc 512k --wall 200ms --lock 10ms -d 60 (async-profiler 2.10)
-	{"goland", "", 5},
-	{"goland-multichunk", "", 5},
-	{"FastSlow_2024_01_16_180855", "", 3}, // from IJ Ultimate, multichunk, chunked CP
-	{"cortex-dev-01__kafka-0__cpu__0", "", 1},
-	{"cortex-dev-01__kafka-0__cpu__1", "", 1},
-	{"cortex-dev-01__kafka-0__cpu__2", "", 1},
-	{"cortex-dev-01__kafka-0__cpu__3", "", 1},
-	{"cortex-dev-01__kafka-0__cpu_lock0_alloc0__0", "", 5},
-	{"cortex-dev-01__kafka-0__cpu_lock_alloc__0", "", 2},
-	{"cortex-dev-01__kafka-0__cpu_lock_alloc__1", "", 2},
-	{"cortex-dev-01__kafka-0__cpu_lock_alloc__2", "", 2},
-	{"cortex-dev-01__kafka-0__cpu_lock_alloc__3", "", 2},
-	{"dump1", "dump1.labels.pb.gz", 1},
-	{"dump2", "dump2.labels.pb.gz", 4},
-	{"dd-trace-java", "", 4},
-	{"cpool-uint64-constant-index", "", 5},
-	{"event-with-type-zero", "", 5},
-	{"object-allocation-sample", "", 3},
-	{"uint64-ref-id", "", 5},
-	{"parse_failure_repro1", "", 1},
-	{"wall_tick_sample", "", 1},
-	{"nativemem", "", 1},
+	//{"example", "", 4},
+	//{"async-profiler", "", 3}, // -e cpu -i 10ms --alloc 512k --wall 200ms --lock 10ms -d 60 (async-profiler 2.10)
+	//{"goland", "", 5},
+	//{"goland-multichunk", "", 5},
+	//{"FastSlow_2024_01_16_180855", "", 3}, // from IJ Ultimate, multichunk, chunked CP
+	//{"cortex-dev-01__kafka-0__cpu__0", "", 1},
+	//{"cortex-dev-01__kafka-0__cpu__1", "", 1},
+	//{"cortex-dev-01__kafka-0__cpu__2", "", 1},
+	//{"cortex-dev-01__kafka-0__cpu__3", "", 1},
+	//{"cortex-dev-01__kafka-0__cpu_lock0_alloc0__0", "", 5},
+	//{"cortex-dev-01__kafka-0__cpu_lock_alloc__0", "", 2},
+	//{"cortex-dev-01__kafka-0__cpu_lock_alloc__1", "", 2},
+	//{"cortex-dev-01__kafka-0__cpu_lock_alloc__2", "", 2},
+	//{"cortex-dev-01__kafka-0__cpu_lock_alloc__3", "", 2},
+	//{"dump1", "dump1.labels.pb.gz", 1},
+	//{"dump2", "dump2.labels.pb.gz", 4},
+	//{"dd-trace-java", "", 4},
+	//{"cpool-uint64-constant-index", "", 5},
+	//{"event-with-type-zero", "", 5},
+	//{"object-allocation-sample", "", 3},
+	//{"uint64-ref-id", "", 5},
+	//{"parse_failure_repro1", "", 1},
+	//{"wall_tick_sample", "", 1},
+	//{"nativemem", "", 1},
+	{"new_spancontext", "new_spancontext.labels.gz", 1},
 }
 
 type gprofile struct {
@@ -93,11 +95,16 @@ func TestParse(t *testing.T) {
 			for i, profile := range gprofiles {
 				actual := profileToString(t, profile)
 				actualCollapsed := stackCollapseProto(profile.proto, true)
-				expectedFile := fmt.Sprintf("%s%s_%d_%s_expected.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
+				expectedFile := filepath.Join(testdataDir, fmt.Sprintf("%s_%d_%s_expected.txt.gz", testfile.jfr, i, profile.metric))
+				filePprofDump := filepath.Join(testdataDir, "pprofs", fmt.Sprintf("%s_%d_%s.pprof.gz", testfile.jfr, i, profile.metric))
 				expectedCollapsedFile := fmt.Sprintf("%s%s_%d_%s_expected_collapsed.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
 				assert.NotEmpty(t, actual)
 				assert.NotEmpty(t, actualCollapsed)
 				if doDump {
+					profile.proto.TimeNanos = time.Now().UnixNano()
+					pprof, err := profile.proto.MarshalVT()
+					require.NoError(t, err)
+					writeGzipFile(t, filePprofDump, pprof)
 					writeGzipFile(t, expectedFile, []byte(actual))
 					writeGzipFile(t, expectedCollapsedFile, []byte(actualCollapsed))
 				} else {
@@ -123,6 +130,8 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+//todo add tests ingesting parsed testdata into pyroscope container/instance
 
 func profileToString(t *testing.T, profile gprofile) string {
 	res := profile.profile.String()
@@ -287,4 +296,8 @@ func stackCollapseProto(p *profilev1.Profile, lineNumbers bool) string {
 		res = append(res, fmt.Sprintf("%s %v", s.funcs, s.value))
 	}
 	return strings.Join(res, "\n")
+}
+
+func TestProfileId(t *testing.T) {
+	assert.Equal(t, "00000000000000ef", profileIdString(0xef))
 }

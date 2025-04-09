@@ -63,6 +63,18 @@ func NewBindObjectAllocationOutsideTLAB(typ *def.Class, typeMap *def.TypeMap) *B
 			} else {
 				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
 			}
+		case "spanId":
+			if typ.Fields[i].Equals(&def.Field{Name: "spanId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i], uint64: &res.Temp.SpanId})
+			} else {
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
+			}
+		case "spanName":
+			if typ.Fields[i].Equals(&def.Field{Name: "spanName", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i], uint64: &res.Temp.SpanName})
+			} else {
+				res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip changed field
+			}
 		default:
 			res.Fields = append(res.Fields, BindFieldObjectAllocationOutsideTLAB{Field: &typ.Fields[i]}) // skip unknown new field
 		}
@@ -77,6 +89,8 @@ type ObjectAllocationOutsideTLAB struct {
 	ObjectClass    ClassRef
 	AllocationSize uint64
 	ContextId      uint64
+	SpanId         uint64
+	SpanName       uint64
 }
 
 func (this *ObjectAllocationOutsideTLAB) Parse(data []byte, bind *BindObjectAllocationOutsideTLAB, typeMap *def.TypeMap) (pos int, err error) {

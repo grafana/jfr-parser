@@ -47,7 +47,7 @@ type jfrPprofBuilders struct {
 	period        int64
 }
 
-func (b *jfrPprofBuilders) addStacktrace(sampleType int64, contextID uint64, ref types.StackTraceRef, values []int64) {
+func (b *jfrPprofBuilders) addStacktrace(sampleType int64, context ContextKey, ref types.StackTraceRef, values []int64) {
 	p := b.profileBuilderForSampleType(sampleType)
 	st := b.parser.GetStacktrace(ref)
 	if st == nil {
@@ -64,7 +64,7 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, contextID uint64, ref
 		}
 	}
 
-	sample := p.FindExternalSampleWithLabels(uint64(ref), contextID)
+	sample := p.FindExternalSampleWithLabels(uint64(ref), context)
 	if sample != nil {
 		addValues(sample.Value)
 		return
@@ -106,7 +106,7 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, contextID uint64, ref
 	}
 	vs := make([]int64, len(values))
 	addValues(vs)
-	p.AddExternalSampleWithLabels(locations, vs, b.contextLabels(contextID), b.jfrLabels, uint64(ref), contextID)
+	p.AddExternalSampleWithLabels(locations, vs, b.contextLabels(context.ContextId), b.jfrLabels, uint64(ref), context)
 }
 
 func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *ProfileBuilder {

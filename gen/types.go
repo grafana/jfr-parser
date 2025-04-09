@@ -308,6 +308,8 @@ var Type_jdk_ExecutionSample = def.Class{
 		{Name: "sampledThread", Type: T_THREAD, ConstantPool: true},
 		{Name: "stackTrace", Type: T_STACK_TRACE, ConstantPool: true},
 		{Name: "state", Type: T_THREAD_STATE, ConstantPool: true},
+		{Name: "spanId", Type: T_LONG, ConstantPool: false},
+		{Name: "spanName", Type: T_LONG, ConstantPool: false},
 		{Name: "contextId", Type: T_LONG, ConstantPool: false},
 	},
 }
@@ -320,7 +322,6 @@ var Type_profiler_WallClockSample = def.Class{
 		{Name: "sampledThread", Type: T_THREAD, ConstantPool: true},
 		{Name: "stackTrace", Type: T_STACK_TRACE, ConstantPool: true},
 		{Name: "state", Type: T_THREAD_STATE, ConstantPool: true},
-		{Name: "contextId", Type: T_LONG, ConstantPool: false},
 		{Name: "samples", Type: T_INT, ConstantPool: false},
 	},
 }
@@ -336,6 +337,8 @@ var Type_jdk_ObjectAllocationInNewTLAB = def.Class{
 		{Name: "allocationSize", Type: T_LONG, ConstantPool: false},
 		{Name: "tlabSize", Type: T_LONG, ConstantPool: false},
 		{Name: "contextId", Type: T_LONG, ConstantPool: false},
+		{Name: "spanId", Type: T_LONG, ConstantPool: false},
+		{Name: "spanName", Type: T_LONG, ConstantPool: false},
 	},
 }
 var Type_jdk_ObjectAllocationOutsideTLAB = def.Class{
@@ -348,6 +351,8 @@ var Type_jdk_ObjectAllocationOutsideTLAB = def.Class{
 		{Name: "objectClass", Type: T_CLASS, ConstantPool: true},
 		{Name: "allocationSize", Type: T_LONG, ConstantPool: false},
 		{Name: "contextId", Type: T_LONG, ConstantPool: false},
+		{Name: "spanId", Type: T_LONG, ConstantPool: false},
+		{Name: "spanName", Type: T_LONG, ConstantPool: false},
 	},
 }
 var Type_jdk_ObjectAllocationSample = def.Class{
@@ -359,7 +364,6 @@ var Type_jdk_ObjectAllocationSample = def.Class{
 		{Name: "stackTrace", Type: T_STACK_TRACE, ConstantPool: true},
 		{Name: "objectClass", Type: T_CLASS, ConstantPool: true},
 		{Name: "weight", Type: T_LONG, ConstantPool: false},
-		{Name: "contextId", Type: T_LONG, ConstantPool: false},
 	},
 }
 var Type_jdk_JavaMonitorEnter = def.Class{
@@ -374,6 +378,8 @@ var Type_jdk_JavaMonitorEnter = def.Class{
 		{Name: "previousOwner", Type: T_THREAD, ConstantPool: true},
 		{Name: "address", Type: T_LONG, ConstantPool: false},
 		{Name: "contextId", Type: T_LONG, ConstantPool: false},
+		{Name: "spanId", Type: T_LONG, ConstantPool: false},
+		{Name: "spanName", Type: T_LONG, ConstantPool: false},
 	},
 }
 var Type_jdk_ThreadPark = def.Class{
@@ -388,7 +394,6 @@ var Type_jdk_ThreadPark = def.Class{
 		{Name: "timeout", Type: T_LONG, ConstantPool: false},
 		{Name: "until", Type: T_LONG, ConstantPool: false},
 		{Name: "address", Type: T_LONG, ConstantPool: false},
-		{Name: "contextId", Type: T_LONG, ConstantPool: false},
 	},
 }
 var Type_jdk_CPULoad = def.Class{

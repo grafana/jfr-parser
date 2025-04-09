@@ -51,6 +51,18 @@ func NewBindExecutionSample(typ *def.Class, typeMap *def.TypeMap) *BindExecution
 			} else {
 				res.Fields = append(res.Fields, BindFieldExecutionSample{Field: &typ.Fields[i]}) // skip changed field
 			}
+		case "spanId":
+			if typ.Fields[i].Equals(&def.Field{Name: "spanId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldExecutionSample{Field: &typ.Fields[i], uint64: &res.Temp.SpanId})
+			} else {
+				res.Fields = append(res.Fields, BindFieldExecutionSample{Field: &typ.Fields[i]}) // skip changed field
+			}
+		case "spanName":
+			if typ.Fields[i].Equals(&def.Field{Name: "spanName", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
+				res.Fields = append(res.Fields, BindFieldExecutionSample{Field: &typ.Fields[i], uint64: &res.Temp.SpanName})
+			} else {
+				res.Fields = append(res.Fields, BindFieldExecutionSample{Field: &typ.Fields[i]}) // skip changed field
+			}
 		case "contextId":
 			if typ.Fields[i].Equals(&def.Field{Name: "contextId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldExecutionSample{Field: &typ.Fields[i], uint64: &res.Temp.ContextId})
@@ -69,6 +81,8 @@ type ExecutionSample struct {
 	SampledThread ThreadRef
 	StackTrace    StackTraceRef
 	State         ThreadStateRef
+	SpanId        uint64
+	SpanName      uint64
 	ContextId     uint64
 }
 
