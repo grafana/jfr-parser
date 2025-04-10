@@ -16,7 +16,7 @@ type ProfileBuilder struct {
 
 type sampleID struct {
 	locationsID uint64
-	key         ContextKey
+	correlation StacktraceCorrelation
 }
 
 // NewProfileBuilderWithLabels creates a new ProfileBuilder with the given nanoseconds timestamp and labels.
@@ -107,7 +107,7 @@ func (m *ProfileBuilder) AddExternalLocation(id ExternalLocationID, pprofFunctio
 
 }
 
-func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int64, labelsCtx *Context, labelsSnapshot *LabelsSnapshot, locationsID uint64, key ContextKey) {
+func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int64, labelsCtx *Context, labelsSnapshot *LabelsSnapshot, locationsID uint64, correlation StacktraceCorrelation) {
 	sample := &profilev1.Sample{
 		LocationId: locs,
 		Value:      values,
@@ -115,7 +115,7 @@ func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int
 	if m.externalSampleID2SampleIndex == nil {
 		m.externalSampleID2SampleIndex = map[sampleID]uint32{}
 	}
-	m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, key: key}] = uint32(len(m.Profile.Sample))
+	m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, correlation: correlation}] = uint32(len(m.Profile.Sample))
 	m.Profile.Sample = append(m.Profile.Sample, sample)
 	if labelsSnapshot == nil {
 		return
@@ -126,10 +126,10 @@ func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int
 	if labelsCtx != nil {
 		capacity += len(labelsCtx.Labels)
 	}
-	if key.SpanId != 0 {
+	if correlation.SpanId != 0 {
 		capacity++
 	}
-	if key.SpanName != 0 {
+	if correlation.SpanName != 0 {
 		capacity++
 	}
 	if labelsCtx != nil {
@@ -142,14 +142,14 @@ func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int
 		}
 
 	}
-	if key.SpanId != 0 {
+	if correlation.SpanId != 0 {
 		sample.Label = append(sample.Label, &profilev1.Label{
 			Key: m.addString(LabelProfileId),
-			Str: m.addString(profileIdString(key.SpanId)),
+			Str: m.addString(profileIdString(correlation.SpanId)),
 		})
 	}
-	if key.SpanName != 0 {
-		spanName := labelsSnapshot.Strings[int64(key.SpanName)]
+	if correlation.SpanName != 0 {
+		spanName := labelsSnapshot.Strings[int64(correlation.SpanName)]
 		if spanName != "" {
 			sample.Label = append(sample.Label, &profilev1.Label{
 				Key: m.addString(LabelSpanName),
@@ -165,14 +165,14 @@ func profileIdString(profileId uint64) string {
 	//return strconv.FormatUint(profileId, 16)
 }
 
-type ContextKey struct {
-	ContextId uint64 // labels map id
+type StacktraceCorrelation struct {
+	ContextId uint64
 	SpanId    uint64
 	SpanName  uint64
 }
 
-func (m *ProfileBuilder) FindExternalSampleWithLabels(locationsID uint64, key ContextKey) *profilev1.Sample {
-	sampleIndex, ok := m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, key: key}]
+func (m *ProfileBuilder) FindExternalSampleWithLabels(locationsID uint64, correlation StacktraceCorrelation) *profilev1.Sample {
+	sampleIndex, ok := m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, correlation: correlation}]
 	if !ok {
 		return nil
 	}
