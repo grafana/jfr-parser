@@ -1,6 +1,7 @@
 package pprof
 
 import (
+	"fmt"
 	profilev1 "github.com/grafana/pyroscope/api/gen/proto/go/google/v1"
 )
 
@@ -15,7 +16,7 @@ type ProfileBuilder struct {
 
 type sampleID struct {
 	locationsID uint64
-	labelsID    uint64
+	correlation StacktraceCorrelation
 }
 
 // NewProfileBuilderWithLabels creates a new ProfileBuilder with the given nanoseconds timestamp and labels.
@@ -106,15 +107,7 @@ func (m *ProfileBuilder) AddExternalLocation(id ExternalLocationID, pprofFunctio
 
 }
 
-func (m *ProfileBuilder) AddExternalSample(locs []uint64, values []int64, externalSampleID uint32) {
-	m.AddExternalSampleWithLabels(locs, values, nil, nil, uint64(externalSampleID), 0)
-}
-
-func (m *ProfileBuilder) FindExternalSample(externalSampleID uint32) *profilev1.Sample {
-	return m.FindExternalSampleWithLabels(uint64(externalSampleID), 0)
-}
-
-func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int64, labelsCtx *Context, labelsSnapshot *LabelsSnapshot, locationsID, labelsID uint64) {
+func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int64, labelsCtx *Context, labelsSnapshot *LabelsSnapshot, locationsID uint64, correlation StacktraceCorrelation) {
 	sample := &profilev1.Sample{
 		LocationId: locs,
 		Value:      values,
@@ -122,21 +115,64 @@ func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int
 	if m.externalSampleID2SampleIndex == nil {
 		m.externalSampleID2SampleIndex = map[sampleID]uint32{}
 	}
-	m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, labelsID: labelsID}] = uint32(len(m.Profile.Sample))
+	m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, correlation: correlation}] = uint32(len(m.Profile.Sample))
 	m.Profile.Sample = append(m.Profile.Sample, sample)
-	if labelsCtx != nil && labelsSnapshot != nil {
-		sample.Label = make([]*profilev1.Label, 0, len(labelsCtx.Labels))
-		for k, v := range labelsCtx.Labels { //todo iterating over map is not deterministic, this can break tests and maybe even affect performance
+	if labelsSnapshot == nil {
+		return
+	}
+	const LabelProfileId = "profile_id"
+	const LabelSpanName = "span_name"
+	capacity := 0
+	if labelsCtx != nil {
+		capacity += len(labelsCtx.Labels)
+	}
+	if correlation.SpanId != 0 {
+		capacity++
+	}
+	if correlation.SpanName != 0 {
+		capacity++
+	}
+	if labelsCtx != nil {
+		sample.Label = make([]*profilev1.Label, 0, capacity)
+		for k, v := range labelsCtx.Labels {
 			sample.Label = append(sample.Label, &profilev1.Label{
 				Key: m.addString(labelsSnapshot.Strings[k]),
 				Str: m.addString(labelsSnapshot.Strings[v]),
 			})
 		}
+
+	}
+	if correlation.SpanId != 0 {
+		sample.Label = append(sample.Label, &profilev1.Label{
+			Key: m.addString(LabelProfileId),
+			Str: m.addString(profileIdString(correlation.SpanId)),
+		})
+	}
+	if correlation.SpanName != 0 {
+		spanName := labelsSnapshot.Strings[int64(correlation.SpanName)]
+		if spanName != "" {
+			sample.Label = append(sample.Label, &profilev1.Label{
+				Key: m.addString(LabelSpanName),
+				Str: m.addString(spanName),
+			})
+		}
 	}
 }
 
-func (m *ProfileBuilder) FindExternalSampleWithLabels(locationsID, labelsID uint64) *profilev1.Sample {
-	sampleIndex, ok := m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, labelsID: labelsID}]
+func profileIdString(profileId uint64) string {
+	//todo how to do with no sprintf
+	return fmt.Sprintf("%016x", profileId)
+	//return strconv.FormatUint(profileId, 16)
+}
+
+type StacktraceCorrelation struct {
+	ContextId uint64
+	SpanId    uint64
+	SpanName  uint64
+}
+
+func (m *ProfileBuilder) FindExternalSampleWithLabels(locationsID uint64, correlation StacktraceCorrelation) *profilev1.Sample {
+	sampleIndex, ok := m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, correlation: correlation}]
 	if !ok {
 		return nil
 	}

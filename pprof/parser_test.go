@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -51,6 +52,7 @@ var testfiles = []testdata{
 	{"parse_failure_repro1", "", 1},
 	{"wall_tick_sample", "", 1},
 	{"nativemem", "", 1},
+	{"new_spancontext", "new_spancontext.labels.gz", 1},
 }
 
 type gprofile struct {
@@ -93,11 +95,16 @@ func TestParse(t *testing.T) {
 			for i, profile := range gprofiles {
 				actual := profileToString(t, profile)
 				actualCollapsed := stackCollapseProto(profile.proto, true)
-				expectedFile := fmt.Sprintf("%s%s_%d_%s_expected.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
+				expectedFile := filepath.Join(testdataDir, fmt.Sprintf("%s_%d_%s_expected.txt.gz", testfile.jfr, i, profile.metric))
+				filePprofDump := filepath.Join(testdataDir, "pprofs", fmt.Sprintf("%s_%d_%s.pprof.gz", testfile.jfr, i, profile.metric))
 				expectedCollapsedFile := fmt.Sprintf("%s%s_%d_%s_expected_collapsed.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
 				assert.NotEmpty(t, actual)
 				assert.NotEmpty(t, actualCollapsed)
 				if doDump {
+					profile.proto.TimeNanos = time.Now().UnixNano()
+					pprof, err := profile.proto.MarshalVT()
+					require.NoError(t, err)
+					writeGzipFile(t, filePprofDump, pprof)
 					writeGzipFile(t, expectedFile, []byte(actual))
 					writeGzipFile(t, expectedCollapsedFile, []byte(actualCollapsed))
 				} else {
@@ -123,6 +130,8 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+//todo add tests ingesting parsed testdata into pyroscope container/instance
 
 func profileToString(t *testing.T, profile gprofile) string {
 	res := profile.profile.String()
@@ -287,4 +296,8 @@ func stackCollapseProto(p *profilev1.Profile, lineNumbers bool) string {
 		res = append(res, fmt.Sprintf("%s %v", s.funcs, s.value))
 	}
 	return strings.Join(res, "\n")
+}
+
+func TestProfileId(t *testing.T) {
+	assert.Equal(t, "00000000000000ef", profileIdString(0xef))
 }

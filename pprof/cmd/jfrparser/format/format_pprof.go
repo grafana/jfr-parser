@@ -8,13 +8,13 @@ import (
 	"github.com/grafana/jfr-parser/pprof"
 )
 
-type formatterPprof struct{}
+type FormatterPprof struct{}
 
-func NewFormatterPprof() *formatterPprof {
-	return &formatterPprof{}
+func NewFormatterPprof() *FormatterPprof {
+	return &FormatterPprof{}
 }
 
-func (f *formatterPprof) Format(buf []byte, dest string) ([]string, [][]byte, error) {
+func (f *FormatterPprof) Format(buf []byte, dest string) ([]string, [][]byte, error) {
 	pi := &pprof.ParseInput{
 		StartTime:  time.Now(),
 		EndTime:    time.Now(),

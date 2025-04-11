@@ -57,12 +57,6 @@ func NewBindObjectAllocationSample(typ *def.Class, typeMap *def.TypeMap) *BindOb
 			} else {
 				res.Fields = append(res.Fields, BindFieldObjectAllocationSample{Field: &typ.Fields[i]}) // skip changed field
 			}
-		case "contextId":
-			if typ.Fields[i].Equals(&def.Field{Name: "contextId", Type: typeMap.T_LONG, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldObjectAllocationSample{Field: &typ.Fields[i], uint64: &res.Temp.ContextId})
-			} else {
-				res.Fields = append(res.Fields, BindFieldObjectAllocationSample{Field: &typ.Fields[i]}) // skip changed field
-			}
 		default:
 			res.Fields = append(res.Fields, BindFieldObjectAllocationSample{Field: &typ.Fields[i]}) // skip unknown new field
 		}
@@ -76,7 +70,6 @@ type ObjectAllocationSample struct {
 	StackTrace  StackTraceRef
 	ObjectClass ClassRef
 	Weight      uint64
-	ContextId   uint64
 }
 
 func (this *ObjectAllocationSample) Parse(data []byte, bind *BindObjectAllocationSample, typeMap *def.TypeMap) (pos int, err error) {
