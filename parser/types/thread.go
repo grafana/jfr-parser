@@ -73,6 +73,7 @@ func (this *ThreadList) Parse(data []byte, bind *BindThread, typeMap *def.TypeMa
 	var (
 		v64_  uint64
 		v32_  uint32
+		v16_  uint16
 		s_    string
 		b_    byte
 		shift = uint(0)
@@ -80,6 +81,7 @@ func (this *ThreadList) Parse(data []byte, bind *BindThread, typeMap *def.TypeMa
 	)
 	_ = v64_
 	_ = v32_
+	_ = v16_
 	_ = s_
 	v32_ = uint32(0)
 	for shift = uint(0); ; shift += 7 {
@@ -298,6 +300,23 @@ func (this *ThreadList) Parse(data []byte, bind *BindThread, typeMap *def.TypeMa
 						if bind.Fields[bindFieldIndex].uint64 != nil {
 							*bind.Fields[bindFieldIndex].uint64 = v64_
 						}
+					case typeMap.T_SHORT:
+						v16_ = uint16(0)
+						for shift = uint(0); ; shift += 7 {
+							if shift >= 16 {
+								return 0, def.ErrIntOverflow
+							}
+							if pos >= l {
+								return 0, io.ErrUnexpectedEOF
+							}
+							b_ = data[pos]
+							pos++
+							v16_ |= uint16(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
+						}
+						// skipping
 					case typeMap.T_BOOLEAN:
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
@@ -325,7 +344,7 @@ func (this *ThreadList) Parse(data []byte, bind *BindThread, typeMap *def.TypeMa
 					default:
 						bindFieldType := typeMap.IDMap[bind.Fields[bindFieldIndex].Field.Type]
 						if bindFieldType == nil || len(bindFieldType.Fields) == 0 {
-							return 0, fmt.Errorf("unknown type %d", bind.Fields[bindFieldIndex].Field.Type)
+							return 0, fmt.Errorf("unknown type %d %+v", bind.Fields[bindFieldIndex].Field.Type, bindFieldType)
 						}
 						bindSkipObjects := 1
 						if bind.Fields[bindFieldIndex].Field.Array {
@@ -510,6 +529,22 @@ func (this *ThreadList) Parse(data []byte, bind *BindThread, typeMap *def.TypeMa
 											if b_ < 0x80 {
 												break
 											}
+										}
+									}
+								} else if bindSkipFieldType == typeMap.T_SHORT {
+									v16_ = uint16(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 16 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v16_ |= uint16(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
 										}
 									}
 								} else if bindSkipFieldType == typeMap.T_BOOLEAN {

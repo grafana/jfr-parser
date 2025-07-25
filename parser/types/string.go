@@ -44,6 +44,7 @@ func (this *StringList) Parse(data []byte, bind *BindString, typeMap *def.TypeMa
 	var (
 		v64_  uint64
 		v32_  uint32
+		v16_  uint16
 		s_    string
 		b_    byte
 		shift = uint(0)
@@ -51,6 +52,7 @@ func (this *StringList) Parse(data []byte, bind *BindString, typeMap *def.TypeMa
 	)
 	_ = v64_
 	_ = v32_
+	_ = v16_
 	_ = s_
 	v32_ = uint32(0)
 	for shift = uint(0); ; shift += 7 {

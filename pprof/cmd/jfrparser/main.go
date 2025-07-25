@@ -18,6 +18,7 @@ type command struct {
 
 func parseCommand(c *command) {
 	c.format = "pprof"
+	flag.Parse()
 	args := flag.Args()
 	c.src = args[0]
 	if len(args) < 2 {

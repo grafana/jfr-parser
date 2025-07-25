@@ -463,6 +463,7 @@ func (p *Parser) checkTypes() error {
 
 	tint := p.TypeMap.NameMap["int"]
 	tlong := p.TypeMap.NameMap["long"]
+	tshort := p.TypeMap.NameMap["short"]
 	tfloat := p.TypeMap.NameMap["float"]
 	tboolean := p.TypeMap.NameMap["boolean"]
 	tstring := p.TypeMap.NameMap["java.lang.String"]
@@ -472,6 +473,9 @@ func (p *Parser) checkTypes() error {
 	}
 	if tlong == nil {
 		return fmt.Errorf("missing \"long\"")
+	}
+	if tshort == nil {
+		return fmt.Errorf("missing \"short\"")
 	}
 	if tfloat == nil {
 		return fmt.Errorf("missing \"float\"")
@@ -484,6 +488,7 @@ func (p *Parser) checkTypes() error {
 	}
 	p.TypeMap.T_INT = tint.ID
 	p.TypeMap.T_LONG = tlong.ID
+	p.TypeMap.T_SHORT = tshort.ID
 	p.TypeMap.T_FLOAT = tfloat.ID
 	p.TypeMap.T_BOOLEAN = tboolean.ID
 	p.TypeMap.T_STRING = tstring.ID

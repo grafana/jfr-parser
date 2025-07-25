@@ -194,6 +194,7 @@ func generate(typ *def.Class, opt options) string {
 	res += "	var (\n"
 	res += "		v64_ uint64\n"
 	res += "		v32_ uint32\n"
+	res += "		v16_ uint16\n"
 	res += "		s_   string\n"
 	res += "		b_   byte\n"
 	res += "		shift = uint(0)\n"
@@ -201,6 +202,7 @@ func generate(typ *def.Class, opt options) string {
 	res += "	)\n"
 	res += "	_ = v64_\n"
 	res += "	_ = v32_\n"
+	res += "	_ = v16_\n"
 	res += "	_ = s_\n"
 
 	if opt.cpool {
@@ -331,6 +333,15 @@ func generateBindLoop(typ *def.Class, bindName string, nestedAllowed bool) strin
 	} else {
 		res += fmt.Sprintf("			// skipping\n")
 	}
+	res += fmt.Sprintf("		case typeMap.T_SHORT:\n")
+	res += emitReadI16()
+	if fieldsHas(fs, T_SHORT) {
+		res += fmt.Sprintf("			if %s.Fields[%sFieldIndex].uint16 != nil {\n", bindName, bindName)
+		res += fmt.Sprintf("				*%s.Fields[%sFieldIndex].uint16 = v16_\n", bindName, bindName)
+		res += fmt.Sprintf("			}\n")
+	} else {
+		res += fmt.Sprintf("			// skipping\n")
+	}
 
 	res += fmt.Sprintf("		case typeMap.T_BOOLEAN:\n")
 	res += emitReadByte()
@@ -368,7 +379,7 @@ func generateBindLoop(typ *def.Class, bindName string, nestedAllowed bool) strin
 	//todo array
 	res += fmt.Sprintf("			%sFieldType := typeMap.IDMap[%s.Fields[%sFieldIndex].Field.Type]\n", bindName, bindName, bindName)
 	res += fmt.Sprintf("			if %sFieldType == nil || len(%sFieldType.Fields) == 0 {\n", bindName, bindName)
-	res += fmt.Sprintf("				return 0, fmt.Errorf(\"unknown type %%d\", %s.Fields[%sFieldIndex].Field.Type)\n", bindName, bindName)
+	res += fmt.Sprintf("				return 0, fmt.Errorf(\"unknown type %%d %%+v\", %s.Fields[%sFieldIndex].Field.Type, %sFieldType)\n", bindName, bindName, bindName)
 	res += fmt.Sprintf("			}\n")
 	res += fmt.Sprintf("			%sSkipObjects := 1\n", bindName)
 	res += fmt.Sprintf("			if %s.Fields[%sFieldIndex].Field.Array {\n", bindName, bindName)
@@ -388,6 +399,8 @@ func generateBindLoop(typ *def.Class, bindName string, nestedAllowed bool) strin
 	res += emitReadI32()
 	res += fmt.Sprintf("					} else if %sSkipFieldType == typeMap.T_LONG {\n", bindName)
 	res += emitReadU64()
+	res += fmt.Sprintf("					} else if %sSkipFieldType == typeMap.T_SHORT {\n", bindName)
+	res += emitReadI16()
 	res += fmt.Sprintf("					} else if %sSkipFieldType == typeMap.T_BOOLEAN {\n", bindName)
 	res += emitReadByte()
 	res += fmt.Sprintf("					} else {\n")
@@ -448,7 +461,7 @@ func getNonBasicFields(typ *def.Class) []def.Field {
 		if f.ConstantPool {
 			continue
 		}
-		if f.Type == T_INT || f.Type == T_LONG || f.Type == T_FLOAT || f.Type == T_BOOLEAN || f.Type == T_STRING {
+		if f.Type == T_INT || f.Type == T_LONG || f.Type == T_SHORT || f.Type == T_FLOAT || f.Type == T_BOOLEAN || f.Type == T_STRING {
 			continue
 		}
 		res = append(res, f)
@@ -568,6 +581,27 @@ func emitReadByte() string {
 	return code
 
 }
+func emitReadI16() string {
+	code := ""
+	code += "v16_ = uint16(0)\n"
+	code += "for shift = uint(0); ; shift += 7 {\n"
+	code += "	if shift >= 16 {\n"
+	code += "		return 0, def.ErrIntOverflow\n"
+	code += "	}\n"
+	code += "	if pos >= l {\n"
+	code += "		return 0, io.ErrUnexpectedEOF\n"
+	code += "	}\n"
+	code += "	b_ = data[pos]\n"
+	code += "	pos++\n"
+	code += "	v16_ |= uint16(b_&0x7F) << shift\n"
+	code += "	if b_ < 0x80 {\n"
+	code += "		break\n"
+	code += "	}\n"
+	code += "}\n"
+
+	return code
+}
+
 func emitReadI32() string {
 	code := ""
 	code += "v32_ = uint32(0)\n"
@@ -625,6 +659,8 @@ func goTypeName(field def.Field) string {
 		return "uint64"
 	case T_INT:
 		return "uint32"
+	case T_SHORT:
+		return "uint16"
 	case T_FLOAT:
 		return "float32"
 	case T_BOOLEAN:

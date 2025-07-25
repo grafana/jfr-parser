@@ -94,7 +94,6 @@ func (p *Parser) readMeta(pos int) error {
 					}
 
 				}
-				//fmt.Println(cls.String())
 				p.TypeMap.IDMap[cls.ID] = cls
 				p.TypeMap.NameMap[cls.Name] = cls
 
