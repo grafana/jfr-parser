@@ -47,12 +47,15 @@ type jfrPprofBuilders struct {
 	durationNanos int64
 	period        int64
 	opt           *pprofOptions
+
+	metrics ParseMetrics
 }
 
 func (b *jfrPprofBuilders) addStacktrace(sampleType int64, correlation StacktraceCorrelation, ref types.StackTraceRef, values []int64) {
 	p := b.profileBuilderForSampleType(sampleType)
 	st := b.parser.GetStacktrace(ref)
 	if st == nil {
+		b.metrics.StacktraceNotFound++
 		return
 	}
 
@@ -73,7 +76,7 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, correlation Stacktrac
 	}
 
 	nLocs := len(st.Frames)
-	if b.opt.addTruncatedField && st.Truncated {
+	if b.opt.truncatedFrame && st.Truncated {
 		nLocs += 1
 	}
 	locations := make([]uint64, 0, nLocs)
@@ -97,6 +100,7 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, correlation Stacktrac
 			} else {
 				cls := b.parser.GetClass(m.Type)
 				if cls == nil {
+					b.metrics.ClassNotFound++
 					continue
 				}
 				clsName := b.parser.GetSymbolString(cls.Name)
@@ -106,9 +110,11 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, correlation Stacktrac
 			}
 			loc = p.AddExternalLocation(extLocID, pprofFuncID)
 			locations = append(locations, uint64(loc))
+		} else {
+			b.metrics.MethodNotFound++
 		}
 	}
-	if b.opt.addTruncatedField && st.Truncated {
+	if b.opt.truncatedFrame && st.Truncated {
 		locations = append(locations, p.getTruncatedLocation())
 	}
 	vs := make([]int64, len(values))

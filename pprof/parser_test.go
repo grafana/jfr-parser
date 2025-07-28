@@ -83,6 +83,9 @@ func TestParse(t *testing.T) {
 
 			profiles, err := ParseJFR(jfr, parseInput, ls)
 			require.NoError(t, err)
+			assert.Equal(t, 0, profiles.ParseMetrics.StacktraceNotFound)
+			assert.Equal(t, 0, profiles.ParseMetrics.ClassNotFound)
+			assert.Equal(t, 0, profiles.ParseMetrics.MethodNotFound)
 
 			gprofiles := toGoogleProfiles(t, profiles.Profiles)
 			profiles = nil

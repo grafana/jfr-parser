@@ -8,13 +8,13 @@ import (
 )
 
 type pprofOptions struct {
-	addTruncatedField bool
+	truncatedFrame bool
 }
 type Option func(*pprofOptions)
 
-func WithTruncatedFrame(addTruncatedField bool) Option {
+func WithTruncatedFrame(v bool) Option {
 	return func(o *pprofOptions) {
-		o.addTruncatedField = addTruncatedField
+		o.truncatedFrame = v
 	}
 }
 
@@ -25,7 +25,7 @@ func ParseJFR(body []byte, pi *ParseInput, jfrLabels *LabelsSnapshot, opts ...Op
 		}
 	}()
 	o := &pprofOptions{
-		addTruncatedField: false,
+		truncatedFrame: false,
 	}
 	for i := range opts {
 		opts[i](o)
