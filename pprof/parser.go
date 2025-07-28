@@ -7,22 +7,39 @@ import (
 	"github.com/grafana/jfr-parser/parser"
 )
 
-func ParseJFR(body []byte, pi *ParseInput, jfrLabels *LabelsSnapshot) (res *Profiles, err error) {
+type pprofOptions struct {
+	addTruncatedField bool
+}
+type Option func(*pprofOptions)
+
+func WithTruncatedFrame(addTruncatedField bool) Option {
+	return func(o *pprofOptions) {
+		o.addTruncatedField = addTruncatedField
+	}
+}
+
+func ParseJFR(body []byte, pi *ParseInput, jfrLabels *LabelsSnapshot, opts ...Option) (res *Profiles, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("jfr parser panic: %v", r)
 		}
 	}()
+	o := &pprofOptions{
+		addTruncatedField: false,
+	}
+	for i := range opts {
+		opts[i](o)
+	}
 	p := parser.NewParser(body, parser.Options{
 		SymbolProcessor: parser.ProcessSymbols,
 	})
-	return parse(p, pi, jfrLabels)
+	return parse(p, pi, jfrLabels, o)
 }
 
-func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnapshot) (result *Profiles, err error) {
+func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnapshot, opt *pprofOptions) (result *Profiles, err error) {
 	var event string
 
-	builders := newJfrPprofBuilders(parser, jfrLabels, piOriginal)
+	builders := newJfrPprofBuilders(parser, jfrLabels, piOriginal, opt)
 
 	var values = [2]int64{1, 0}
 
