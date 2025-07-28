@@ -55,6 +55,10 @@ type ClassLoader struct {
 	Name SymbolRef
 }
 
+func (this *ClassLoaderList) Reset() {
+	this.IDMap = make(map[ClassLoaderRef]uint32)
+	this.ClassLoader = nil
+}
 func (this *ClassLoaderList) Parse(data []byte, bind *BindClassLoader, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
@@ -85,8 +89,9 @@ func (this *ClassLoaderList) Parse(data []byte, bind *BindClassLoader, typeMap *
 		}
 	}
 	n := int(v32_)
-	this.IDMap = make(map[ClassLoaderRef]uint32, n)
-	this.ClassLoader = make([]ClassLoader, n)
+	if this.ClassLoader == nil {
+		this.ClassLoader = make([]ClassLoader, 0, max(n, 128))
+	}
 	for i := 0; i < n; i++ {
 		v64_ = 0
 		for shift = uint(0); shift <= 56; shift += 7 {
@@ -554,8 +559,8 @@ func (this *ClassLoaderList) Parse(data []byte, bind *BindClassLoader, typeMap *
 				}
 			}
 		}
-		this.ClassLoader[i] = bind.Temp
-		this.IDMap[id] = uint32(i)
+		this.ClassLoader = append(this.ClassLoader, bind.Temp)
+		this.IDMap[id] = uint32(len(this.ClassLoader) - 1)
 	}
 	return pos, nil
 }

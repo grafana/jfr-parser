@@ -47,6 +47,10 @@ type FrameType struct {
 	Description string
 }
 
+func (this *FrameTypeList) Reset() {
+	this.IDMap = make(map[FrameTypeRef]uint32)
+	this.FrameType = nil
+}
 func (this *FrameTypeList) Parse(data []byte, bind *BindFrameType, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
@@ -77,8 +81,9 @@ func (this *FrameTypeList) Parse(data []byte, bind *BindFrameType, typeMap *def.
 		}
 	}
 	n := int(v32_)
-	this.IDMap = make(map[FrameTypeRef]uint32, n)
-	this.FrameType = make([]FrameType, n)
+	if this.FrameType == nil {
+		this.FrameType = make([]FrameType, 0, max(n, 128))
+	}
 	for i := 0; i < n; i++ {
 		v64_ = 0
 		for shift = uint(0); shift <= 56; shift += 7 {
@@ -538,8 +543,8 @@ func (this *FrameTypeList) Parse(data []byte, bind *BindFrameType, typeMap *def.
 				}
 			}
 		}
-		this.FrameType[i] = bind.Temp
-		this.IDMap[id] = uint32(i)
+		this.FrameType = append(this.FrameType, bind.Temp)
+		this.IDMap[id] = uint32(len(this.FrameType) - 1)
 	}
 	return pos, nil
 }

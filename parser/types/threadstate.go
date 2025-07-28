@@ -47,6 +47,10 @@ type ThreadState struct {
 	Name string
 }
 
+func (this *ThreadStateList) Reset() {
+	this.IDMap = make(map[ThreadStateRef]uint32)
+	this.ThreadState = nil
+}
 func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
@@ -77,8 +81,9 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 		}
 	}
 	n := int(v32_)
-	this.IDMap = make(map[ThreadStateRef]uint32, n)
-	this.ThreadState = make([]ThreadState, n)
+	if this.ThreadState == nil {
+		this.ThreadState = make([]ThreadState, 0, max(n, 128))
+	}
 	for i := 0; i < n; i++ {
 		v64_ = 0
 		for shift = uint(0); shift <= 56; shift += 7 {
@@ -538,8 +543,8 @@ func (this *ThreadStateList) Parse(data []byte, bind *BindThreadState, typeMap *
 				}
 			}
 		}
-		this.ThreadState[i] = bind.Temp
-		this.IDMap[id] = uint32(i)
+		this.ThreadState = append(this.ThreadState, bind.Temp)
+		this.IDMap[id] = uint32(len(this.ThreadState) - 1)
 	}
 	return pos, nil
 }

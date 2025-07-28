@@ -40,6 +40,10 @@ type String struct {
 	String string
 }
 
+func (this *StringList) Reset() {
+	this.IDMap = make(map[StringRef]uint32)
+	this.String = nil
+}
 func (this *StringList) Parse(data []byte, bind *BindString, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
@@ -70,8 +74,9 @@ func (this *StringList) Parse(data []byte, bind *BindString, typeMap *def.TypeMa
 		}
 	}
 	n := int(v32_)
-	this.IDMap = make(map[StringRef]uint32, n)
-	this.String = make([]String, n)
+	if this.String == nil {
+		this.String = make([]String, 0, max(n, 128))
+	}
 	for i := 0; i < n; i++ {
 		v64_ = 0
 		for shift = uint(0); shift <= 56; shift += 7 {
@@ -188,8 +193,8 @@ func (this *StringList) Parse(data []byte, bind *BindString, typeMap *def.TypeMa
 			return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
 		}
 		bind.Temp.String = s_
-		this.String[i] = bind.Temp
-		this.IDMap[id] = uint32(i)
+		this.String = append(this.String, bind.Temp)
+		this.IDMap[id] = uint32(len(this.String) - 1)
 	}
 	return pos, nil
 }

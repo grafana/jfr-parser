@@ -47,6 +47,10 @@ type Package struct {
 	Name SymbolRef
 }
 
+func (this *PackageList) Reset() {
+	this.IDMap = make(map[PackageRef]uint32)
+	this.Package = nil
+}
 func (this *PackageList) Parse(data []byte, bind *BindPackage, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
@@ -77,8 +81,9 @@ func (this *PackageList) Parse(data []byte, bind *BindPackage, typeMap *def.Type
 		}
 	}
 	n := int(v32_)
-	this.IDMap = make(map[PackageRef]uint32, n)
-	this.Package = make([]Package, n)
+	if this.Package == nil {
+		this.Package = make([]Package, 0, max(n, 128))
+	}
 	for i := 0; i < n; i++ {
 		v64_ = 0
 		for shift = uint(0); shift <= 56; shift += 7 {
@@ -542,8 +547,8 @@ func (this *PackageList) Parse(data []byte, bind *BindPackage, typeMap *def.Type
 				}
 			}
 		}
-		this.Package[i] = bind.Temp
-		this.IDMap[id] = uint32(i)
+		this.Package = append(this.Package, bind.Temp)
+		this.IDMap[id] = uint32(len(this.Package) - 1)
 	}
 	return pos, nil
 }

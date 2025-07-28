@@ -59,6 +59,10 @@ type Class struct {
 	// skip modifiers
 }
 
+func (this *ClassList) Reset() {
+	this.IDMap = make(map[ClassRef]uint32)
+	this.Class = nil
+}
 func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
@@ -89,8 +93,9 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 		}
 	}
 	n := int(v32_)
-	this.IDMap = make(map[ClassRef]uint32, n)
-	this.Class = make([]Class, n)
+	if this.Class == nil {
+		this.Class = make([]Class, 0, max(n, 128))
+	}
 	for i := 0; i < n; i++ {
 		v64_ = 0
 		for shift = uint(0); shift <= 56; shift += 7 {
@@ -564,8 +569,8 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 				}
 			}
 		}
-		this.Class[i] = bind.Temp
-		this.IDMap[id] = uint32(i)
+		this.Class = append(this.Class, bind.Temp)
+		this.IDMap[id] = uint32(len(this.Class) - 1)
 	}
 	return pos, nil
 }

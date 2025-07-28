@@ -279,19 +279,8 @@ func (p *Parser) GetThreadState(ref types2.ThreadStateRef) *types2.ThreadState {
 }
 
 func (p *Parser) GetMethod(mID types2.MethodRef) *types2.Method {
-	if mID == 0 {
-		return nil
-	}
-	var idx int
-
-	refIDX := int(mID)
-	if refIDX < len(p.Methods.IDMap.Slice) {
-		idx = int(p.Methods.IDMap.Slice[mID])
-	} else {
-		idx = p.Methods.IDMap.Get(mID)
-	}
-
-	if idx == -1 {
+	idx, ok := p.Methods.IDMap[mID]
+	if !ok || int(idx) >= len(p.Methods.Method) {
 		return nil
 	}
 	return &p.Methods.Method[idx]
@@ -666,15 +655,15 @@ func (p *Parser) checkTypes() error {
 		p.bindActiveSetting = nil
 	}
 
-	p.FrameTypes.IDMap = nil
-	p.ThreadStates.IDMap = nil
-	p.Threads.IDMap = nil
-	p.Classes.IDMap = nil
-	p.Methods.IDMap.Slice = nil
-	p.Packages.IDMap = nil
-	p.Symbols.IDMap = nil
-	p.LogLevels.IDMap = nil
-	p.Stacktrace.IDMap = nil
-	p.Strings.IDMap = nil
+	p.FrameTypes.Reset()
+	p.ThreadStates.Reset()
+	p.Threads.Reset()
+	p.Classes.Reset()
+	p.Methods.Reset()
+	p.Packages.Reset()
+	p.Symbols.Reset()
+	p.LogLevels.Reset()
+	p.Stacktrace.Reset()
+	p.Strings.Reset()
 	return nil
 }

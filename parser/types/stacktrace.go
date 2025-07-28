@@ -55,6 +55,10 @@ type StackTrace struct {
 	Frames    []StackFrame
 }
 
+func (this *StackTraceList) Reset() {
+	this.IDMap = make(map[StackTraceRef]uint32)
+	this.StackTrace = nil
+}
 func (this *StackTraceList) Parse(data []byte, bind *BindStackTrace, bindStackFrame *BindStackFrame, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
@@ -85,8 +89,9 @@ func (this *StackTraceList) Parse(data []byte, bind *BindStackTrace, bindStackFr
 		}
 	}
 	n := int(v32_)
-	this.IDMap = make(map[StackTraceRef]uint32, n)
-	this.StackTrace = make([]StackTrace, n)
+	if this.StackTrace == nil {
+		this.StackTrace = make([]StackTrace, 0, max(n, 128))
+	}
 	for i := 0; i < n; i++ {
 		v64_ = 0
 		for shift = uint(0); shift <= 56; shift += 7 {
@@ -1003,8 +1008,8 @@ func (this *StackTraceList) Parse(data []byte, bind *BindStackTrace, bindStackFr
 				}
 			}
 		}
-		this.StackTrace[i] = bind.Temp
-		this.IDMap[id] = uint32(i)
+		this.StackTrace = append(this.StackTrace, bind.Temp)
+		this.IDMap[id] = uint32(len(this.StackTrace) - 1)
 	}
 	return pos, nil
 }
