@@ -11,6 +11,7 @@ type TypeMap struct {
 	T_STRING  TypeID
 	T_INT     TypeID
 	T_LONG    TypeID
+	T_SHORT   TypeID
 	T_FLOAT   TypeID
 	T_BOOLEAN TypeID
 

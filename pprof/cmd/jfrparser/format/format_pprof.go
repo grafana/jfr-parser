@@ -3,6 +3,8 @@ package format
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/grafana/jfr-parser/pprof"
@@ -29,6 +31,15 @@ func (f *FormatterPprof) Format(buf []byte, dest string) ([]string, [][]byte, er
 	dests := make([]string, 0)
 	destDir := filepath.Dir(dest)
 	destBase := filepath.Base(dest)
+	slices.SortFunc(profiles.Profiles, func(i, j pprof.Profile) int {
+		if c := strings.Compare(i.Metric, j.Metric); c != 0 {
+			return c
+		}
+		return strings.Compare(
+			i.Profile.StringTable[i.Profile.SampleType[0].Type],
+			j.Profile.StringTable[j.Profile.SampleType[0].Type],
+		)
+	})
 	for i := 0; i < len(profiles.Profiles); i++ {
 		filename := fmt.Sprintf("%s.%d.%s", profiles.Profiles[i].Metric, i, destBase)
 		dests = append(dests, filepath.Join(destDir, filename))

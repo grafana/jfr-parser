@@ -54,7 +54,7 @@ func NewBindMethod(typ *def.Class, typeMap *def.TypeMap) *BindMethod {
 
 type MethodRef uint64
 type MethodList struct {
-	IDMap  IDMap[MethodRef]
+	IDMap  map[MethodRef]uint32
 	Method []Method
 }
 
@@ -66,10 +66,15 @@ type Method struct {
 	// skip hidden
 }
 
+func (this *MethodList) Reset() {
+	this.IDMap = make(map[MethodRef]uint32)
+	this.Method = nil
+}
 func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMap) (pos int, err error) {
 	var (
 		v64_  uint64
 		v32_  uint32
+		v16_  uint16
 		s_    string
 		b_    byte
 		shift = uint(0)
@@ -77,6 +82,7 @@ func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMa
 	)
 	_ = v64_
 	_ = v32_
+	_ = v16_
 	_ = s_
 	v32_ = uint32(0)
 	for shift = uint(0); ; shift += 7 {
@@ -94,8 +100,9 @@ func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMa
 		}
 	}
 	n := int(v32_)
-	this.IDMap = NewIDMap[MethodRef](n)
-	this.Method = make([]Method, n)
+	if this.Method == nil {
+		this.Method = make([]Method, 0, max(n, 128))
+	}
 	for i := 0; i < n; i++ {
 		v64_ = 0
 		for shift = uint(0); shift <= 56; shift += 7 {
@@ -303,6 +310,23 @@ func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMa
 							}
 						}
 						// skipping
+					case typeMap.T_SHORT:
+						v16_ = uint16(0)
+						for shift = uint(0); ; shift += 7 {
+							if shift >= 16 {
+								return 0, def.ErrIntOverflow
+							}
+							if pos >= l {
+								return 0, io.ErrUnexpectedEOF
+							}
+							b_ = data[pos]
+							pos++
+							v16_ |= uint16(b_&0x7F) << shift
+							if b_ < 0x80 {
+								break
+							}
+						}
+						// skipping
 					case typeMap.T_BOOLEAN:
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
@@ -332,7 +356,7 @@ func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMa
 					default:
 						bindFieldType := typeMap.IDMap[bind.Fields[bindFieldIndex].Field.Type]
 						if bindFieldType == nil || len(bindFieldType.Fields) == 0 {
-							return 0, fmt.Errorf("unknown type %d", bind.Fields[bindFieldIndex].Field.Type)
+							return 0, fmt.Errorf("unknown type %d %+v", bind.Fields[bindFieldIndex].Field.Type, bindFieldType)
 						}
 						bindSkipObjects := 1
 						if bind.Fields[bindFieldIndex].Field.Array {
@@ -519,6 +543,22 @@ func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMa
 											}
 										}
 									}
+								} else if bindSkipFieldType == typeMap.T_SHORT {
+									v16_ = uint16(0)
+									for shift = uint(0); ; shift += 7 {
+										if shift >= 16 {
+											return 0, def.ErrIntOverflow
+										}
+										if pos >= l {
+											return 0, io.ErrUnexpectedEOF
+										}
+										b_ = data[pos]
+										pos++
+										v16_ |= uint16(b_&0x7F) << shift
+										if b_ < 0x80 {
+											break
+										}
+									}
 								} else if bindSkipFieldType == typeMap.T_BOOLEAN {
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
@@ -534,8 +574,8 @@ func (this *MethodList) Parse(data []byte, bind *BindMethod, typeMap *def.TypeMa
 				}
 			}
 		}
-		this.Method[i] = bind.Temp
-		this.IDMap.Set(id, i)
+		this.Method = append(this.Method, bind.Temp)
+		this.IDMap[id] = uint32(len(this.Method) - 1)
 	}
 	return pos, nil
 }

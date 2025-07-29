@@ -279,19 +279,8 @@ func (p *Parser) GetThreadState(ref types2.ThreadStateRef) *types2.ThreadState {
 }
 
 func (p *Parser) GetMethod(mID types2.MethodRef) *types2.Method {
-	if mID == 0 {
-		return nil
-	}
-	var idx int
-
-	refIDX := int(mID)
-	if refIDX < len(p.Methods.IDMap.Slice) {
-		idx = int(p.Methods.IDMap.Slice[mID])
-	} else {
-		idx = p.Methods.IDMap.Get(mID)
-	}
-
-	if idx == -1 {
+	idx, ok := p.Methods.IDMap[mID]
+	if !ok || int(idx) >= len(p.Methods.Method) {
 		return nil
 	}
 	return &p.Methods.Method[idx]
@@ -463,6 +452,7 @@ func (p *Parser) checkTypes() error {
 
 	tint := p.TypeMap.NameMap["int"]
 	tlong := p.TypeMap.NameMap["long"]
+	tshort := p.TypeMap.NameMap["short"]
 	tfloat := p.TypeMap.NameMap["float"]
 	tboolean := p.TypeMap.NameMap["boolean"]
 	tstring := p.TypeMap.NameMap["java.lang.String"]
@@ -472,6 +462,9 @@ func (p *Parser) checkTypes() error {
 	}
 	if tlong == nil {
 		return fmt.Errorf("missing \"long\"")
+	}
+	if tshort == nil {
+		return fmt.Errorf("missing \"short\"")
 	}
 	if tfloat == nil {
 		return fmt.Errorf("missing \"float\"")
@@ -484,6 +477,7 @@ func (p *Parser) checkTypes() error {
 	}
 	p.TypeMap.T_INT = tint.ID
 	p.TypeMap.T_LONG = tlong.ID
+	p.TypeMap.T_SHORT = tshort.ID
 	p.TypeMap.T_FLOAT = tfloat.ID
 	p.TypeMap.T_BOOLEAN = tboolean.ID
 	p.TypeMap.T_STRING = tstring.ID
@@ -661,15 +655,15 @@ func (p *Parser) checkTypes() error {
 		p.bindActiveSetting = nil
 	}
 
-	p.FrameTypes.IDMap = nil
-	p.ThreadStates.IDMap = nil
-	p.Threads.IDMap = nil
-	p.Classes.IDMap = nil
-	p.Methods.IDMap.Slice = nil
-	p.Packages.IDMap = nil
-	p.Symbols.IDMap = nil
-	p.LogLevels.IDMap = nil
-	p.Stacktrace.IDMap = nil
-	p.Strings.IDMap = nil
+	p.FrameTypes.Reset()
+	p.ThreadStates.Reset()
+	p.Threads.Reset()
+	p.Classes.Reset()
+	p.Methods.Reset()
+	p.Packages.Reset()
+	p.Symbols.Reset()
+	p.LogLevels.Reset()
+	p.Stacktrace.Reset()
+	p.Strings.Reset()
 	return nil
 }

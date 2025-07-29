@@ -12,6 +12,8 @@ type ProfileBuilder struct {
 	externalFunctionID2FunctionID map[ExternalFunctionID]PPROFFunctionID
 	externalSampleID2SampleIndex  map[sampleID]uint32
 	metricName                    string
+
+	truncatedLoc uint64
 }
 
 type sampleID struct {
@@ -83,6 +85,12 @@ func (m *ProfileBuilder) FindFunctionByExternalID(externalFunctionID ExternalFun
 }
 
 func (m *ProfileBuilder) AddExternalFunction(frame string, id ExternalFunctionID) PPROFFunctionID {
+	ret := m.addFunction(frame)
+	m.externalFunctionID2FunctionID[id] = ret
+	return ret
+}
+
+func (m *ProfileBuilder) addFunction(frame string) PPROFFunctionID {
 	fname := m.addString(frame)
 	funcID := uint64(len(m.Function)) + 1
 	m.Function = append(m.Function, &profilev1.Function{
@@ -90,21 +98,24 @@ func (m *ProfileBuilder) AddExternalFunction(frame string, id ExternalFunctionID
 		Name: fname,
 	})
 	ret := PPROFFunctionID(funcID)
-	m.externalFunctionID2FunctionID[id] = ret
 	return ret
 }
 
 func (m *ProfileBuilder) AddExternalLocation(id ExternalLocationID, pprofFunctionID PPROFFunctionID) PPROFLocationID {
+	ret := m.addLocation(pprofFunctionID, id.Line)
+	m.externalLocationID2LocationID[id] = ret
+	return ret
+}
+
+func (m *ProfileBuilder) addLocation(pprofFunctionID PPROFFunctionID, line uint32) PPROFLocationID {
 	locID := uint64(len(m.Location)) + 1
 	m.Location = append(m.Location, &profilev1.Location{
 		Id:        locID,
 		MappingId: uint64(1),
-		Line:      []*profilev1.Line{{FunctionId: uint64(pprofFunctionID), Line: int64(id.Line)}},
+		Line:      []*profilev1.Line{{FunctionId: uint64(pprofFunctionID), Line: int64(line)}},
 	})
 	ret := PPROFLocationID(locID)
-	m.externalLocationID2LocationID[id] = ret
 	return ret
-
 }
 
 func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int64, labelsCtx *Context, labelsSnapshot *LabelsSnapshot, locationsID uint64, correlation StacktraceCorrelation) {
@@ -171,11 +182,27 @@ type StacktraceCorrelation struct {
 	SpanName  uint64
 }
 
+// FindExternalSampleWithLabels deprecated
 func (m *ProfileBuilder) FindExternalSampleWithLabels(locationsID uint64, correlation StacktraceCorrelation) *profilev1.Sample {
+	return m.FindExternalSampleWithCorrelation(locationsID, correlation)
+}
+
+func (m *ProfileBuilder) FindExternalSampleWithCorrelation(locationsID uint64, correlation StacktraceCorrelation) *profilev1.Sample {
 	sampleIndex, ok := m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, correlation: correlation}]
 	if !ok {
 		return nil
 	}
 	sample := m.Profile.Sample[sampleIndex]
 	return sample
+}
+
+func (m *ProfileBuilder) getTruncatedLocation() uint64 {
+	if m.truncatedLoc != 0 {
+		return m.truncatedLoc
+	}
+	const truncatedFrameName = "[truncated]"
+	f := m.addFunction(truncatedFrameName)
+	location := m.addLocation(f, 0)
+	m.truncatedLoc = uint64(location)
+	return m.truncatedLoc
 }

@@ -18,9 +18,17 @@ type ParseInput struct {
 type Profiles struct {
 	Profiles []Profile
 	JFREvent string
+
+	ParseMetrics ParseMetrics
 }
 
 type Profile struct {
 	Profile *profilev1.Profile
 	Metric  string
+}
+
+type ParseMetrics struct {
+	StacktraceNotFound int
+	ClassNotFound      int
+	MethodNotFound     int
 }
