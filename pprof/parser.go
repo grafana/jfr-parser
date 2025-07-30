@@ -8,13 +8,27 @@ import (
 )
 
 type pprofOptions struct {
-	truncatedFrame bool
+	truncatedFrame   bool
+	threadRootFrame  bool
+	threadNameLabels bool
 }
 type Option func(*pprofOptions)
 
 func WithTruncatedFrame(v bool) Option {
 	return func(o *pprofOptions) {
 		o.truncatedFrame = v
+	}
+}
+
+func WithThreadRootFrame(v bool) Option {
+	return func(o *pprofOptions) {
+		o.threadRootFrame = v
+	}
+}
+
+func WithThreadNameLabels(v bool) Option {
+	return func(o *pprofOptions) {
+		o.threadNameLabels = v
 	}
 }
 
@@ -25,7 +39,9 @@ func ParseJFR(body []byte, pi *ParseInput, jfrLabels *LabelsSnapshot, opts ...Op
 		}
 	}()
 	o := &pprofOptions{
-		truncatedFrame: false,
+		truncatedFrame:   false,
+		threadRootFrame:  false,
+		threadNameLabels: false,
 	}
 	for i := range opts {
 		opts[i](o)
@@ -61,14 +77,14 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 				SpanName:  parser.ExecutionSample.SpanName,
 			}
 			if ts != nil && ts.Name != "STATE_SLEEPING" {
-				builders.addStacktrace(sampleTypeCPU, correlation, parser.ExecutionSample.StackTrace, values[:1])
+				builders.addStacktraceWithThread(sampleTypeCPU, correlation, parser.ExecutionSample.StackTrace, values[:1], parser.ExecutionSample.SampledThread)
 			}
 			if event == "wall" {
-				builders.addStacktrace(sampleTypeWall, correlation, parser.ExecutionSample.StackTrace, values[:1])
+				builders.addStacktraceWithThread(sampleTypeWall, correlation, parser.ExecutionSample.StackTrace, values[:1], parser.ExecutionSample.SampledThread)
 			}
 		case parser.TypeMap.T_WALL_CLOCK_SAMPLE:
 			values[0] = int64(parser.WallClockSample.Samples)
-			builders.addStacktrace(sampleTypeWall, StacktraceCorrelation{}, parser.WallClockSample.StackTrace, values[:1])
+			builders.addStacktraceWithThread(sampleTypeWall, StacktraceCorrelation{}, parser.WallClockSample.StackTrace, values[:1], parser.WallClockSample.SampledThread)
 		case parser.TypeMap.T_ALLOC_IN_NEW_TLAB:
 			values[1] = int64(parser.ObjectAllocationInNewTLAB.TlabSize)
 			correlation := StacktraceCorrelation{
@@ -76,7 +92,7 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 				SpanId:    parser.ObjectAllocationInNewTLAB.SpanId,
 				SpanName:  parser.ObjectAllocationInNewTLAB.SpanName,
 			}
-			builders.addStacktrace(sampleTypeInTLAB, correlation, parser.ObjectAllocationInNewTLAB.StackTrace, values[:2])
+			builders.addStacktraceWithThread(sampleTypeInTLAB, correlation, parser.ObjectAllocationInNewTLAB.StackTrace, values[:2], parser.ObjectAllocationInNewTLAB.EventThread)
 		case parser.TypeMap.T_ALLOC_OUTSIDE_TLAB:
 			values[1] = int64(parser.ObjectAllocationOutsideTLAB.AllocationSize)
 			correlation := StacktraceCorrelation{
@@ -84,10 +100,10 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 				SpanId:    parser.ObjectAllocationOutsideTLAB.SpanId,
 				SpanName:  parser.ObjectAllocationOutsideTLAB.SpanName,
 			}
-			builders.addStacktrace(sampleTypeOutTLAB, correlation, parser.ObjectAllocationOutsideTLAB.StackTrace, values[:2])
+			builders.addStacktraceWithThread(sampleTypeOutTLAB, correlation, parser.ObjectAllocationOutsideTLAB.StackTrace, values[:2], parser.ObjectAllocationOutsideTLAB.EventThread)
 		case parser.TypeMap.T_ALLOC_SAMPLE:
 			values[1] = int64(parser.ObjectAllocationSample.Weight)
-			builders.addStacktrace(sampleTypeAllocSample, StacktraceCorrelation{}, parser.ObjectAllocationSample.StackTrace, values[:2])
+			builders.addStacktraceWithThread(sampleTypeAllocSample, StacktraceCorrelation{}, parser.ObjectAllocationSample.StackTrace, values[:2], parser.ObjectAllocationSample.EventThread)
 		case parser.TypeMap.T_MONITOR_ENTER:
 			values[1] = int64(parser.JavaMonitorEnter.Duration)
 			correlation := StacktraceCorrelation{
@@ -95,15 +111,15 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 				SpanId:    parser.JavaMonitorEnter.SpanId,
 				SpanName:  parser.JavaMonitorEnter.SpanName,
 			}
-			builders.addStacktrace(sampleTypeLock, correlation, parser.JavaMonitorEnter.StackTrace, values[:2])
+			builders.addStacktraceWithThread(sampleTypeLock, correlation, parser.JavaMonitorEnter.StackTrace, values[:2], parser.JavaMonitorEnter.EventThread)
 		case parser.TypeMap.T_THREAD_PARK:
 			values[1] = int64(parser.ThreadPark.Duration)
-			builders.addStacktrace(sampleTypeThreadPark, StacktraceCorrelation{}, parser.ThreadPark.StackTrace, values[:2])
+			builders.addStacktraceWithThread(sampleTypeThreadPark, StacktraceCorrelation{}, parser.ThreadPark.StackTrace, values[:2], parser.ThreadPark.EventThread)
 		case parser.TypeMap.T_LIVE_OBJECT:
-			builders.addStacktrace(sampleTypeLiveObject, StacktraceCorrelation{}, parser.LiveObject.StackTrace, values[:1])
+			builders.addStacktraceWithThread(sampleTypeLiveObject, StacktraceCorrelation{}, parser.LiveObject.StackTrace, values[:1], parser.LiveObject.EventThread)
 		case parser.TypeMap.T_MALLOC:
 			values[1] = int64(parser.Malloc.Size)
-			builders.addStacktrace(sampleTypeMalloc, StacktraceCorrelation{}, parser.Malloc.StackTrace, values[:2])
+			builders.addStacktraceWithThread(sampleTypeMalloc, StacktraceCorrelation{}, parser.Malloc.StackTrace, values[:2], parser.Malloc.EventThread)
 		case parser.TypeMap.T_ACTIVE_SETTING:
 			if parser.ActiveSetting.Name == "event" {
 				event = parser.ActiveSetting.Value

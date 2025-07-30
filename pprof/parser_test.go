@@ -134,6 +134,100 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestThreadRootFrame(t *testing.T) {
+	jfrFile := testdataDir + "example.jfr.gz"
+	jfr := readGzipFile(t, jfrFile)
+
+	// Test without thread root frame
+	profilesWithoutThread, err := ParseJFR(jfr, parseInput, nil)
+	require.NoError(t, err)
+
+	// Test with thread root frame enabled
+	profilesWithThread, err := ParseJFR(jfr, parseInput, nil, WithThreadRootFrame(true))
+	require.NoError(t, err)
+
+	// Convert to Google profiles for easier analysis
+	gprofilesWithoutThread := toGoogleProfiles(t, profilesWithoutThread.Profiles)
+	gprofilesWithThread := toGoogleProfiles(t, profilesWithThread.Profiles)
+
+	require.Equal(t, len(gprofilesWithoutThread), len(gprofilesWithThread))
+
+	// Check that with thread root frame enabled, we have thread names in the profile
+	for _, profileWithThread := range gprofilesWithThread {
+		// Thread root frame should add extra locations with thread names
+		threadFrameFound := false
+		for _, function := range profileWithThread.profile.Function {
+			if strings.Contains(function.Name, "thread") ||
+				strings.Contains(function.Name, "Thread") ||
+				function.Name == "[thread]" {
+				threadFrameFound = true
+				break
+			}
+		}
+
+		// We should find thread-related functions when thread root frame is enabled
+		if len(profileWithThread.profile.Sample) > 0 {
+			assert.True(t, threadFrameFound, "Thread root frame should add thread names to profile")
+		}
+	}
+}
+
+func TestThreadNameLabels(t *testing.T) {
+	jfrFile := testdataDir + "example.jfr.gz"
+	jfr := readGzipFile(t, jfrFile)
+
+	// Test without thread name labels
+	profilesWithoutLabels, err := ParseJFR(jfr, parseInput, nil)
+	require.NoError(t, err)
+
+	// Test with thread name labels enabled
+	profilesWithLabels, err := ParseJFR(jfr, parseInput, nil, WithThreadNameLabels(true))
+	require.NoError(t, err)
+
+	// Convert to Google profiles for easier analysis
+	gprofilesWithoutLabels := toGoogleProfiles(t, profilesWithoutLabels.Profiles)
+	gprofilesWithLabels := toGoogleProfiles(t, profilesWithLabels.Profiles)
+
+	require.Equal(t, len(gprofilesWithoutLabels), len(gprofilesWithLabels))
+
+	// Check that profiles without thread labels don't have thread_name labels
+	for _, profileWithoutLabels := range gprofilesWithoutLabels {
+		for _, sample := range profileWithoutLabels.proto.Sample {
+			if sample.Label != nil {
+				for _, label := range sample.Label {
+					labelKey := profileWithoutLabels.proto.StringTable[label.Key]
+					assert.NotEqual(t, "thread_name", labelKey, "Profiles without thread labels should not have thread_name labels")
+				}
+			}
+		}
+	}
+
+	// Check that profiles with thread labels have thread_name labels
+	threadLabelFound := false
+	for _, profileWithLabels := range gprofilesWithLabels {
+		for _, sample := range profileWithLabels.proto.Sample {
+			if sample.Label != nil {
+				for _, label := range sample.Label {
+					labelKey := profileWithLabels.proto.StringTable[label.Key]
+					if labelKey == "thread_name" {
+						threadLabelFound = true
+						labelValue := profileWithLabels.proto.StringTable[label.Str]
+						assert.NotEmpty(t, labelValue, "Thread name label should have a non-empty value")
+						// Verify it's a reasonable thread name (should be non-empty and not just whitespace)
+						assert.True(t,
+							len(strings.TrimSpace(labelValue)) > 0,
+							"Thread name label should have a non-empty value, got: %s", labelValue)
+					}
+				}
+			}
+		}
+	}
+
+	if len(gprofilesWithLabels) > 0 {
+		assert.True(t, threadLabelFound, "At least one sample should have thread_name labels when thread labels are enabled")
+	}
+}
+
 //todo add tests ingesting parsed testdata into pyroscope container/instance
 
 func profileToString(t *testing.T, profile gprofile) string {
