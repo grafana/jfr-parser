@@ -55,6 +55,26 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, correlation Stacktrac
 	b.addStacktraceWithThread(sampleType, correlation, ref, values, 0)
 }
 
+// getThreadName extracts thread name with fallback hierarchy: JavaName → OsName → "[thread]"
+func (b *jfrPprofBuilders) getThreadName(threadRef types.ThreadRef) string {
+	if threadRef == 0 {
+		return ""
+	}
+	
+	thread := b.parser.GetThread(threadRef)
+	if thread == nil {
+		return ""
+	}
+	
+	if thread.JavaName != "" {
+		return thread.JavaName
+	}
+	if thread.OsName != "" {
+		return thread.OsName
+	}
+	return "[thread]"
+}
+
 func (b *jfrPprofBuilders) addStacktraceWithThread(sampleType int64, correlation StacktraceCorrelation, ref types.StackTraceRef, values []int64, threadRef types.ThreadRef) {
 	p := b.profileBuilderForSampleType(sampleType)
 	st := b.parser.GetStacktrace(ref)
@@ -79,29 +99,25 @@ func (b *jfrPprofBuilders) addStacktraceWithThread(sampleType int64, correlation
 		return
 	}
 
+	// Extract thread name once if needed by either feature
+	var threadName string
+	if (b.opt.threadRootFrame || b.opt.threadNameLabels) && threadRef != 0 {
+		threadName = b.getThreadName(threadRef)
+	}
+
 	nLocs := len(st.Frames)
 	if b.opt.truncatedFrame && st.Truncated {
 		nLocs += 1
 	}
-	if b.opt.threadRootFrame && threadRef != 0 {
+	if b.opt.threadRootFrame && threadName != "" {
 		nLocs += 1
 	}
 	locations := make([]uint64, 0, nLocs)
 
-	// Add thread name as root frame if enabled and thread reference is available
-	if b.opt.threadRootFrame && threadRef != 0 {
-		thread := b.parser.GetThread(threadRef)
-		if thread != nil {
-			threadName := thread.JavaName
-			if threadName == "" {
-				threadName = thread.OsName
-			}
-			if threadName == "" {
-				threadName = "[thread]"
-			}
-			threadLoc := p.getThreadLocation(threadName)
-			locations = append(locations, threadLoc)
-		}
+	// Add thread name as root frame if enabled and thread name is available
+	if b.opt.threadRootFrame && threadName != "" {
+		threadLoc := p.getThreadLocation(threadName)
+		locations = append(locations, threadLoc)
 	}
 
 	for i := 0; i < len(st.Frames); i++ {
@@ -144,21 +160,13 @@ func (b *jfrPprofBuilders) addStacktraceWithThread(sampleType int64, correlation
 	vs := make([]int64, len(values))
 	addValues(vs)
 
-	var threadName string
-	if b.opt.threadNameLabels && threadRef != 0 {
-		thread := b.parser.GetThread(threadRef)
-		if thread != nil {
-			threadName = thread.JavaName
-			if threadName == "" {
-				threadName = thread.OsName
-			}
-			if threadName == "" {
-				threadName = "[thread]"
-			}
-		}
+	// Use thread name for labels if feature is enabled
+	var threadNameForLabels string
+	if b.opt.threadNameLabels && threadName != "" {
+		threadNameForLabels = threadName
 	}
 
-	p.AddExternalSampleWithLabelsAndThread(locations, vs, b.contextLabels(correlation.ContextId), b.jfrLabels, uint64(ref), correlation, threadName)
+	p.AddExternalSampleWithLabelsAndThread(locations, vs, b.contextLabels(correlation.ContextId), b.jfrLabels, uint64(ref), correlation, threadNameForLabels)
 }
 
 func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *ProfileBuilder {
