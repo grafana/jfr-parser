@@ -52,6 +52,10 @@ type jfrPprofBuilders struct {
 }
 
 func (b *jfrPprofBuilders) addStacktrace(sampleType int64, correlation StacktraceCorrelation, ref types.StackTraceRef, values []int64) {
+	b.addStacktraceWithThread(sampleType, correlation, ref, values, 0)
+}
+
+func (b *jfrPprofBuilders) addStacktraceWithThread(sampleType int64, correlation StacktraceCorrelation, ref types.StackTraceRef, values []int64, threadRef types.ThreadRef) {
 	p := b.profileBuilderForSampleType(sampleType)
 	st := b.parser.GetStacktrace(ref)
 	if st == nil {
@@ -79,7 +83,27 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, correlation Stacktrac
 	if b.opt.truncatedFrame && st.Truncated {
 		nLocs += 1
 	}
+	if b.opt.threadRootFrame && threadRef != 0 {
+		nLocs += 1
+	}
 	locations := make([]uint64, 0, nLocs)
+
+	// Add thread name as root frame if enabled and thread reference is available
+	if b.opt.threadRootFrame && threadRef != 0 {
+		thread := b.parser.GetThread(threadRef)
+		if thread != nil {
+			threadName := thread.JavaName
+			if threadName == "" {
+				threadName = thread.OsName
+			}
+			if threadName == "" {
+				threadName = "[thread]"
+			}
+			threadLoc := p.getThreadLocation(threadName)
+			locations = append(locations, threadLoc)
+		}
+	}
+
 	for i := 0; i < len(st.Frames); i++ {
 		f := st.Frames[i]
 		extLocID := ExternalLocationID{
@@ -119,7 +143,22 @@ func (b *jfrPprofBuilders) addStacktrace(sampleType int64, correlation Stacktrac
 	}
 	vs := make([]int64, len(values))
 	addValues(vs)
-	p.AddExternalSampleWithLabels(locations, vs, b.contextLabels(correlation.ContextId), b.jfrLabels, uint64(ref), correlation)
+
+	var threadName string
+	if b.opt.threadNameLabels && threadRef != 0 {
+		thread := b.parser.GetThread(threadRef)
+		if thread != nil {
+			threadName = thread.JavaName
+			if threadName == "" {
+				threadName = thread.OsName
+			}
+			if threadName == "" {
+				threadName = "[thread]"
+			}
+		}
+	}
+
+	p.AddExternalSampleWithLabelsAndThread(locations, vs, b.contextLabels(correlation.ContextId), b.jfrLabels, uint64(ref), correlation, threadName)
 }
 
 func (b *jfrPprofBuilders) profileBuilderForSampleType(sampleType int64) *ProfileBuilder {
