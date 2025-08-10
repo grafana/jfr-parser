@@ -22,35 +22,171 @@ const doDump = false
 
 type testdata struct {
 	jfr, labels   string
+	testName      string
 	expectedCount int
+	options       []Option
 }
 
-var testfiles = []testdata{
-	{"example", "", 4},
-	{"async-profiler", "", 3}, // -e cpu -i 10ms --alloc 512k --wall 200ms --lock 10ms -d 60 (async-profiler 2.10)
-	{"goland", "", 5},
-	{"goland-multichunk", "", 5},
-	{"FastSlow_2024_01_16_180855", "", 3}, // from IJ Ultimate, multichunk, chunked CP
-	{"cortex-dev-01__kafka-0__cpu__0", "", 1},
-	{"cortex-dev-01__kafka-0__cpu__1", "", 1},
-	{"cortex-dev-01__kafka-0__cpu__2", "", 1},
-	{"cortex-dev-01__kafka-0__cpu__3", "", 1},
-	{"cortex-dev-01__kafka-0__cpu_lock0_alloc0__0", "", 5},
-	{"cortex-dev-01__kafka-0__cpu_lock_alloc__0", "", 2},
-	{"cortex-dev-01__kafka-0__cpu_lock_alloc__1", "", 2},
-	{"cortex-dev-01__kafka-0__cpu_lock_alloc__2", "", 2},
-	{"cortex-dev-01__kafka-0__cpu_lock_alloc__3", "", 2},
-	{"dump1", "dump1.labels.pb.gz", 1},
-	{"dump2", "dump2.labels.pb.gz", 4},
-	{"dd-trace-java", "", 4},
-	{"cpool-uint64-constant-index", "", 5},
-	{"event-with-type-zero", "", 5},
-	{"object-allocation-sample", "", 3},
-	{"uint64-ref-id", "", 5},
-	{"parse_failure_repro1", "", 1},
-	{"wall_tick_sample", "", 1},
-	{"nativemem", "", 1},
-	{"new_spancontext", "new_spancontext.labels.gz", 1},
+var testFiles = []testdata{
+	{
+		jfr:           "example",
+		labels:        "",
+		expectedCount: 4,
+		options:       nil,
+	},
+	{
+		jfr:           "example",
+		testName:      "example with all options",
+		labels:        "",
+		expectedCount: 4,
+		options:       []Option{WithTruncatedFrame(true), WithThreadNameLabels(true), WithThreadRootFrame(true)},
+	},
+	{
+		jfr:           "async-profiler",
+		labels:        "",
+		expectedCount: 3,
+		options:       nil,
+	},
+	{
+		jfr:           "goland",
+		labels:        "",
+		expectedCount: 5,
+		options:       nil,
+	},
+	{
+		jfr:           "goland-multichunk",
+		labels:        "",
+		expectedCount: 5,
+		options:       nil,
+	},
+	{
+		jfr:           "FastSlow_2024_01_16_180855",
+		labels:        "",
+		expectedCount: 3,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu__0",
+		labels:        "",
+		expectedCount: 1,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu__1",
+		labels:        "",
+		expectedCount: 1,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu__2",
+		labels:        "",
+		expectedCount: 1,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu__3",
+		labels:        "",
+		expectedCount: 1,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu_lock0_alloc0__0",
+		labels:        "",
+		expectedCount: 5,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu_lock_alloc__0",
+		labels:        "",
+		expectedCount: 2,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu_lock_alloc__1",
+		labels:        "",
+		expectedCount: 2,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu_lock_alloc__2",
+		labels:        "",
+		expectedCount: 2,
+		options:       nil,
+	},
+	{
+		jfr:           "cortex-dev-01__kafka-0__cpu_lock_alloc__3",
+		labels:        "",
+		expectedCount: 2,
+		options:       nil,
+	},
+	{
+		jfr:           "dump1",
+		labels:        "dump1.labels.pb.gz",
+		expectedCount: 1,
+		options:       nil,
+	},
+	{
+		jfr:           "dump2",
+		labels:        "dump2.labels.pb.gz",
+		expectedCount: 4,
+		options:       nil,
+	},
+	{
+		jfr:           "dd-trace-java",
+		labels:        "",
+		expectedCount: 4,
+		options:       nil,
+	},
+	{
+		jfr:           "cpool-uint64-constant-index",
+		labels:        "",
+		expectedCount: 5,
+		options:       nil,
+	},
+	{
+		jfr:           "event-with-type-zero",
+		labels:        "",
+		expectedCount: 5,
+		options:       nil,
+	},
+	{
+		jfr:           "object-allocation-sample",
+		labels:        "",
+		expectedCount: 3,
+		options:       nil,
+	},
+	{
+		jfr:           "uint64-ref-id",
+		labels:        "",
+		expectedCount: 5,
+		options:       nil,
+	},
+
+	{
+		jfr:           "parse_failure_repro1",
+		labels:        "",
+		expectedCount: 1,
+		options:       nil,
+	},
+
+	{
+		jfr:           "wall_tick_sample",
+		labels:        "",
+		expectedCount: 1,
+		options:       nil,
+	},
+	{
+		jfr:           "nativemem",
+		labels:        "",
+		expectedCount: 1,
+		options:       nil,
+	},
+	{
+		jfr:           "new_spancontext",
+		labels:        "new_spancontext.labels.gz",
+		expectedCount: 1,
+		options:       nil,
+	},
 }
 
 type gprofile struct {
@@ -70,28 +206,35 @@ var parseInput = &ParseInput{
 }
 
 func TestParse(t *testing.T) {
-	for _, testfile := range testfiles {
-		t.Run(testfile.jfr, func(t *testing.T) {
+	for _, td := range testFiles {
+		t.Run(testName(td), func(t *testing.T) {
 			for i, r := range testDataReaders() {
 				t.Run(strconv.Itoa(i), func(t *testing.T) {
-					testOne(t, testfile, r)
+					testOne(t, td, r)
 				})
 			}
 		})
 	}
 }
 
-func testOne(t *testing.T, testfile testdata, r testdataReader) {
-	jfrFile := testdataDir + testfile.jfr + ".jfr.gz"
+func testName(td testdata) string {
+	if td.testName != "" {
+		return td.testName
+	}
+	return td.jfr
+}
+
+func testOne(t *testing.T, td testdata, r testdataReader) {
+	jfrFile := testdataDir + td.jfr + ".jfr.gz"
 	jfr, jfrCleanup := r(t, jfrFile)
-	ls, lsCleanup := readLabels(t, testfile, r)
+	ls, lsCleanup := readLabels(t, td, r)
 	cleanup := func() {
 		jfrCleanup()
 		lsCleanup()
 	}
 	defer cleanup()
 
-	profiles, err := ParseJFR(jfr, parseInput, ls)
+	profiles, err := ParseJFR(jfr, parseInput, ls, td.options...)
 	require.NoError(t, err)
 	cleanup()
 
@@ -105,14 +248,19 @@ func testOne(t *testing.T, testfile testdata, r testdataReader) {
 	slices.SortFunc(gprofiles, func(i, j gprofile) int {
 		return strings.Compare(i.metric, j.metric)
 	})
-	assert.Equal(t, testfile.expectedCount, len(gprofiles))
+	assert.Equal(t, td.expectedCount, len(gprofiles))
 
 	for i, profile := range gprofiles {
 		actual := profileToString(t, profile)
 		actualCollapsed := stackCollapseProto(profile.proto, true)
-		expectedFile := filepath.Join(testdataDir, fmt.Sprintf("%s_%d_%s_expected.txt.gz", testfile.jfr, i, profile.metric))
-		filePprofDump := filepath.Join(testdataDir, "pprofs", fmt.Sprintf("%s_%d_%s.pprof.gz", testfile.jfr, i, profile.metric))
-		expectedCollapsedFile := fmt.Sprintf("%s%s_%d_%s_expected_collapsed.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
+		testFileName := fmt.Sprintf("%s_%d_%s", td.jfr, i, profile.metric)
+		if td.testName != "" {
+			re := regexp.MustCompile("[^a-zA-Z0-9_]+")
+			testFileName = testFileName + "_" + re.ReplaceAllLiteralString(td.testName, "_")
+		}
+		expectedFile := filepath.Join(testdataDir, fmt.Sprintf("%s_expected.txt.gz", testFileName))
+		filePprofDump := filepath.Join(testdataDir, "pprofs", fmt.Sprintf("%s.pprof.gz", testFileName))
+		expectedCollapsedFile := filepath.Join(testdataDir, fmt.Sprintf("%s_expected_collapsed.txt.gz", testFileName))
 		assert.NotEmpty(t, actual)
 		assert.NotEmpty(t, actualCollapsed)
 		if doDump {
@@ -158,7 +306,7 @@ func profileToString(t *testing.T, profile gprofile) string {
 }
 
 func BenchmarkParse(b *testing.B) {
-	for _, testfile := range testfiles {
+	for _, testfile := range testFiles {
 		r := heapReader()
 		b.Run(testfile.jfr, func(b *testing.B) {
 			jfr, _ := r(b, testdataDir+testfile.jfr+".jfr.gz")

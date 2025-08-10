@@ -278,6 +278,14 @@ func (p *Parser) GetThreadState(ref types2.ThreadStateRef) *types2.ThreadState {
 	return &p.ThreadStates.ThreadState[idx]
 }
 
+func (p *Parser) GetThread(ref types2.ThreadRef) *types2.Thread {
+	idx, ok := p.Threads.IDMap[ref]
+	if !ok {
+		return nil
+	}
+	return &p.Threads.Thread[idx]
+}
+
 func (p *Parser) GetMethod(mID types2.MethodRef) *types2.Method {
 	idx, ok := p.Methods.IDMap[mID]
 	if !ok || int(idx) >= len(p.Methods.Method) {

@@ -14,6 +14,7 @@ type ProfileBuilder struct {
 	metricName                    string
 
 	truncatedLoc uint64
+	threadLocs   map[string]uint64
 }
 
 type sampleID struct {
@@ -33,6 +34,7 @@ func NewProfileBuilderWithLabels(ts int64) *ProfileBuilder {
 		strings:                       map[string]int{},
 		externalFunctionID2FunctionID: map[ExternalFunctionID]PPROFFunctionID{},
 		externalLocationID2LocationID: map[ExternalLocationID]PPROFLocationID{},
+		threadLocs:                    map[string]uint64{},
 	}
 	p.addString("")
 	return p
@@ -119,6 +121,10 @@ func (m *ProfileBuilder) addLocation(pprofFunctionID PPROFFunctionID, line uint3
 }
 
 func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int64, labelsCtx *Context, labelsSnapshot *LabelsSnapshot, locationsID uint64, correlation StacktraceCorrelation) {
+	m.AddExternalSampleWithLabelsAndThread(locs, values, labelsCtx, labelsSnapshot, locationsID, correlation, "")
+}
+
+func (m *ProfileBuilder) AddExternalSampleWithLabelsAndThread(locs []uint64, values []int64, labelsCtx *Context, labelsSnapshot *LabelsSnapshot, locationsID uint64, correlation StacktraceCorrelation, threadName string) {
 	sample := &profilev1.Sample{
 		LocationId: locs,
 		Value:      values,
@@ -128,43 +134,60 @@ func (m *ProfileBuilder) AddExternalSampleWithLabels(locs []uint64, values []int
 	}
 	m.externalSampleID2SampleIndex[sampleID{locationsID: locationsID, correlation: correlation}] = uint32(len(m.Profile.Sample))
 	m.Profile.Sample = append(m.Profile.Sample, sample)
-	if labelsSnapshot == nil {
-		return
-	}
+
 	const LabelProfileId = "profile_id"
 	const LabelSpanName = "span_name"
+	const LabelThreadName = "thread_name"
+
 	capacity := 0
-	if labelsCtx != nil {
-		capacity += len(labelsCtx.Labels)
+	if labelsSnapshot != nil {
+		if labelsCtx != nil {
+			capacity += len(labelsCtx.Labels)
+		}
+		if correlation.SpanId != 0 {
+			capacity++
+		}
+		if correlation.SpanName != 0 {
+			capacity++
+		}
 	}
-	if correlation.SpanId != 0 {
+	if threadName != "" {
 		capacity++
 	}
-	if correlation.SpanName != 0 {
-		capacity++
-	}
-	if labelsCtx != nil {
+
+	if capacity > 0 {
 		sample.Label = make([]*profilev1.Label, 0, capacity)
-		for k, v := range labelsCtx.Labels {
-			sample.Label = append(sample.Label, &profilev1.Label{
-				Key: m.addString(labelsSnapshot.Strings[k]),
-				Str: m.addString(labelsSnapshot.Strings[v]),
-			})
+
+		if labelsSnapshot != nil {
+			if labelsCtx != nil {
+				for k, v := range labelsCtx.Labels {
+					sample.Label = append(sample.Label, &profilev1.Label{
+						Key: m.addString(labelsSnapshot.Strings[k]),
+						Str: m.addString(labelsSnapshot.Strings[v]),
+					})
+				}
+			}
+			if correlation.SpanId != 0 {
+				sample.Label = append(sample.Label, &profilev1.Label{
+					Key: m.addString(LabelProfileId),
+					Str: m.addString(profileIdString(correlation.SpanId)),
+				})
+			}
+			if correlation.SpanName != 0 {
+				spanName := labelsSnapshot.Strings[int64(correlation.SpanName)]
+				if spanName != "" {
+					sample.Label = append(sample.Label, &profilev1.Label{
+						Key: m.addString(LabelSpanName),
+						Str: m.addString(spanName),
+					})
+				}
+			}
 		}
 
-	}
-	if correlation.SpanId != 0 {
-		sample.Label = append(sample.Label, &profilev1.Label{
-			Key: m.addString(LabelProfileId),
-			Str: m.addString(profileIdString(correlation.SpanId)),
-		})
-	}
-	if correlation.SpanName != 0 {
-		spanName := labelsSnapshot.Strings[int64(correlation.SpanName)]
-		if spanName != "" {
+		if threadName != "" {
 			sample.Label = append(sample.Label, &profilev1.Label{
-				Key: m.addString(LabelSpanName),
-				Str: m.addString(spanName),
+				Key: m.addString(LabelThreadName),
+				Str: m.addString(threadName),
 			})
 		}
 	}
@@ -205,4 +228,14 @@ func (m *ProfileBuilder) getTruncatedLocation() uint64 {
 	location := m.addLocation(f, 0)
 	m.truncatedLoc = uint64(location)
 	return m.truncatedLoc
+}
+
+func (m *ProfileBuilder) getThreadLocation(threadName string) uint64 {
+	if loc, ok := m.threadLocs[threadName]; ok {
+		return loc
+	}
+	f := m.addFunction(threadName)
+	location := m.addLocation(f, 0)
+	m.threadLocs[threadName] = uint64(location)
+	return m.threadLocs[threadName]
 }
