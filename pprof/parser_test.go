@@ -2,10 +2,6 @@ package pprof
 
 import (
 	"fmt"
-	gpprof "github.com/google/pprof/profile"
-	profilev1 "github.com/grafana/pyroscope/api/gen/proto/go/google/v1"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,6 +10,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	gpprof "github.com/google/pprof/profile"
+	profilev1 "github.com/grafana/pyroscope/api/gen/proto/go/google/v1"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const testdataDir = "../parser/testdata/"

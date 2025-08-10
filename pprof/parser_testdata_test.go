@@ -1,12 +1,13 @@
 package pprof
 
 import (
-	"compress/gzip"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"syscall"
 	"testing"
+
+	"compress/gzip"
+	"github.com/stretchr/testify/require"
 )
 
 type testdataReader func(t testing.TB, fname string) ([]byte, func())
