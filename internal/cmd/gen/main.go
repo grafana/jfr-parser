@@ -53,9 +53,7 @@ func main() {
 	write("types/symbol.go", generate(&Type_jdk_types_Symbol, options{
 		cpool: true,
 	}))
-	write("types/string.go", generate(&Type_java_lang_String, options{
-		cpool: true,
-	}))
+
 	write("types/loglevel.go", generate(&Type_profiler_types_LogLevel, options{
 		cpool: true,
 	}))
@@ -90,6 +88,8 @@ func write(dst, s string) {
 
 	formattedSource, err := format.Source([]byte(s))
 	if err != nil {
+		fmt.Println(dst, err.Error())
+		os.WriteFile("parser/"+dst, []byte(s), 0666)
 		panic(err)
 	}
 	err = os.WriteFile("parser/"+dst, formattedSource, 0666)
@@ -197,7 +197,7 @@ func generate(typ *def.Class, opt options) string {
 	res += "		v64_ uint64\n"
 	res += "		v32_ uint32\n"
 	res += "		v16_ uint16\n"
-	res += "		s_   string\n"
+	res += "		s_   StringBufferRef\n"
 	res += "		b_   byte\n"
 	res += "		shift = uint(0)\n"
 	res += "		l = len(data)\n"
@@ -252,7 +252,7 @@ func generate(typ *def.Class, opt options) string {
 	imports := "package types\n"
 	imports += "\n"
 
-	imports += "import (\n\t\"fmt\"\n\t\"io\"\n\t\"unsafe\"\n\t\"github.com/grafana/jfr-parser/parser/types/def\"\n\n)"
+	imports += "import (\n\t\"fmt\"\n\t\"io\"\n\n\t\"github.com/grafana/jfr-parser/parser/types/def\"\n\n)"
 
 	imports += "\n"
 	res = header + imports + res
@@ -301,8 +301,8 @@ func generateBindLoop(typ *def.Class, bindName string, nestedAllowed bool) strin
 	res += fmt.Sprintf("		case  typeMap.T_STRING:\n")
 	res += emitString()
 	if fieldsHas(fs, T_STRING) {
-		res += fmt.Sprintf("			if %s.Fields[%sFieldIndex].string != nil {\n", bindName, bindName)
-		res += fmt.Sprintf("				*%s.Fields[%sFieldIndex].string = s_\n", bindName, bindName)
+		res += fmt.Sprintf("			if %s.Fields[%sFieldIndex].StringBufferRef != nil {\n", bindName, bindName)
+		res += fmt.Sprintf("				*%s.Fields[%sFieldIndex].StringBufferRef = s_\n", bindName, bindName)
 		res += fmt.Sprintf("			}\n")
 	} else {
 		res += fmt.Sprintf("			// skipping\n")
@@ -348,9 +348,7 @@ func generateBindLoop(typ *def.Class, bindName string, nestedAllowed bool) strin
 	res += fmt.Sprintf("		case typeMap.T_FLOAT:\n")
 	res += emitReadI32()
 	if fieldsHas(fs, T_FLOAT) {
-		res += fmt.Sprintf("			if %s.Fields[%sFieldIndex].float32 != nil {\n", bindName, bindName)
-		res += fmt.Sprintf("				*%s.Fields[%sFieldIndex].float32 = *(*float32)(unsafe.Pointer(&v32_))\n", bindName, bindName)
-		res += fmt.Sprintf("			}\n")
+		panic("unimplemented")
 	} else {
 		res += fmt.Sprintf("			// skipping\n")
 	}
@@ -517,50 +515,11 @@ func generateBinding(typ *def.Class, opt options) string {
 }
 
 func emitString() string {
-	res := "s_ = \"\"\n"
+	res := ""
 	res += "if pos >= l {\n"
 	res += "	return 0, io.ErrUnexpectedEOF\n"
 	res += "}\n"
-	res += "b_ = data[pos]\n"
-	res += "pos++\n"
-	res += "switch b_ {\n"
-	res += "case 0:\n"
-	res += "	break\n"
-
-	res += "case 1:\n"
-	res += "	break\n"
-
-	res += "case 3:\n"
-	res += emitReadI32()
-	res += "	if pos+int(v32_) > l {\n"
-	res += "		return 0, io.ErrUnexpectedEOF\n"
-	res += "	}\n"
-	res += "	bs := data[pos : pos+int(v32_)]\n"
-	res += "	s_ = *(*string)(unsafe.Pointer(&bs))\n"
-	res += "	pos += int(v32_)\n"
-
-	res += "case 5:\n"
-	res += emitReadI32()
-	res += "	if pos+int(v32_) > l {\n"
-	res += "		return 0, io.ErrUnexpectedEOF\n"
-	res += "	}\n"
-	res += "	bs := data[pos : pos+int(v32_)]\n"
-	res += "	bs, _ = typeMap.ISO8859_1Decoder.Bytes(bs)\n"
-	res += "	s_ = *(*string)(unsafe.Pointer(&bs))\n"
-	res += "	pos += int(v32_)\n"
-
-	res += "case 4:\n"
-	res += emitReadI32()
-	res += "	bl := int(v32_)\n"
-	res += "	buf := make([]rune,bl)\n"
-	res += "	for i := 0; i < bl; i++ {\n"
-	res += emitReadI32()
-	res += "		buf[i] = rune(v32_)\n"
-	res += "	}\n"
-	res += "	s_ = string(buf)\n"
-	res += "default:\n"
-	res += "	return 0, fmt.Errorf(\"unknown string type %d at %d\", b_, pos)\n"
-	res += "}\n"
+	res += "s_ = StringBufferRef{Pos: pos}\n"
 	return res
 }
 
@@ -647,7 +606,7 @@ func goTypeName(field def.Field) string {
 	}
 	switch field.Type {
 	case T_STRING:
-		return "string"
+		return "StringBufferRef"
 	case T_LONG:
 		return "uint64"
 	case T_INT:

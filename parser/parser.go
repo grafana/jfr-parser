@@ -2,11 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"io"
-	"unsafe"
-
 	types2 "github.com/grafana/jfr-parser/parser/types"
 	"github.com/grafana/jfr-parser/parser/types/def"
+	"io"
 )
 
 const chunkHeaderSize = 68
@@ -47,7 +45,6 @@ type Parser struct {
 	Symbols      types2.SymbolList
 	LogLevels    types2.LogLevelList
 	Stacktrace   types2.StackTraceList
-	Strings      types2.StringList
 
 	ExecutionSample             types2.ExecutionSample
 	WallClockSample             types2.WallClockSample
@@ -80,7 +77,6 @@ type Parser struct {
 	bindLogLevel    *types2.BindLogLevel
 	bindStackFrame  *types2.BindStackFrame
 	bindStackTrace  *types2.BindStackTrace
-	bindString      *types2.BindString
 
 	bindExecutionSample *types2.BindExecutionSample
 
@@ -401,8 +397,7 @@ func (p *Parser) string() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		str := *(*string)(unsafe.Pointer(&bs))
-		return str, nil
+		return string(bs), nil
 	case 4:
 		return p.charArrayString()
 	default:
@@ -556,7 +551,6 @@ func (p *Parser) checkTypes() error {
 	}
 	p.bindStackTrace = types2.NewBindStackTrace(typeCPStackTrace, &p.TypeMap)
 	p.bindStackFrame = types2.NewBindStackFrame(typeStackFrame, &p.TypeMap)
-	p.bindString = types2.NewBindString(tstring, &p.TypeMap)
 
 	typeExecutionSample := p.TypeMap.NameMap["jdk.ExecutionSample"]
 	typeWallClockSample := p.TypeMap.NameMap["profiler.WallClockSample"]
@@ -664,6 +658,5 @@ func (p *Parser) checkTypes() error {
 	p.Symbols.Reset()
 	p.LogLevels.Reset()
 	p.Stacktrace.Reset()
-	p.Strings.Reset()
 	return nil
 }

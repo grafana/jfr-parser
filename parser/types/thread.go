@@ -4,9 +4,9 @@ package types
 
 import (
 	"fmt"
-	"github.com/grafana/jfr-parser/parser/types/def"
 	"io"
-	"unsafe"
+
+	"github.com/grafana/jfr-parser/parser/types/def"
 )
 
 type BindThread struct {
@@ -15,9 +15,9 @@ type BindThread struct {
 }
 
 type BindFieldThread struct {
-	Field  *def.Field
-	string *string
-	uint64 *uint64
+	Field           *def.Field
+	StringBufferRef *StringBufferRef
+	uint64          *uint64
 }
 
 func NewBindThread(typ *def.Class, typeMap *def.TypeMap) *BindThread {
@@ -27,7 +27,7 @@ func NewBindThread(typ *def.Class, typeMap *def.TypeMap) *BindThread {
 		switch typ.Fields[i].Name {
 		case "osName":
 			if typ.Fields[i].Equals(&def.Field{Name: "osName", Type: typeMap.T_STRING, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i], string: &res.Temp.OsName})
+				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i], StringBufferRef: &res.Temp.OsName})
 			} else {
 				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip changed field
 			}
@@ -39,7 +39,7 @@ func NewBindThread(typ *def.Class, typeMap *def.TypeMap) *BindThread {
 			}
 		case "javaName":
 			if typ.Fields[i].Equals(&def.Field{Name: "javaName", Type: typeMap.T_STRING, ConstantPool: false, Array: false}) {
-				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i], string: &res.Temp.JavaName})
+				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i], StringBufferRef: &res.Temp.JavaName})
 			} else {
 				res.Fields = append(res.Fields, BindFieldThread{Field: &typ.Fields[i]}) // skip changed field
 			}
@@ -63,9 +63,9 @@ type ThreadList struct {
 }
 
 type Thread struct {
-	OsName       string
+	OsName       StringBufferRef
 	OsThreadId   uint64
-	JavaName     string
+	JavaName     StringBufferRef
 	JavaThreadId uint64
 }
 
@@ -78,7 +78,7 @@ func (this *ThreadList) Parse(data []byte, bind *BindThread, typeMap *def.TypeMa
 		v64_  uint64
 		v32_  uint32
 		v16_  uint16
-		s_    string
+		s_    StringBufferRef
 		b_    byte
 		shift = uint(0)
 		l     = len(data)
@@ -168,104 +168,12 @@ func (this *ThreadList) Parse(data []byte, bind *BindThread, typeMap *def.TypeMa
 					bindFieldTypeID := bind.Fields[bindFieldIndex].Field.Type
 					switch bindFieldTypeID {
 					case typeMap.T_STRING:
-						s_ = ""
 						if pos >= l {
 							return 0, io.ErrUnexpectedEOF
 						}
-						b_ = data[pos]
-						pos++
-						switch b_ {
-						case 0:
-							break
-						case 1:
-							break
-						case 3:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-							if pos+int(v32_) > l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							bs := data[pos : pos+int(v32_)]
-							s_ = *(*string)(unsafe.Pointer(&bs))
-							pos += int(v32_)
-						case 5:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-							if pos+int(v32_) > l {
-								return 0, io.ErrUnexpectedEOF
-							}
-							bs := data[pos : pos+int(v32_)]
-							bs, _ = typeMap.ISO8859_1Decoder.Bytes(bs)
-							s_ = *(*string)(unsafe.Pointer(&bs))
-							pos += int(v32_)
-						case 4:
-							v32_ = uint32(0)
-							for shift = uint(0); ; shift += 7 {
-								if shift >= 32 {
-									return 0, def.ErrIntOverflow
-								}
-								if pos >= l {
-									return 0, io.ErrUnexpectedEOF
-								}
-								b_ = data[pos]
-								pos++
-								v32_ |= uint32(b_&0x7F) << shift
-								if b_ < 0x80 {
-									break
-								}
-							}
-							bl := int(v32_)
-							buf := make([]rune, bl)
-							for i := 0; i < bl; i++ {
-								v32_ = uint32(0)
-								for shift = uint(0); ; shift += 7 {
-									if shift >= 32 {
-										return 0, def.ErrIntOverflow
-									}
-									if pos >= l {
-										return 0, io.ErrUnexpectedEOF
-									}
-									b_ = data[pos]
-									pos++
-									v32_ |= uint32(b_&0x7F) << shift
-									if b_ < 0x80 {
-										break
-									}
-								}
-								buf[i] = rune(v32_)
-							}
-							s_ = string(buf)
-						default:
-							return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-						}
-						if bind.Fields[bindFieldIndex].string != nil {
-							*bind.Fields[bindFieldIndex].string = s_
+						s_ = StringBufferRef{Pos: pos}
+						if bind.Fields[bindFieldIndex].StringBufferRef != nil {
+							*bind.Fields[bindFieldIndex].StringBufferRef = s_
 						}
 					case typeMap.T_INT:
 						v32_ = uint32(0)
@@ -390,102 +298,10 @@ func (this *ThreadList) Parse(data []byte, bind *BindThread, typeMap *def.TypeMa
 										}
 									}
 								} else if bindSkipFieldType == typeMap.T_STRING {
-									s_ = ""
 									if pos >= l {
 										return 0, io.ErrUnexpectedEOF
 									}
-									b_ = data[pos]
-									pos++
-									switch b_ {
-									case 0:
-										break
-									case 1:
-										break
-									case 3:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-										if pos+int(v32_) > l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										bs := data[pos : pos+int(v32_)]
-										s_ = *(*string)(unsafe.Pointer(&bs))
-										pos += int(v32_)
-									case 5:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-										if pos+int(v32_) > l {
-											return 0, io.ErrUnexpectedEOF
-										}
-										bs := data[pos : pos+int(v32_)]
-										bs, _ = typeMap.ISO8859_1Decoder.Bytes(bs)
-										s_ = *(*string)(unsafe.Pointer(&bs))
-										pos += int(v32_)
-									case 4:
-										v32_ = uint32(0)
-										for shift = uint(0); ; shift += 7 {
-											if shift >= 32 {
-												return 0, def.ErrIntOverflow
-											}
-											if pos >= l {
-												return 0, io.ErrUnexpectedEOF
-											}
-											b_ = data[pos]
-											pos++
-											v32_ |= uint32(b_&0x7F) << shift
-											if b_ < 0x80 {
-												break
-											}
-										}
-										bl := int(v32_)
-										buf := make([]rune, bl)
-										for i := 0; i < bl; i++ {
-											v32_ = uint32(0)
-											for shift = uint(0); ; shift += 7 {
-												if shift >= 32 {
-													return 0, def.ErrIntOverflow
-												}
-												if pos >= l {
-													return 0, io.ErrUnexpectedEOF
-												}
-												b_ = data[pos]
-												pos++
-												v32_ |= uint32(b_&0x7F) << shift
-												if b_ < 0x80 {
-													break
-												}
-											}
-											buf[i] = rune(v32_)
-										}
-										s_ = string(buf)
-									default:
-										return 0, fmt.Errorf("unknown string type %d at %d", b_, pos)
-									}
+									s_ = StringBufferRef{Pos: pos}
 								} else if bindSkipFieldType == typeMap.T_INT {
 									v32_ = uint32(0)
 									for shift = uint(0); ; shift += 7 {
