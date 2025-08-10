@@ -1,22 +1,19 @@
 package pprof
 
 import (
-	"compress/gzip"
 	"fmt"
-	"io"
+	gpprof "github.com/google/pprof/profile"
+	profilev1 "github.com/grafana/pyroscope/api/gen/proto/go/google/v1"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
-
-	gpprof "github.com/google/pprof/profile"
-	profilev1 "github.com/grafana/pyroscope/api/gen/proto/go/google/v1"
-	"github.com/k0kubun/pp/v3"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const testdataDir = "../parser/testdata/"
@@ -73,64 +70,76 @@ var parseInput = &ParseInput{
 
 func TestParse(t *testing.T) {
 	for _, testfile := range testfiles {
-		mypp := pp.New()
-		mypp.SetColoringEnabled(false)
-		mypp.SetExportedOnly(true)
 		t.Run(testfile.jfr, func(t *testing.T) {
-			jfrFile := testdataDir + testfile.jfr + ".jfr.gz"
-			jfr := readGzipFile(t, jfrFile)
-			ls := readLabels(t, testfile)
-
-			profiles, err := ParseJFR(jfr, parseInput, ls)
-			require.NoError(t, err)
-			assert.Equal(t, 0, profiles.ParseMetrics.StacktraceNotFound)
-			assert.Equal(t, 0, profiles.ParseMetrics.ClassNotFound)
-			assert.Equal(t, 0, profiles.ParseMetrics.MethodNotFound)
-
-			gprofiles := toGoogleProfiles(t, profiles.Profiles)
-			profiles = nil
-
-			slices.SortFunc(gprofiles, func(i, j gprofile) int {
-				return strings.Compare(i.metric, j.metric)
-			})
-			assert.Equal(t, testfile.expectedCount, len(gprofiles))
-
-			for i, profile := range gprofiles {
-				actual := profileToString(t, profile)
-				actualCollapsed := stackCollapseProto(profile.proto, true)
-				expectedFile := filepath.Join(testdataDir, fmt.Sprintf("%s_%d_%s_expected.txt.gz", testfile.jfr, i, profile.metric))
-				filePprofDump := filepath.Join(testdataDir, "pprofs", fmt.Sprintf("%s_%d_%s.pprof.gz", testfile.jfr, i, profile.metric))
-				expectedCollapsedFile := fmt.Sprintf("%s%s_%d_%s_expected_collapsed.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
-				assert.NotEmpty(t, actual)
-				assert.NotEmpty(t, actualCollapsed)
-				if doDump {
-					profile.proto.TimeNanos = time.Now().UnixNano()
-					pprof, err := profile.proto.MarshalVT()
-					require.NoError(t, err)
-					writeGzipFile(t, filePprofDump, pprof)
-					writeGzipFile(t, expectedFile, []byte(actual))
-					writeGzipFile(t, expectedCollapsedFile, []byte(actualCollapsed))
-				} else {
-					expected := readGzipFile(t, expectedFile)
-					require.NoError(t, err)
-					expectedCollapsed := readGzipFile(t, expectedCollapsedFile)
-					require.NoError(t, err)
-
-					assert.Equal(t, string(expected), actual)
-					assert.Equal(t, string(expectedCollapsed), actualCollapsed)
-
-					if string(expected) != actual {
-						os.WriteFile("actual.txt", []byte(actual), 0644)
-						os.WriteFile("expected.txt", expected, 0644)
-					}
-
-					if string(expectedCollapsed) != actualCollapsed {
-						os.WriteFile("actual_collapsed.txt", []byte(actualCollapsed), 0644)
-						os.WriteFile("expected_collapsed.txt", expectedCollapsed, 0644)
-					}
-				}
+			for i, r := range testDataReaders() {
+				t.Run(strconv.Itoa(i), func(t *testing.T) {
+					testOne(t, testfile, r)
+				})
 			}
 		})
+	}
+}
+
+func testOne(t *testing.T, testfile testdata, r testdataReader) {
+	jfrFile := testdataDir + testfile.jfr + ".jfr.gz"
+	jfr, jfrCleanup := r(t, jfrFile)
+	ls, lsCleanup := readLabels(t, testfile, r)
+	cleanup := func() {
+		jfrCleanup()
+		lsCleanup()
+	}
+	defer cleanup()
+
+	profiles, err := ParseJFR(jfr, parseInput, ls)
+	require.NoError(t, err)
+	cleanup()
+
+	assert.Equal(t, 0, profiles.ParseMetrics.StacktraceNotFound)
+	assert.Equal(t, 0, profiles.ParseMetrics.ClassNotFound)
+	assert.Equal(t, 0, profiles.ParseMetrics.MethodNotFound)
+
+	gprofiles := toGoogleProfiles(t, profiles.Profiles)
+	profiles = nil
+
+	slices.SortFunc(gprofiles, func(i, j gprofile) int {
+		return strings.Compare(i.metric, j.metric)
+	})
+	assert.Equal(t, testfile.expectedCount, len(gprofiles))
+
+	for i, profile := range gprofiles {
+		actual := profileToString(t, profile)
+		actualCollapsed := stackCollapseProto(profile.proto, true)
+		expectedFile := filepath.Join(testdataDir, fmt.Sprintf("%s_%d_%s_expected.txt.gz", testfile.jfr, i, profile.metric))
+		filePprofDump := filepath.Join(testdataDir, "pprofs", fmt.Sprintf("%s_%d_%s.pprof.gz", testfile.jfr, i, profile.metric))
+		expectedCollapsedFile := fmt.Sprintf("%s%s_%d_%s_expected_collapsed.txt.gz", testdataDir, testfile.jfr, i, profile.metric)
+		assert.NotEmpty(t, actual)
+		assert.NotEmpty(t, actualCollapsed)
+		if doDump {
+			profile.proto.TimeNanos = time.Now().UnixNano()
+			pprof, err := profile.proto.MarshalVT()
+			require.NoError(t, err)
+			writeGzipFile(t, filePprofDump, pprof)
+			writeGzipFile(t, expectedFile, []byte(actual))
+			writeGzipFile(t, expectedCollapsedFile, []byte(actualCollapsed))
+		} else {
+			expected := readGzipFile(t, expectedFile)
+			require.NoError(t, err)
+			expectedCollapsed := readGzipFile(t, expectedCollapsedFile)
+			require.NoError(t, err)
+
+			assert.Equal(t, string(expected), actual)
+			assert.Equal(t, string(expectedCollapsed), actualCollapsed)
+
+			if string(expected) != actual {
+				os.WriteFile("actual.txt", []byte(actual), 0644)
+				os.WriteFile("expected.txt", expected, 0644)
+			}
+
+			if string(expectedCollapsed) != actualCollapsed {
+				os.WriteFile("actual_collapsed.txt", []byte(actualCollapsed), 0644)
+				os.WriteFile("expected_collapsed.txt", expectedCollapsed, 0644)
+			}
+		}
 	}
 }
 
@@ -147,21 +156,12 @@ func profileToString(t *testing.T, profile gprofile) string {
 	return res
 }
 
-func readLabels(t testing.TB, td testdata) *LabelsSnapshot {
-	ls := new(LabelsSnapshot)
-	if td.labels != "" {
-		labelsBytes := readGzipFile(t, testdataDir+td.labels)
-		err := ls.UnmarshalVT(labelsBytes)
-		require.NoError(t, err)
-	}
-	return ls
-}
-
 func BenchmarkParse(b *testing.B) {
 	for _, testfile := range testfiles {
+		r := heapReader()
 		b.Run(testfile.jfr, func(b *testing.B) {
-			jfr := readGzipFile(b, testdataDir+testfile.jfr+".jfr.gz")
-			ls := readLabels(b, testfile)
+			jfr, _ := r(b, testdataDir+testfile.jfr+".jfr.gz")
+			ls, _ := readLabels(b, testfile, r)
 			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
@@ -197,29 +197,6 @@ func sampleTypesToString(p *gpprof.Profile) string {
 		sh1 = sh1 + fmt.Sprintf("%s__%s%s ", s.Type, s.Unit, dflt)
 	}
 	return strings.TrimSpace(sh1)
-}
-
-func readGzipFile(t testing.TB, fname string) []byte {
-	f, err := os.Open(fname)
-	require.NoError(t, err)
-	defer f.Close()
-	r, err := gzip.NewReader(f)
-	require.NoError(t, err)
-	defer r.Close()
-	bs, err := io.ReadAll(r)
-	require.NoError(t, err)
-	return bs
-}
-
-func writeGzipFile(t *testing.T, f string, data []byte) {
-	fd, err := os.OpenFile(f, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
-	require.NoError(t, err)
-	defer fd.Close()
-	g := gzip.NewWriter(fd)
-	_, err = g.Write(data)
-	require.NoError(t, err)
-	err = g.Close()
-	require.NoError(t, err)
 }
 
 func stackCollapseProto(p *profilev1.Profile, lineNumbers bool) string {
