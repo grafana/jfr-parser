@@ -26,7 +26,10 @@ func readLabels(t testing.TB, td testdata, r testdataReader) (*LabelsSnapshot, f
 }
 
 func testDataReaders() []testdataReader {
-	readers := []testdataReader{heapReader(), poorManSanitizerReader()}
+	readers := []testdataReader{
+		heapReader(),
+		poorManSanitizerReader(),
+	}
 	return readers
 }
 
