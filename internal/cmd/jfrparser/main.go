@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/grafana/jfr-parser/pprof/cmd/jfrparser/format"
+	"github.com/grafana/jfr-parser/internal/cmd/jfrparser/format"
 	"os"
 )
 
