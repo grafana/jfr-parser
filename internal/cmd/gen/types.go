@@ -7,26 +7,26 @@ import (
 )
 
 var (
-	T_METADATA                = def.TypeID(0)
-	T_CPOOL                   = def.TypeID(1)
-	T_BOOLEAN                 = def.TypeID(4)
-	T_CHAR                    = def.TypeID(5)
-	T_FLOAT                   = def.TypeID(6)
-	T_DOUBLE                  = def.TypeID(7)
-	T_BYTE                    = def.TypeID(8)
-	T_SHORT                   = def.TypeID(9)
-	T_INT                     = def.TypeID(10)
-	T_LONG                    = def.TypeID(11)
-	T_STRING                  = def.TypeID(20)
-	T_CLASS                   = def.TypeID(21)
-	T_THREAD                  = def.TypeID(22)
-	T_CLASS_LOADER            = def.TypeID(23)
-	T_FRAME_TYPE              = def.TypeID(24)
-	T_THREAD_STATE            = def.TypeID(25)
-	T_STACK_TRACE             = def.TypeID(26)
-	T_STACK_FRAME             = def.TypeID(27)
-	T_METHOD                  = def.TypeID(28)
-	T_PACKAGE                 = def.TypeID(29)
+	T_METADATA     = def.TypeID(0)
+	T_CPOOL        = def.TypeID(1)
+	T_BOOLEAN      = def.TypeID(4)
+	T_CHAR         = def.TypeID(5)
+	T_FLOAT        = def.TypeID(6)
+	T_DOUBLE       = def.TypeID(7)
+	T_BYTE         = def.TypeID(8)
+	T_SHORT        = def.TypeID(9)
+	T_INT          = def.TypeID(10)
+	T_LONG         = def.TypeID(11)
+	T_STRING       = def.TypeID(20)
+	T_CLASS        = def.TypeID(21)
+	T_THREAD       = def.TypeID(22)
+	T_CLASS_LOADER = def.TypeID(23)
+	T_FRAME_TYPE   = def.TypeID(24)
+	T_THREAD_STATE = def.TypeID(25)
+	T_STACK_TRACE  = def.TypeID(26)
+	T_STACK_FRAME  = def.TypeID(27)
+	T_METHOD       = def.TypeID(28)
+	//T_PACKAGE                 = def.TypeID(29)
 	T_SYMBOL                  = def.TypeID(30)
 	T_LOG_LEVEL               = def.TypeID(31)
 	T_EVENT                   = def.TypeID(100)
@@ -100,8 +100,8 @@ func TypeID2Sym(id def.TypeID) string {
 		return "T_STACK_FRAME"
 	case T_METHOD:
 		return "T_METHOD"
-	case T_PACKAGE:
-		return "T_PACKAGE"
+	//case T_PACKAGE:
+	//	return "T_PACKAGE"
 	case T_SYMBOL:
 		return "T_SYMBOL"
 	case T_LOG_LEVEL:
@@ -212,9 +212,9 @@ var Type_java_lang_Class = def.Class{
 	Name: "java.lang.Class",
 	ID:   T_CLASS,
 	Fields: []def.Field{
-		{Name: "classLoader", Type: T_CLASS_LOADER, ConstantPool: true},
+		//{Name: "classLoader", Type: T_CLASS_LOADER, ConstantPool: true},
 		{Name: "name", Type: T_SYMBOL, ConstantPool: true},
-		{Name: "package", Type: T_PACKAGE, ConstantPool: true},
+		//{Name: "package", Type: T_PACKAGE, ConstantPool: true},
 		{Name: "modifiers", Type: T_INT, ConstantPool: false},
 	},
 }
@@ -279,13 +279,14 @@ var Type_jdk_types_Method = def.Class{
 		{Name: "hidden", Type: T_BOOLEAN, ConstantPool: false},
 	},
 }
-var Type_jdk_types_Package = def.Class{
-	Name: "jdk.types.Package",
-	ID:   T_PACKAGE,
-	Fields: []def.Field{
-		{Name: "name", Type: T_SYMBOL, ConstantPool: true},
-	},
-}
+
+//	var Type_jdk_types_Package = def.Class{
+//		Name: "jdk.types.Package",
+//		ID:   T_PACKAGE,
+//		Fields: []def.Field{
+//			{Name: "name", Type: T_SYMBOL, ConstantPool: true},
+//		},
+//	}
 var Type_jdk_types_Symbol = def.Class{
 	Name: "jdk.types.Symbol",
 	ID:   T_SYMBOL,

@@ -15,11 +15,9 @@ type BindClass struct {
 }
 
 type BindFieldClass struct {
-	Field          *def.Field
-	ClassLoaderRef *ClassLoaderRef
-	SymbolRef      *SymbolRef
-	PackageRef     *PackageRef
-	uint32         *uint32
+	Field     *def.Field
+	SymbolRef *SymbolRef
+	uint32    *uint32
 }
 
 func NewBindClass(typ *def.Class, typeMap *def.TypeMap) *BindClass {
@@ -27,16 +25,12 @@ func NewBindClass(typ *def.Class, typeMap *def.TypeMap) *BindClass {
 	res.Fields = make([]BindFieldClass, 0, len(typ.Fields))
 	for i := 0; i < len(typ.Fields); i++ {
 		switch typ.Fields[i].Name {
-		case "classLoader":
-			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip to save mem
 		case "name":
 			if typ.Fields[i].Equals(&def.Field{Name: "name", Type: typeMap.T_SYMBOL, ConstantPool: true, Array: false}) {
 				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i], SymbolRef: &res.Temp.Name})
 			} else {
 				res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip changed field
 			}
-		case "package":
-			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip to save mem
 		case "modifiers":
 			res.Fields = append(res.Fields, BindFieldClass{Field: &typ.Fields[i]}) // skip to save mem
 		default:
@@ -53,9 +47,7 @@ type ClassList struct {
 }
 
 type Class struct {
-	// skip classLoader
 	Name SymbolRef
-	// skip package
 	// skip modifiers
 }
 
@@ -155,17 +147,9 @@ func (this *ClassList) Parse(data []byte, bind *BindClass, typeMap *def.TypeMap)
 						}
 					}
 					switch bind.Fields[bindFieldIndex].Field.Type {
-					case typeMap.T_CLASS_LOADER:
-						if bind.Fields[bindFieldIndex].ClassLoaderRef != nil {
-							*bind.Fields[bindFieldIndex].ClassLoaderRef = ClassLoaderRef(v64_)
-						}
 					case typeMap.T_SYMBOL:
 						if bind.Fields[bindFieldIndex].SymbolRef != nil {
 							*bind.Fields[bindFieldIndex].SymbolRef = SymbolRef(v64_)
-						}
-					case typeMap.T_PACKAGE:
-						if bind.Fields[bindFieldIndex].PackageRef != nil {
-							*bind.Fields[bindFieldIndex].PackageRef = PackageRef(v64_)
 						}
 					}
 				} else {

@@ -36,9 +36,6 @@ func main() {
 		},
 		cpool: true,
 	}))
-	write("types/classloader.go", generate(&Type_jdk_types_ClassLoader, options{
-		cpool: true,
-	}))
 	write("types/method.go", generate(&Type_jdk_types_Method, options{
 		cpool: true,
 		skipFields: []string{
@@ -47,16 +44,13 @@ func main() {
 			"modifiers",
 		},
 	}))
-	write("types/package.go", generate(&Type_jdk_types_Package, options{
-		cpool: true,
-	}))
+	//write("types/package.go", generate(&Type_jdk_types_Package, options{
+	//	cpool: true,
+	//}))
 	write("types/symbol.go", generate(&Type_jdk_types_Symbol, options{
 		cpool: true,
 	}))
 
-	write("types/loglevel.go", generate(&Type_profiler_types_LogLevel, options{
-		cpool: true,
-	}))
 	write("types/stacktrace.go", generate(&Type_jdk_types_StackTrace, options{
 		cpool: true,
 	}))
@@ -101,7 +95,7 @@ func write(dst, s string) {
 type options struct {
 	cpool         bool
 	doNotKeepData bool
-	skipFields    []string //todo make skip fields runtime option, but still saving memory - explode struct to fields
+	skipFields    []string
 }
 
 func TypeForCPoolID(ID def.TypeID) *def.Class {
@@ -116,8 +110,8 @@ func TypeForCPoolID(ID def.TypeID) *def.Class {
 		return &Type_java_lang_Class
 	case T_METHOD:
 		return &Type_jdk_types_Method
-	case T_PACKAGE:
-		return &Type_jdk_types_Package
+	//case T_PACKAGE:
+	//	return &Type_jdk_types_Package
 	case T_SYMBOL:
 		return &Type_jdk_types_Symbol
 	case T_LOG_LEVEL:
