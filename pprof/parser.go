@@ -18,12 +18,15 @@ func WithTruncatedFrame(v bool) Option {
 	}
 }
 
+// should this be an option?
+//var Recover = recover
+
 func ParseJFR(body []byte, pi *ParseInput, jfrLabels *LabelsSnapshot, opts ...Option) (res *Profiles, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("jfr parser panic: %v", r)
-		}
-	}()
+	//defer func() {
+	//	if r := Recover(); r != nil {
+	//		err = fmt.Errorf("jfr parser panic: %v", r)
+	//	}
+	//}()
 	o := &pprofOptions{
 		truncatedFrame: false,
 	}
