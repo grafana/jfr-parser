@@ -8,7 +8,8 @@ import (
 )
 
 type pprofOptions struct {
-	truncatedFrame bool
+	truncatedFrame       bool
+	disablePanicRecovery bool
 }
 type Option func(*pprofOptions)
 
@@ -18,18 +19,29 @@ func WithTruncatedFrame(v bool) Option {
 	}
 }
 
+func WithDisablePanicRecovery(v bool) Option {
+	return func(o *pprofOptions) {
+		o.disablePanicRecovery = v
+	}
+}
+
 func ParseJFR(body []byte, pi *ParseInput, jfrLabels *LabelsSnapshot, opts ...Option) (res *Profiles, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("jfr parser panic: %v", r)
-		}
-	}()
 	o := &pprofOptions{
-		truncatedFrame: false,
+		truncatedFrame:       false,
+		disablePanicRecovery: false,
 	}
 	for i := range opts {
 		opts[i](o)
 	}
+
+	if !o.disablePanicRecovery {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("jfr parser panic: %v", r)
+			}
+		}()
+	}
+
 	p := parser.NewParser(body, parser.Options{
 		SymbolProcessor: parser.ProcessSymbols,
 	})
