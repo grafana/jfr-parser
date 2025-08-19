@@ -72,7 +72,7 @@ func LLVMFuzzerTestOneInput(data *C.char, size C.size_t) C.int {
 		SampleRate: int64(fd.u64()),
 	}
 
-	_, _ = pprof.ParseJFR(fd.bytes(len(gdata)), pi, ls, pprof.WithTruncatedFrame(truncatedFrame))
+	_, _ = pprof.ParseJFR(fd.bytes(len(gdata)), pi, ls, pprof.WithTruncatedFrame(truncatedFrame), pprof.WithDisablePanicRecovery(true))
 	return 0
 }
 
