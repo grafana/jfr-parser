@@ -31,6 +31,10 @@ func TestMergeJVMGeneratedClasses(t *testing.T) {
 			"jdk/internal/reflect/GeneratedMethodAccessor31",
 			"jdk/internal/reflect/GeneratedMethodAccessor_",
 		},
+		{
+			"foo/bar/Baz$$EnhancerBySpringCGLIB$$1234567890",
+			"foo/bar/Baz$$EnhancerBySpringCGLIB$$_",
+		},
 	}
 	for _, testcase := range testcases {
 		res := mergeJVMGeneratedClasses(testcase.src)
