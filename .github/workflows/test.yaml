@@ -28,3 +28,19 @@ jobs:
         with:
           go-version: 1.24
       - run: GO_FLAGS="${{ matrix.flags }}" make test
+
+  check-generated:
+    runs-on: ubuntu-x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: 'false'
+      - name: Install Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version: 1.24
+      - name: Generate types
+        run: make generate-types
+      - name: Check no changes
+        run: git diff --exit-code
