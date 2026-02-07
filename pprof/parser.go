@@ -80,7 +80,12 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 			}
 		case parser.TypeMap.T_WALL_CLOCK_SAMPLE:
 			values[0] = int64(parser.WallClockSample.Samples)
-			builders.addStacktrace(sampleTypeWall, StacktraceCorrelation{}, parser.WallClockSample.StackTrace, values[:1])
+			correlation := StacktraceCorrelation{
+				ContextId: parser.WallClockSample.ContextId,
+				SpanId:    parser.WallClockSample.SpanId,
+				SpanName:  parser.WallClockSample.SpanName,
+			}
+			builders.addStacktrace(sampleTypeWall, correlation, parser.WallClockSample.StackTrace, values[:1])
 		case parser.TypeMap.T_ALLOC_IN_NEW_TLAB:
 			values[1] = int64(parser.ObjectAllocationInNewTLAB.TlabSize)
 			correlation := StacktraceCorrelation{

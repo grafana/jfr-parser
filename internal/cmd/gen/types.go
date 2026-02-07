@@ -322,6 +322,9 @@ var Type_profiler_WallClockSample = def.Class{
 		{Name: "sampledThread", Type: T_THREAD, ConstantPool: true},
 		{Name: "stackTrace", Type: T_STACK_TRACE, ConstantPool: true},
 		{Name: "state", Type: T_THREAD_STATE, ConstantPool: true},
+		{Name: "spanId", Type: T_LONG, ConstantPool: false},
+		{Name: "spanName", Type: T_LONG, ConstantPool: false},
+		{Name: "contextId", Type: T_LONG, ConstantPool: false},
 		{Name: "samples", Type: T_INT, ConstantPool: false},
 	},
 }
