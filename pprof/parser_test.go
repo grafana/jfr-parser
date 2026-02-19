@@ -188,6 +188,12 @@ var testFiles = []testdata{
 		expectedCount: 1,
 		options:       nil,
 	},
+	{
+		jfr:           "wall",
+		labels:        "",
+		expectedCount: 2,
+		options:       nil,
+	},
 }
 
 type gprofile struct {
