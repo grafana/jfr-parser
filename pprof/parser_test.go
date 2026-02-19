@@ -173,7 +173,7 @@ var testFiles = []testdata{
 	{
 		jfr:           "wall_tick_sample",
 		labels:        "",
-		expectedCount: 1,
+		expectedCount: 2,
 		options:       nil,
 	},
 	{
