@@ -63,7 +63,6 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 			}
 			return nil, fmt.Errorf("jfr parser ParseEvent error: %w", err)
 		}
-
 		switch typ {
 		case parser.TypeMap.T_EXECUTION_SAMPLE:
 			ts := parser.GetThreadState(parser.ExecutionSample.State)
@@ -84,6 +83,10 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 				ContextId: parser.WallClockSample.ContextId,
 				SpanId:    parser.WallClockSample.SpanId,
 				SpanName:  parser.WallClockSample.SpanName,
+			}
+			ts := parser.GetThreadState(parser.WallClockSample.State)
+			if ts != nil && ts.Name == "STATE_RUNNABLE" && event == "wall" {
+				builders.addStacktrace(sampleTypeCPU, correlation, parser.WallClockSample.StackTrace, values[:1])
 			}
 			builders.addStacktrace(sampleTypeWall, correlation, parser.WallClockSample.StackTrace, values[:1])
 		case parser.TypeMap.T_ALLOC_IN_NEW_TLAB:
@@ -125,7 +128,6 @@ func parse(parser *parser.Parser, piOriginal *ParseInput, jfrLabels *LabelsSnaps
 			if parser.ActiveSetting.Name == "event" {
 				event = parser.ActiveSetting.Value
 			}
-
 		}
 	}
 
