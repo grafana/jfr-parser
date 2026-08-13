@@ -24,6 +24,22 @@ func TestMergeJVMGeneratedClasses(t *testing.T) {
 			"Fib$$Lambda_",
 		},
 		{
+			"io/opentelemetry/context/Context$$Lambda$lambda$wrap$2$2630016632.0x00000000000100dd",
+			"io/opentelemetry/context/Context$$Lambda$lambda$wrap$2_",
+		},
+		{
+			"org/example/rideshare/EnclosingClass$$Lambda$lambda$doWork$1$1283928880",
+			"org/example/rideshare/EnclosingClass$$Lambda$lambda$doWork$1_",
+		},
+		{
+			"org/example/rideshare/EnclosingClass$$Lambda",
+			"org/example/rideshare/EnclosingClass$$Lambda",
+		},
+		{
+			"org/example/rideshare/EnclosingClass$$LambdaHelper",
+			"org/example/rideshare/EnclosingClass$$LambdaHelper",
+		},
+		{
 			"java/util/concurrent/Executors$RunnableAdapter",
 			"java/util/concurrent/Executors$RunnableAdapter",
 		},

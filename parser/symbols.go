@@ -12,7 +12,11 @@ var generatedMethodAccessor = regexp.MustCompile("^(jdk/internal/reflect/Generat
 
 // org/example/rideshare/OrderService$$Lambda$669.0x0000000800fd7318.run
 // Fib$$Lambda.0x00007ffa600c4da0.run
-var lambdaGeneratedEnclosingClass = regexp.MustCompile("^(.+\\$\\$Lambda)(\\$?\\d*[./](0x)?[\\da-f]+|\\d+)$")
+// io/opentelemetry/context/Context$$Lambda$lambda$wrap$2$2630016632.0x00000000000100dd.call
+// The lambda implementation method name (e.g. $lambda$wrap$2) is stable compiler
+// naming and is kept; the trailing counter/address ids are unstable across JVM
+// instances and are stripped.
+var lambdaGeneratedEnclosingClass = regexp.MustCompile("^(.+\\$\\$Lambda)(\\$[a-zA-Z][\\w$]*?)?((\\$\\d+)?[./](0x)?[\\da-f]+|\\$?\\d+)$")
 
 // libzstd-jni-1.5.1-16931311898282279136.so.Java_com_github_luben_zstd_ZstdInputStreamNoFinalizer_decompressStream
 var zstdJniSoLibName = regexp.MustCompile("^(\\.?/tmp/)?(libzstd-jni-\\d+\\.\\d+\\.\\d+-)(\\d+)(\\.so)( \\(deleted\\))?$")
@@ -39,7 +43,7 @@ func mergeJVMGeneratedClasses(frame string) string {
 		frame = generatedMethodAccessor.ReplaceAllString(frame, "${1}_")
 	}
 	if strings.Contains(frame, "$$Lambda") {
-		frame = lambdaGeneratedEnclosingClass.ReplaceAllString(frame, "${1}_")
+		frame = lambdaGeneratedEnclosingClass.ReplaceAllString(frame, "${1}${2}_")
 	}
 	if strings.Contains(frame, "libzstd-jni-") {
 		frame = zstdJniSoLibName.ReplaceAllString(frame, "libzstd-jni-_.so")
