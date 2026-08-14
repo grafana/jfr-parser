@@ -111,3 +111,32 @@ func TestMergeSharedLibs(t *testing.T) {
 		assert.Equal(t, testcase.expectedRes, res)
 	}
 }
+
+// A marker exists only to skip regex work, so it has to hold for everything its
+// regex can match. A marker that does not follow from its regex disables the
+// rule outright, with no other symptom.
+func TestReplacementMarkersFollowFromRegex(t *testing.T) {
+	samples := []string{
+		"jdk/internal/reflect/GeneratedMethodAccessor31",
+		"org/example/rideshare/EnclosingClass$$Lambda$8/0x0000000800c01220",
+		"/tmp/libzstd-jni-1.5.1-16931311898282279136.so",
+		"/tmp/libamazonCorrettoCryptoProvider109b39cf33c563eb.so",
+		"/tmp/libasyncProfiler-macos-17b9a1d8156277a98ccc871afa9a8f69215f92.so",
+		"foo/bar/Baz$$EnhancerBySpringCGLIB$$1234567890",
+	}
+	reached := make([]bool, len(replacements))
+	for _, name := range samples {
+		for i, r := range replacements {
+			if !r.regex.MatchString(name) {
+				continue
+			}
+			reached[i] = true
+			assert.Equal(t, r.regex.ReplaceAllString(name, r.replaceWith), mergeJVMGeneratedClasses(name),
+				"%q matches the regex of rule %q but merging did not apply it, so its marker skipped the rule",
+				name, r.marker)
+		}
+	}
+	for i, ok := range reached {
+		assert.True(t, ok, "no sample reaches the regex of rule %q", replacements[i].marker)
+	}
+}
