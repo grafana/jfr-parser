@@ -282,10 +282,13 @@ var testFiles = []testdata{
 		// Captured with the grafana/async-profiler fork (v4.4.0.0) which emits
 		// traceIdHi/traceIdLo; the worker thread set trace id
 		// 0123456789abcdeffedcba9876543210 => samples carry a trace_id label.
-		jfr:           "traceid",
-		labels:        "",
-		expectedCount: 1,
-		options:       nil,
+		jfr:                                "traceid",
+		labels:                             "",
+		expectedCount:                      1,
+		expectedProcessRuntimeName:         "OpenJDK 64-Bit Server VM",
+		expectedProcessRuntimeVersion:      "24.0.2+12",
+		expectedProcessRuntimeVersionMajor: "24",
+		options:                            nil,
 	},
 }
 
