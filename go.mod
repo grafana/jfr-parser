@@ -1,6 +1,6 @@
 module github.com/grafana/jfr-parser
 
-go 1.25.0
+go 1.26.0
 
 toolchain go1.26.9
 
@@ -8,7 +8,7 @@ require (
 	github.com/google/pprof v0.0.0-20260507013755-92041b743c96
 	github.com/grafana/pyroscope/api v1.6.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/text v0.41.0
+	golang.org/x/text v0.43.0
 	google.golang.org/protobuf v1.36.11
 )
 
